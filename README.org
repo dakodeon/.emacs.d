@@ -1,0 +1,5 @@
+* My EMACS configuration
+
+Nothing too fancy -- just that!
+
+File =init.el= loads all .el files in the personal directory.

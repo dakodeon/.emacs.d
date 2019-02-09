@@ -2,4 +2,4 @@
 
 Nothing too fancy -- just that!
 
-File =init.el= loads all .el files in the personal directory.
+File =init.el= loads all .el files found in the personal directory.

@@ -6,3 +6,5 @@
 
 (global-set-key (kbd "C-x C-f") 'helm-find-files)
 (setq helm-follow-mode-persistent t)
+
+(global-set-key [remap switch-to-buffer] 'helm-buffers-list)

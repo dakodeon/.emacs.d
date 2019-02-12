@@ -21,6 +21,6 @@ point reaches the beginning or end of the buffer, stop there."
   (let ((orig-point (point)))
     (back-to-indentation)
     (when (= orig-point (point))
-      (beginning-of-visual-line 1))))
+      (move-beginning-of-line 1))))
 
-(global-set-key (kbd "C-a") 'smarter-move-beginning-of-line)
+(global-set-key [remap move-beginning-of-line] 'smarter-move-beginning-of-line)

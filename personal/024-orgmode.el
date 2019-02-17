@@ -5,6 +5,10 @@
 (setq org-hide-leading-stars t)
 (setq org-log-done 'time)
 
+;; only for email -- maybe later make this local?
+(setq org-export-with-toc nil)
+(setq org-export-with-section-numbers nil)
+
 (setq org-capture-templates
       '(("t" "Todo" entry (file+headline "" "Tasks")
          "* TODO %?\n  %i\n  %a")

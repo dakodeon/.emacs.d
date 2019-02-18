@@ -11,3 +11,6 @@
 
 ;; theme setting
 (load-theme 'darkokai t)
+
+;; rainbow mode everywhere (because why not?)
+(rainbow-mode)

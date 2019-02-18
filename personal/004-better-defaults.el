@@ -21,3 +21,6 @@
 
 ;; disable yes or no
 (fset 'yes-or-no-p 'y-or-n-p)
+
+;; enable which-key mode
+(which-key-mode)

@@ -20,7 +20,9 @@
 			yasnippet
 			yasnippet-snippets
 			helm
-			swoop)
+			swoop
+			which-key
+			rainbow-mode)
   "Default packages")
 
 (defun louk/packages-installed-p ()

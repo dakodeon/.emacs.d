@@ -97,6 +97,8 @@
        " AND NOT flag:trashed"
        " AND NOT maildir:/loukas.bass/Sent"))
 
+;; start mu4e
+(global-set-key (kbd "C-x m") 'mu4e)
 
 ;; AUTOSTART MU4E
 (mu4e~start)

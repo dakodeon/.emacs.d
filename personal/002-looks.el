@@ -12,5 +12,8 @@
 ;; visual line mode
 (global-visual-line-mode t)
 
+;; disable yes or no
+(fset 'yes-or-no-p 'y-or-n-p)
+
 ;; theme setting
 (load-theme 'darkokai t)

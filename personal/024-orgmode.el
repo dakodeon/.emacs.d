@@ -16,8 +16,11 @@
         ("j" "Journal" entry (file+datetree "journal.org")
          "* %^{entry title}\n%U\n  %?\n  %a")
 
-	("b" "Stuff to buy" entry (file "buy-list.org")
-	 "* TODO %^{item desc.}\n\n%x\n\nEst. delivery: %?\n\nOrder placed on: %U")
+	("b" "Web purchase" entry (file+headline "web-stuff.org" "Purchases")
+	 "* ORDERED %^{item desc.}\n\n%x\n\nEst. delivery: %?\n\nOrder placed on: %U")
+
+	("l" "Link" entry (file+headline "web-stuff.org" "Links")
+	 "* %x %^g\n %?\n%U")
 
 	("c" "Contact" entry (file "contacts.org")
 	 "* %^{nickname}\n:PROPERTIES:\n:NAME: %^{name}\n:EMAIL: [[%^{email}]]\n:END:")

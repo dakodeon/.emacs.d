@@ -22,17 +22,19 @@
 			helm
 			swoop
 			which-key
-			rainbow-mode)
+			rainbow-mode
+			peep-dired
+			ranger)
   "Default packages")
 
 (defun louk/packages-installed-p ()
   (cl-loop for pkg in louk/packages
-	when (not (package-installed-p pkg)) do (cl-return nil)
-	finally (cl-return t)))
+	   when (not (package-installed-p pkg)) do (cl-return nil)
+	   finally (cl-return t)))
 
 (unless (louk/packages-installed-p)
   (message "%s" "Refreshing package database...")
   (package-refresh-contents)
   (dolist (pkg louk/packages)
     (when (not (package-installed-p pkg))
-            (package-install pkg))))
+      (package-install pkg))))

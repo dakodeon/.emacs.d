@@ -62,15 +62,6 @@
 ;; kill message buffers after editing
 (setq message-kill-buffer-on-exit t)
 
-;; open mu4e in headers-view of account
-(defun mu4e-open-in-headers (account)
-  "Open mu4e in account's Inbox"
-  (interactive)
-  (mu4e~start)
-  (if (get-buffer "*mu4e-headers*" )
-      (switch-to-buffer "*mu4e-headers*"))
-  (mu4e-headers-search (concat "maildir:/" account "/Inbox")))
-
 ;; compose with orgmode
 (add-hook 'mu4e-compose-mode-hook
   (lambda()
@@ -88,14 +79,21 @@
 
 ;; alerts
 (mu4e-alert-set-default-style 'libnotify)
-;; (add-hook 'after-init-hook #'mu4e-alert-enable-notifications)
 (add-hook 'after-init-hook #'mu4e-alert-enable-mode-line-display)
 
 (setq mu4e-alert-interesting-mail-query
       (concat
        "flag:unread"
-       " AND NOT flag:trashed"
-       " AND NOT maildir:/loukas.bass/Sent"))
+       " AND maildir:/loukas.bass/Inbox"))
+
+;; open mu4e in headers-view of account
+(defun mu4e-open-in-headers (account)
+  "Open mu4e in account's Inbox"
+  (interactive)
+  (mu4e~start)
+  (if (get-buffer "*mu4e-headers*" )
+      (switch-to-buffer "*mu4e-headers*"))
+  (mu4e-headers-search (concat "maildir:/" account "/Inbox")))
 
 ;; start mu4e
 (global-set-key (kbd "C-x m") 'mu4e)

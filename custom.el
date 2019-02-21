@@ -7,6 +7,7 @@
    (quote
     ("5f4e4c9f5de8156f964fdf8a1b8f8f659efbfeff88b38f49ce13953a84272b77" default)))
  '(default-input-method "greek")
+ '(dired-mode-hook (quote (ranger-set-dired-key)))
  '(helm-source-names-using-follow (quote ("Occur")))
  '(package-selected-packages
    (quote

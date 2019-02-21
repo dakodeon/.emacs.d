@@ -15,7 +15,7 @@
 
 ;; split windows and follow
 (defun split-and-follow-horizontally ()
-  "Split and follow container horizontally. Overrides default C-x 2 action"
+  "Split and follow container horizontally."
   (interactive)
   (split-window-below)
   (balance-windows)
@@ -23,7 +23,7 @@
 (global-set-key (kbd "C-x 2") 'split-and-follow-horizontally)
 
 (defun split-and-follow-vertically ()
-    "Split and follow container vertically. Overrides default C-x 3 action"
+    "Split and follow container vertically."
   (interactive)
   (split-window-right)
   (balance-windows)

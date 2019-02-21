@@ -7,6 +7,8 @@
 ;;(global-unset-key (kbd "M-<down-mouse-1>"))
 (global-set-key (kbd "C-<down-mouse-1>") 'mc/add-cursor-on-click)
 
+(global-set-key (kbd "C-!") 'mc/insert-numbers)
+
 ;; ;;mc-extras
 ;; (define-key mc/keymap (kbd "C-. C-d") 'mc/remove-current-cursor)
 ;; (define-key mc/keymap (kbd "C-. d")   'mc/remove-duplicated-cursors)

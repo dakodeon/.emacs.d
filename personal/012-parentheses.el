@@ -2,8 +2,8 @@
 
 ;; smartparens
 (require 'smartparens-config)
-(smartparens-global-mode t)
-(show-smartparens-mode t)
+(smartparens-global-mode)
+(show-smartparens-mode)
 
 ;; remove enclosing brackets
 (global-set-key (kbd "M-s") 'sp-splice-sexp)

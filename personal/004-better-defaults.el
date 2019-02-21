@@ -19,6 +19,9 @@
 ;; show cursor position on text
 (column-number-mode 1)
 
+;; typing replaces text in selection
+(delete-selection-mode 1)
+
 ;; disable yes or no
 (fset 'yes-or-no-p 'y-or-n-p)
 

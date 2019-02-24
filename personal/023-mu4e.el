@@ -1,10 +1,8 @@
 (add-to-list 'load-path "/usr/local/share/emacs/site-lisp/mu4e")
 
-(setq user-mail-address "loukas.bass@gmx.com")
-
 (require 'smtpmail)
 
-; smtp
+; smtp defaults
 (setq message-send-mail-function 'smtpmail-send-it
       ;; smtpmail-starttls-credentials
       ;; '(("mail.gmx.com" 587 nil nil))
@@ -31,16 +29,66 @@
 ; get mail
 (setq mu4e-get-mail-command "mbsync -a"
       mu4e-html2text-command "w3m -T text/html"
-      mu4e-update-interval 120
+      mu4e-update-interval 60
       mu4e-headers-auto-update t
       mu4e-compose-signature-auto-include nil)
 
+;; maildirs shortcuts
 (setq mu4e-maildir-shortcuts
       '( ("/Inbox" . ?i)
 	 ("/loukas.bass/Inbox" . ?l)
          ("/loukas.bass/Sent" . ?s)
          ("/loukas.bass/Trash" . ?t)
-         ("/loukas.bass/Drafts" . ?d)))
+         ("/loukas.bass/Drafts" . ?D)
+	 ("/gmail/Inbox" . ?g)
+	 ("/dakodeon/Inbox" . ?d)))
+
+;; contexts
+(setq mu4e-contexts
+      `( ,(make-mu4e-context
+	   :name "loukas.bass"
+	   :match-func (lambda (msg)
+			 (when msg
+			   (mu4e-message-contact-field-matches msg
+							       :to "loukas.bass@gmx.com")))
+	   :vars '((smtpmail-smtp-user . "loukas.bass@gmx.com")
+		   (smtpmail-default-smtp-server . "mail.gmx.com")
+		   (smtpmail-smtp-server . "mail.gmx.com")
+		   (user-mail-address . "loukas.bass@gmx.com")
+		   (user-full-name . "loukas bass")
+		   (mu4e-sent-folder . "/loukas.bass/Sent")
+		   (mu4e-drafts-folder . "/loukas.bass/Drafts")
+		   (mu4e-trash-folder . "/loukas.bass/Trash")))
+	 ,(make-mu4e-context
+	   :name "gmail"
+	   :match-func (lambda (msg)
+			 (when msg
+			   (mu4e-message-contact-field-matches msg
+							       :to "freehuggs701@gmail.com")))
+	   :vars '((smtpmail-smtp-user . "freehuggs701@gmail.com")
+		   (smtpmail-default-smtp-server . "smtp.gmail.com")
+		   (smtpmail-smtp-server . "smtp.gmail.com")
+		   (user-mail-address . "freehuggs701@gmail.com")
+		   (user-full-name . "freexon")
+		   (mu4e-sent-folder . "/gmail/[Gmail]/Sent Mail")
+		   (mu4e-drafts-folder . "/gmail/Drafts")
+		   (mu4e-trash-folder . "/gmail/Trash")))
+	 ,(make-mu4e-context
+	   :name "dakodeon"
+	   :match-func (lambda (msg)
+			 (when msg
+			   (mu4e-message-contact-field-matches msg
+							       :to "dakodeon@hotmail.com.com")))
+	   :vars '((smtpmail-smtp-user . "dakodeon@hotmail.com")
+		   (smtpmail-default-smtp-server . "smtp.office365.com")
+		   (smtpmail-smtp-server . "smtp.office365.com")
+		   (user-mail-address . "dakodeon@hotmail.com")
+		   (user-full-name . "loukas b")
+		   (mu4e-sent-folder . "/dakodeon/Sent")
+		   (mu4e-drafts-folder . "/dakodeon/Drafts")
+		   (mu4e-trash-folder . "/dakodeon/Trash")))))
+
+(setq mu4e-context-policy 'pick-first)
 
 ;; update in background
 (setq mu4e-index-update-in-background t)

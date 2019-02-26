@@ -1,6 +1,7 @@
 ;; peep-dired / ranger / image dired
 (define-key dired-mode-map "P" 'peep-dired)
 (define-key dired-mode-map "R" 'ranger-mode)
+(define-key dired-mode-map "r" 'dired-do-rename)
 ;; (define-key dired-mode-map "C-S-t" (lambda () (interactive) 'image-dired-show-all-from-dir "."))
 
 ;; image dired 

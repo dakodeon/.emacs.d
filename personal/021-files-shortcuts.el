@@ -23,3 +23,4 @@
 (define-key z-map (kbd "C") (lambda () (interactive) (goto-file-or-dir "~/.config/")))
 (define-key z-map (kbd "D") (lambda () (interactive) (goto-file-or-dir "~/Downloads/")))
 (define-key z-map (kbd "d") (lambda () (interactive) (goto-file-or-dir "~/Documents/")))
+(define-key z-map (kbd "c") (lambda () (interactive) (goto-file-or-dir "~/dotfiles/")))

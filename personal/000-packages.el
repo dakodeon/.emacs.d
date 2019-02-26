@@ -24,7 +24,8 @@
 			which-key
 			rainbow-mode
 			peep-dired
-			ranger)
+			ranger
+			git-gutter)
   "Default packages")
 
 (defun louk/packages-installed-p ()

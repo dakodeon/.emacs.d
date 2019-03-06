@@ -25,7 +25,8 @@
 			rainbow-mode
 			peep-dired
 			ranger
-			git-gutter)
+			git-gutter
+			evil)
   "Default packages")
 
 (defun louk/packages-installed-p ()

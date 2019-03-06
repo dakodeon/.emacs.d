@@ -8,6 +8,9 @@
 ;; use clipboard
 (setq select-enable-clipboard t)
 
+;; a sentence ends after a dot and a space
+(setq sentence-end-double-space nil)
+
 ;; these are disabled by default, but I want them
 (put 'downcase-region 'disabled nil)
 (put 'upcase-region 'disabled nil)

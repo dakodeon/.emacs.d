@@ -1,0 +1,17 @@
+;; Emacs-W3 HTTP cookies file
+;; Automatically generated file!!! DO NOT EDIT!!!
+
+(setq url-cookie-storage
+ '(("gmx.com"
+  [url-cookie "cookieKID" "kid%40autoref%40gmx.com" "Fri, 29-Mar-2019 21:41:03 GMT" "/" "gmx.com" nil]
+  [url-cookie "cookiePartner" "kid%40autoref%40gmx.com" "Fri, 29-Mar-2019 21:41:03 GMT" "/" "gmx.com" nil]))
+)
+(setq url-cookie-secure-storage
+ '(("outlook.live.com"
+  [url-cookie "ClientId" "842583853ED547DCA3BD6C8C9E7C91DE" "Thu, 27-Feb-2020 21:41:29 GMT" "/" "outlook.live.com" t]))
+)
+
+;; Local Variables:
+;; version-control: never
+;; no-byte-compile: t
+;; End:

@@ -16,8 +16,16 @@
 (require 'mu4e)
 (require 'org-mu4e)
 
+(setq mu4e-confirm-quit nil)
+(setq mu4e-compose-dont-reply-to-self t)
+
 (setq mu4e-maildir (expand-file-name "~/.personal/Mail"))
 
+(setq mu4e-user-mail-address-list '("loukas.bass@gmx.com"
+				    "dakodeon@hotmail.com"
+				    "freehuggs701@gmail.com"))
+
+;; default directories
 (setq mu4e-drafts-folder "/loukas.bass/Drafts")
 (setq mu4e-sent-folder "/loukas.bass/Sent")
 (setq mu4e-trash-folder "/loukas.bass/Trash")
@@ -90,6 +98,8 @@
 
 (setq mu4e-context-policy 'pick-first)
 
+(add-to-list 'mu4e-view-actions '("ViewInBrowser" . mu4e-action-view-in-browser) t)
+
 ;; update in background
 (setq mu4e-index-update-in-background t)
 (setq mu4e-hide-index-messages t)
@@ -113,7 +123,7 @@
 ;; compose with orgmode
 (add-hook 'mu4e-compose-mode-hook
   (lambda()
-    (local-set-key (kbd "C") 'org-mu4e-compose-org-mode)
+    (local-set-key (kbd "M-c") 'org-mu4e-compose-org-mode)
     ))
 
 (setq org-mu4e-convert-to-html t)

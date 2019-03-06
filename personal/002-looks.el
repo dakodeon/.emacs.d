@@ -10,7 +10,13 @@
 (menu-bar-mode -1)
 
 ;; theme setting
-(load-theme 'darkokai t)
+;; (load-theme 'darkokai t)
+(require 'color-theme-sanityinc-tomorrow)
+(color-theme-sanityinc-tomorrow--define-theme bright)
 
-;; rainbow mode everywhere (because why not?)
-(rainbow-mode)
+;; rainbow mode
+(add-hook 'prog-mode-hook 'rainbow-mode)
+
+;; highlight lines
+(global-hl-line-mode t)
+(set-face-background 'hl-line "#151515")

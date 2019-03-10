@@ -19,7 +19,7 @@
 (define-key z-map (kbd "z") (lambda () (interactive) (goto-file-or-dir "~/.zshrc")))
 (define-key z-map (kbd "h") (lambda () (interactive) (goto-file-or-dir "~/")))
 (define-key z-map (kbd "P") (lambda () (interactive) (goto-file-or-dir "~/Pictures/")))
-(define-key z-map (kbd "p") (lambda () (interactive) (goto-file-or-dir "~/.personal")))
+(define-key z-map (kbd "p") (lambda () (interactive) (goto-file-or-dir "~/.personal/")))
 (define-key z-map (kbd "C") (lambda () (interactive) (goto-file-or-dir "~/.config/")))
 (define-key z-map (kbd "D") (lambda () (interactive) (goto-file-or-dir "~/Downloads/")))
 (define-key z-map (kbd "d") (lambda () (interactive) (goto-file-or-dir "~/Documents/")))

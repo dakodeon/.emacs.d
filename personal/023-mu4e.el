@@ -67,6 +67,7 @@
 		   (mu4e-sent-folder . "/loukas.bass/Sent")
 		   (mu4e-drafts-folder . "/loukas.bass/Drafts")
 		   (mu4e-trash-folder . "/loukas.bass/Trash")))
+	 
 	 ,(make-mu4e-context
 	   :name "gmail"
 	   :match-func (lambda (msg)
@@ -81,6 +82,7 @@
 		   (mu4e-sent-folder . "/gmail/[Gmail]/Sent Mail")
 		   (mu4e-drafts-folder . "/gmail/Drafts")
 		   (mu4e-trash-folder . "/gmail/Trash")))
+	 
 	 ,(make-mu4e-context
 	   :name "dakodeon"
 	   :match-func (lambda (msg)

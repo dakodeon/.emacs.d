@@ -28,9 +28,9 @@
  '(magit-diff-use-overlays nil)
  '(package-selected-packages
    (quote
-    (color-theme-sanityinc-tomorrow mu4e-alert helm try swoop yasnippet-snippets yasnippet auto-complete latex-preview-pane use-package pdf-tools auctex auctex-latexmk expand-region ido-vertical-mode
-				    (\, ace-window)
-				    rainbow-delimiters smartparens)))
+    (darkroom color-theme-sanityinc-tomorrow mu4e-alert helm try swoop yasnippet-snippets yasnippet auto-complete latex-preview-pane use-package pdf-tools auctex auctex-latexmk expand-region ido-vertical-mode
+	      (\, ace-window)
+	      rainbow-delimiters smartparens)))
  '(pos-tip-background-color "#E6DB74")
  '(pos-tip-foreground-color "#242728")
  '(vc-annotate-background nil)

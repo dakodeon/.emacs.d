@@ -9,6 +9,8 @@
 
 ;; add here any packages you want by default
 (defvar louk/packages '(smartparens
+			rainbow-delimiters
+			color-theme-sanityinc-tomorrow
 			ace-window
 			multiple-cursors
 			mc-extras

@@ -26,11 +26,11 @@
      ("#F309DF" . 85)
      ("#424748" . 100))))
  '(magit-diff-use-overlays nil)
+ '(org-agenda-files (quote ("~/.emacs.d/my-config.org")))
  '(package-selected-packages
    (quote
-    (darkroom color-theme-sanityinc-tomorrow mu4e-alert helm try swoop yasnippet-snippets yasnippet auto-complete latex-preview-pane use-package pdf-tools auctex auctex-latexmk expand-region ido-vertical-mode
-	      (\, ace-window)
-	      rainbow-delimiters smartparens)))
+    (evil-collection org-plus-contrib helm ace-window rainbow-delimiters smartparens expand-region evil-org ranger peep-dired ace-mc mc-extras evil-mu4e org-mu4e darkroom mu4e-alert try swoop yasnippet-snippets yasnippet auto-complete latex-preview-pane pdf-tools auctex auctex-latexmk ido-vertical-mode
+		     (\, ace-window))))
  '(pos-tip-background-color "#E6DB74")
  '(pos-tip-foreground-color "#242728")
  '(vc-annotate-background nil)

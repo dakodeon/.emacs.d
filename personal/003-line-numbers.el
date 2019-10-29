@@ -1,7 +1,7 @@
 ;; === LINE NUMBERING
 
 ;; display line numbers
-(display-line-numbers-mode)
+(display-line-numbers-mode t)
 
 ;; relative numbers
 ;; (linum-relative-global-mode 1)

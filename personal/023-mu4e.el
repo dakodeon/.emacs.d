@@ -17,7 +17,7 @@
 (require 'org-mu4e)
 
 (setq mu4e-confirm-quit nil)
-(setq mu4e-compose-dont-reply-to-self t)
+(setq mu4e-compose-dont-reply-to-self nil)
 
 (setq mu4e-maildir (expand-file-name "~/.personal/Mail"))
 

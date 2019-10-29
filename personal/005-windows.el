@@ -32,7 +32,7 @@
 
 ;; toggle window split
 (defun toggle-window-split ()
-  "Switch between horizontal and vertical split. Works only with two windows."
+  "Switch between horizontal and vertical split when using two windows."
   (interactive)
   (if (= (count-windows) 2)
       (let* ((this-win-buffer (window-buffer))
@@ -57,4 +57,6 @@
       (select-window first-win)
       (if this-win-2nd (other-window 1))))))
 
-(global-set-key (kbd "C-x \\") 'toggle-window-split)
+(global-set-key (kbd "C-x |") 'toggle-window-split)
+
+(global-set-key (kbd "C-x \\") 'window-swap-states)

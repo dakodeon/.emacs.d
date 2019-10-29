@@ -28,7 +28,9 @@
 			peep-dired
 			ranger
 			git-gutter
-			evil)
+			evil
+			evil-mu4e
+			darkroom)
   "Default packages")
 
 (defun louk/packages-installed-p ()

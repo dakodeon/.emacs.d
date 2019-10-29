@@ -19,4 +19,13 @@
 
 ;; highlight lines
 (global-hl-line-mode t)
-(set-face-background 'hl-line "#151515")
+(set-face-background 'hl-line "#202020")
+
+;; darkroom options
+(setq darkroom-text-scale-increase 0.8)
+
+;; seems more sensible to do use _ instead of -
+(global-set-key (kbd "C-M-_") 'darkroom-decrease-margins)
+
+(global-set-key (kbd "C-x M-D") 'darkroom-tentative-mode)
+

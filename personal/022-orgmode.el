@@ -1,10 +1,18 @@
 ;; org mode
 
+(require 'org-tempo)
+
 (setq org-hide-leading-stars t)
 
 (setq org-directory "~/.personal")
 (setq org-default-notes-file (concat org-directory "/organizer.org"))
 (setq org-log-done 'time)
+
+;; code blocks options
+(setq org-src-fontify-natively t
+    org-src-tab-acts-natively t
+    org-confirm-babel-evaluate nil
+    org-edit-src-content-indentation 0)
 
 ;; only for email -- maybe later make this local?
 (setq org-export-with-toc nil)

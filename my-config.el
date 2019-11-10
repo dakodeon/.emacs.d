@@ -31,6 +31,7 @@
 
 (use-package linum-relative
   :ensure t
+  :after org
   :init
   (setq linum-relative-current-symbol "")
   :bind ("C-x M-l" . linum-relative-toggle))
@@ -138,6 +139,15 @@ point reaches the beginning or end of the buffer, stop there."
 (global-set-key (kbd "S-C-<right>") 'enlarge-window-horizontally)
 (global-set-key (kbd "S-C-<down>") 'shrink-window)
 (global-set-key (kbd "S-C-<up>") 'enlarge-window)
+
+;; got this idea from https://www.reddit.com/r/emacs/comments/8hpyp5/tip_how_to_execute_a_bash_function_when_saving_a/
+
+(defun my/cmd-after-saved-file ()
+  "Evaluate the init file automatically"
+    (when (string= (buffer-file-name) "/home/louk/.emacs.d/my-config.org")
+      (load-file "/home/louk/.emacs.d/init.el")))
+
+(add-hook 'after-save-hook 'my/cmd-after-saved-file)
 
 (use-package ace-window
   :ensure t
@@ -290,6 +300,9 @@ point reaches the beginning or end of the buffer, stop there."
 (setq org-export-with-toc nil)
 (setq org-export-with-section-numbers nil)
 
+;; links
+(setq org-link-search-must-match-exact-headline nil)
+
 ;; files
 (setq org-directory "~/.personal")
 (setq org-default-notes-file (concat org-directory "/organizer.org"))
@@ -299,10 +312,12 @@ point reaches the beginning or end of the buffer, stop there."
 (setq org-log-into-drawer 'LOGBOOK)
 (setq org-clock-into-drawer t)
 
+
 ;; bindings
 (global-set-key (kbd "C-c l") 'org-store-link)
 (global-set-key (kbd "C-c a") 'org-agenda)
 (global-set-key (kbd "C-c c") 'org-capture)
+(global-set-key (kbd "C-c C-x C-z") 'org-resolve-clocks)
 
 ;; some capture functions from Zamansky's configuration
 (defadvice org-capture-finalize 
@@ -329,31 +344,25 @@ point reaches the beginning or end of the buffer, stop there."
 	 "* TODO %?\n  %i\n  %a")
 
 	("j" "Journal" entry (file+datetree "journal.org")
-	 "* %^{entry title}\n%U\n  %?\n  %a")
+	 "* %^{entry title}%^G\n%U\n  %?\n")
 
-	("B" "Web purchase" entry (file+headline "web-stuff.org" "Purchases")
-	 "* ORDERED %^{item desc.}\n\n%x\n\nEst. delivery: %?\n\nOrder placed on: %U")
+	("p" "Logs for photographic process")
 
-	("l" "Link" entry (file+headline "web-stuff.org" "Links")
-	 "* %x %^g\n %?\n%U")
+	("pd" "Darkroom log" entry (file+datetree "darkroom-log.org")
+	 "* %U :darkroom:%^g\n%?" :clock-in t)
 
-	("b" "Bibliography reference" entry (file "bib-references.org")
-	 "* @%^{.bib entry}: %^{description} %^g\n %^{page(s)} %?\n%U")
+	;; ("B" "Web purchase" entry (file+headline "web-stuff.org" "Purchases")
+	;;  "* ORDERED %^{item desc.}\n\n%x\n\nEst. delivery: %?\n\nOrder placed on: %U")
 
-	("c" "Contact" entry (file "contacts.org")
-	 "* %^{nickname}\n:PROPERTIES:\n:NAME: %^{name}\n:EMAIL: [[%^{email}]]\n:END:")
+	;; ("l" "Link" entry (file+headline "web-stuff.org" "Links")
+	;;  "* %x %^g\n %?\n%U")
+
+	;; ("b" "Bibliography reference" entry (file "bib-references.org")
+	;;  "* @%^{.bib entry}: %^{description} %^g\n %^{page(s)} %?\n%U")
+
+	;; ("c" "Contact" entry (file "contacts.org")
+	;;  "* %^{nickname}\n:PROPERTIES:\n:NAME: %^{name}\n:EMAIL: [[%^{email}]]\n:END:")
 	))
-
-;; (use-package evil-org
-;;   :ensure t
-;;   :after org
-;;   :config
-;;   (add-hook 'org-mode-hook 'evil-org-mode)
-;;   (add-hook 'evil-org-mode-hook
-;; 	    (lambda ()
-;; 	      (evil-org-set-key-theme)))
-;;   (require 'evil-org-agenda)
-;;   (evil-org-agenda-set-keys))
 
 (setq TeX-parse-self t)
 (setq-default TeX-master nil)
@@ -408,7 +417,7 @@ point reaches the beginning or end of the buffer, stop there."
 
 (setq mu4e-get-mail-command "mbsync -a")
 (setq mu4e-html2text-command "w3m -T text/html")
-(setq mu4e-update-interval 60)
+(setq mu4e-update-interval nil) ;; every 5 mins seems more practical
 (setq mu4e-headers-auto-update t)
 
 (setq mu4e-maildir (expand-file-name "~/.personal/Mail"))
@@ -488,11 +497,11 @@ point reaches the beginning or end of the buffer, stop there."
       (switch-to-buffer "*mu4e-headers*"))
   (mu4e-headers-search (concat "maildir:/" account "/Inbox")))
 
-(add-hook 'mu4e-index-updated-hook
-	  (defun mu4e-signal-i3blocks ()
-	    (shell-command "pkill -RTMIN+2 i3blocks")))
+;; (add-hook 'mu4e-index-updated-hook
+;; 	  (defun mu4e-signal-i3blocks ()
+;; 	    (shell-command "pkill -RTMIN+2 i3blocks")))
 
-(add-hook 'mu4e-view-mode-hook 'mu4e-signal-i3blocks)
+;; (add-hook 'mu4e-view-mode-hook 'mu4e-signal-i3blocks)
 
 (mu4e~start)
 
@@ -535,8 +544,11 @@ point reaches the beginning or end of the buffer, stop there."
 	("g $" . 'evil-end-of-line)
 	([down] . 'evil-next-visual-line)
 	([up] . 'evil-previous-visual-line)
+	(";" . 'evil-repeat-find-char)
 	:map evil-emacs-state-map
-	([escape] . 'evil-normal-state)))
+	([escape] . 'evil-normal-state)
+	:map evil-motion-state-map
+	(":" . 'evil-ex)))
 
 (defun goto-file-or-dir (f)
   "Find the given file. If file is a directory, do helm-find-file there"

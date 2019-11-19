@@ -33,6 +33,7 @@
     (delete-selection-mode 1)            ;; typing deletes selected text
     (set-language-environment "UTF-8")   ;; always use UTF-8 encoding
     (set-default-coding-systems 'utf-8)
+    (define-key input-decode-map [?\C-m] [C-m]) ;; stop reading C-m as RET
     #+end_src
 
 *** Enable some disabled features
@@ -140,6 +141,7 @@
       :init
       (smartparens-global-mode 1)
       (show-smartparens-global-mode 1)
+      (sp-local-pair 'emacs-lisp-mode "'" nil :actions nil)
       :bind
       ("M-s" . sp-splice-sexp))
 
@@ -383,6 +385,12 @@
    #+end_src
 
 ** DIRED
+*** Dired defaults
+    #+begin_src emacs-lisp
+    (add-hook 'dired-mode-hook
+	      (lambda ()
+		(dired-hide-details-mode)))
+    #+end_src
 *** Image dired
    
     #+begin_src emacs-lisp
@@ -419,27 +427,31 @@
 	    ("R" . ranger-mode)))
     #+end_src
 
-*** attatch marked files to email
+*** Attatch marked files to email
 Using dired, as found [[https://emacs.stackexchange.com/questions/14652/attach-multiple-files-from-the-same-directory-to-an-email-message][here]].
 
 Open a dired buffer, mark some files and run the command. If there's an open message buffer use it, else create new message
 
 #+begin_src emacs-lisp
-(defun compose-attach-marked-files ()
-  "Compose mail and attach all the marked files from a dired buffer."
-  (interactive)
-  (let ((files (dired-get-marked-files)))
-    (compose-mail nil nil nil t)
-    (dolist (file files)
-          (if (file-regular-p file)
-              (mml-attach-file file
-                               (mm-default-file-encoding file)
-                               nil "attachment")
-            (message "skipping non-regular file %s" file)))))
-
-(define-key dired-mode-map (kbd "C-c M-.") 'compose-attach-marked-files)
+  (defun compose-attach-marked-files ()
+    "Compose mail and attach all the marked files from a dired buffer."
+    (interactive)
+    (let ((files (dired-get-marked-files)))
+      (compose-mail nil nil nil t)
+      (dolist (file files)
+	    (if (file-regular-p file)
+		(mml-attach-file file
+				 (mm-default-file-encoding file)
+				 nil "attachment")
+	      (message "skipping non-regular file %s" file)))))
 #+end_src
 
+*** Dired-specific keybindings
+#+begin_src emacs-lisp
+  (eval-after-load "dired"
+    '(progn
+       (define-key dired-mode-map (kbd "C-c M-.") 'compose-attach-marked-files)))
+#+end_src
 ** ORG-MODE
 *** Ensure org-plus-contrib
 
@@ -546,6 +558,8 @@ Open a dired buffer, mark some files and run the command. If there's an open mes
       :ensure nil
       :after org
       :custom (org-contacts-files '("~/.personal/contacts.org")))
+
+    (global-set-key (kbd "C-x M-m") 'org-contacts-view-send-email)
     #+end_src
 ** LATEX
 
@@ -746,6 +760,7 @@ Auto start mu4e on emacs startup
 
     #+begin_src emacs-lisp
     (mu4e~start)
+    (mu4e-update-mail-and-index t)
     #+end_src
 
 ** EVIL COLLECTION

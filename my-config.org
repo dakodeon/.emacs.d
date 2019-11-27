@@ -314,7 +314,7 @@
     #+end_src
 
 ** HELM
-
+*** Basics
    #+begin_src emacs-lisp
    (use-package helm-config
      :ensure helm
@@ -327,25 +327,34 @@
      :bind
      (("M-x" . helm-M-x)
       ("C-x C-f" . helm-find-files)
+      ("M-y" . helm-show-kill-ring)
       ([remap switch-to-buffer] . helm-buffers-list)))
    #+end_src
+   
+*** Helm-swoop
+    #+begin_src emacs-lisp
+    (use-package helm-swoop
+      :ensure t
+      :after helm evil
+      :init
+      (setq helm-swoop-speed-or-color t)
+      ;; pre-input disabled or marked word
+      (setq helm-swoop-pre-input-function
+	  (lambda ()
+	    (if mark-active
+		(buffer-substring-no-properties (mark) (point)) "")))
+      :bind
+      ("M-i" . 'helm-swoop)
+      ("C-M-i" . 'helm-multi-swoop)
+      ("M-I" . 'helm-swoop-back-to-last-point)
+      (:map helm-swoop-map
+	    ("M-i" . 'helm-multi-swoop-all-from-helm-swoop))
+      (:map isearch-mode-map
+	    ("M-i" . 'helm-swoop-from-isearch))
+      (:map evil-motion-state-map
+	    ("M-i" . 'helm-swoop-from-evil-search)))
 
-** SWOOP
-
-   #+begin_src emacs-lisp
-   (use-package swoop
-     :ensure t
-     :init
-     (setq swoop-font-size-change: nil)
-     :bind
-     (("C-S" . swoop)
-      ("C-R" . swoop-back-to-last-position)
-      :map swoop-map
-      ("C-o" . swoop-multi-from-swoop)
-      :map isearch-mode-map
-      ("C-o" . swoop-from-isearch)))
-   #+end_src
-
+    #+end_src
 ** AUTOCOMPLETE
 
    #+begin_src emacs-lisp
@@ -434,7 +443,7 @@ Open a dired buffer, mark some files and run the command. If there's an open mes
 
 #+begin_src emacs-lisp
   (defun compose-attach-marked-files ()
-    "Compose mail and attach all the marked files from a dired buffer."
+    "Compose mail and attach all the marked files from a dired buffer. Uses `compose-mail', or `org-msg-attach-attach' if org-msg is enabled."
     (interactive)
     (let ((files (dired-get-marked-files)))
       (compose-mail nil nil nil t)
@@ -452,6 +461,19 @@ Open a dired buffer, mark some files and run the command. If there's an open mes
     '(progn
        (define-key dired-mode-map (kbd "C-c M-.") 'compose-attach-marked-files)))
 #+end_src
+** DIARY AND CALENDAR
+*** Default diary file
+    #+begin_src emacs-lisp
+    (setq diary-file "~/.personal/diary")
+    #+end_src
+*** Preferred time format
+    #+begin_src emacs-lisp
+    (calendar-set-date-style 'european)
+    #+end_src
+*** Start diary
+    #+begin_src emacs-lisp
+    (diary)
+    #+end_src
 ** ORG-MODE
 *** Ensure org-plus-contrib
 
@@ -476,8 +498,8 @@ Open a dired buffer, mark some files and run the command. If there's an open mes
     (setq org-edit-src-content-indentation 0)
 
     ;; export options -- for mail html export (fix it locally!)
-    (setq org-export-with-toc nil)
-    (setq org-export-with-section-numbers nil)
+;;    (setq org-export-with-toc nil)
+  ;;  (setq org-export-with-section-numbers nil)
 
     ;; links
     (setq org-link-search-must-match-exact-headline nil)
@@ -489,6 +511,9 @@ Open a dired buffer, mark some files and run the command. If there's an open mes
     ;; files
     (setq org-directory "~/.personal")
     (setq org-default-notes-file (concat org-directory "/organizer.org"))
+
+    ;; include diary entries in agenda
+    (setq org-agenda-include-diary t)
 
     ;; TODOs
     (setq org-log-done 'time)
@@ -553,13 +578,22 @@ Open a dired buffer, mark some files and run the command. If there's an open mes
     #+end_src
     
 *** Org-contacts
+    
     #+begin_src emacs-lisp
     (use-package org-contacts
       :ensure nil
-      :after org
-      :custom (org-contacts-files '("~/.personal/contacts.org")))
+      :after org mu4e
+      :custom (org-contacts-files '("~/.personal/contacts.org"))
+      :bind  ("C-x M-m" . 'org-contacts-view-send-email))
+    #+end_src
 
-    (global-set-key (kbd "C-x M-m") 'org-contacts-view-send-email)
+*** org-msg
+    #+begin_src emacs-lisp
+    (use-package org-msg
+      :ensure t
+      :after org mu4e
+      :bind
+      (:map mu4e-compose-mode-map ("M-c" . 'org-msg-edit-mode)))
     #+end_src
 ** LATEX
 
@@ -616,10 +650,7 @@ Open a dired buffer, mark some files and run the command. If there's an open mes
     #+begin_src emacs-lisp
     (require 'smtpmail)
 
-					    ; smtp defaults
     (setq message-send-mail-function 'smtpmail-send-it
-	  ;; smtpmail-starttls-credentials
-	  ;; '(("mail.gmx.com" 587 nil nil))
 	  smtpmail-default-smtp-server "mail.gmx.com"
 	  smtpmail-smtp-server "mail.gmx.com"
 	  smtpmail-smtp-user "loukas.bass@gmx.com"
@@ -710,28 +741,6 @@ Open a dired buffer, mark some files and run the command. If there's an open mes
     (setq mu4e-context-policy 'pick-first)
     #+end_src
 
-*** org-mu4e and compose options
-
-    #+begin_src emacs-lisp
-    (require 'org-mu4e)
-    (setq org-mu4e-convert-to-html t)
-    (define-key mu4e-compose-mode-map (kbd "M-c") 'org-mu4e-compose-org-mode)
-    #+end_src
-
-*** org-contacts
-
-Manage contacts with org-contacts
-
-#+begin_src emacs-lisp
-(setq mu4e-org-contacts-file "~/.personal/contacts.org")
-
-(add-to-list 'mu4e-headers-actions
-	     '("org-contact-add" . mu4e-action-add-org-contact) t)
-
-(add-to-list 'mu4e-view-actions
-	     '("org-contact-add" . mu4e-action-add-org-contact) t)
-#+end_src
-
 *** mu4e open in headers of specific account
    
     #+begin_src emacs-lisp
@@ -753,6 +762,20 @@ Manage contacts with org-contacts
 
     (add-hook 'mu4e-view-mode-hook 'mu4e-signal-i3blocks)
     #+end_src
+
+*** Contacts management
+
+Manage contacts with org-contacts
+
+#+begin_src emacs-lisp
+(setq mu4e-org-contacts-file "~/.personal/contacts.org")
+
+(add-to-list 'mu4e-headers-actions
+	     '("org-contact-add" . mu4e-action-add-org-contact) t)
+
+(add-to-list 'mu4e-view-actions
+	     '("org-contact-add" . mu4e-action-add-org-contact) t)
+#+end_src
 
 *** Start mu4e
 

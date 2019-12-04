@@ -1,8 +1,8 @@
-* MY CONFIG
+* EMACS CONFIG
 
-  Trying to use org-mode for emacs configuration, alongside with use-package
+Emacs configuration managed with org-mode and use-package.
 
-  Maybe this will lead to a more sensible configuration.
+The code snippets are loaded by =init.el=, which also loads =use-package=.
 
 ** INTERFACE
 *** Try packages
@@ -163,7 +163,9 @@
        ("C-c -" . er/contract-region)))
     #+end_src
 
-*** Smarter move to beginning of line -- part of Prelude
+*** Smarter move to beginning of line
+    
+    Part of Prelude
 
     #+begin_src emacs-lisp
     (defun smarter-move-beginning-of-line (arg)
@@ -215,6 +217,8 @@
     #+end_src
 
 *** Windows movement and resizing
+  
+    This would be good if my damn keyboard worked correctly. I think I should use vim keys or sth
 
     #+begin_src emacs-lisp
     (windmove-default-keybindings) ;; use arrow keys ot navigate
@@ -230,8 +234,9 @@
     
     Auto-evaluate the init.el file when saving this org file. A must have!
 
+    Got the general idea from https://www.reddit.com/r/emacs/comments/8hpyp5/tip_how_to_execute_a_bash_function_when_saving_a/
+
     #+begin_src emacs-lisp
-    ;; got this idea from https://www.reddit.com/r/emacs/comments/8hpyp5/tip_how_to_execute_a_bash_function_when_saving_a/
 
     (defun louk/reload-emacs ()
       "Reload the init file"
@@ -240,7 +245,7 @@
 
     (defun my/cmd-after-saved-file ()
       "Evaluate the init file automatically"
-	(when (string= (buffer-file-name) "/home/louk/.emacs.d/my-config.org")
+	(when (string= (buffer-file-name) "~/.emacs.d/my-config.org")
 	  (louk/reload-emacs)))
 
     (add-hook 'after-save-hook 'my/cmd-after-saved-file)
@@ -332,10 +337,10 @@
      :config
      (helm-mode 1)
      :bind
-     (("M-x" . helm-M-x)
-      ("C-x C-f" . helm-find-files)
-      ("M-y" . helm-show-kill-ring)
-      ([remap switch-to-buffer] . helm-buffers-list)))
+     ("M-x" . helm-M-x)
+     ("C-x C-f" . helm-find-files)
+     ("M-y" . helm-show-kill-ring)
+     ([remap switch-to-buffer] . helm-buffers-list))
    #+end_src
    
 *** Helm-swoop
@@ -363,19 +368,22 @@
 
     #+end_src
 ** AUTOCOMPLETE
+   
+   Maybe use another option, like company. I have to check it out.
 
    #+begin_src emacs-lisp
    (use-package auto-complete
      :ensure t
      :init
-     (progn
-       (ac-config-default)
-       (global-auto-complete-mode t)
-       (setq ac-sources (append ac-sources '(ac-sources-filename)))
-       (setq ac-ignore-case nil)))
+     (ac-config-default)
+     (global-auto-complete-mode t)
+     (setq ac-sources (append ac-sources '(ac-sources-filename)))
+     (setq ac-ignore-case nil))
    #+end_src
 
 ** MULTIPLE CURSORS
+
+   It seems that the mc package is not really needed. Maybe everything it does can be achieved by using replacement methods and/or macros. Not to mention vim's =:g= command, or helm-swoop.
 
    #+begin_src emacs-lisp
    (use-package multiple-cursors
@@ -394,7 +402,7 @@
 
    (use-package ace-mc
      :ensure t
-     :after multiple-cursors
+     :after mc-extras
      :bind
      ("C-c )" . ace-mc-add-multiple-cursors)
      ("C-M-)" . ace-mc-add-single-cursor))
@@ -450,6 +458,7 @@ Open a dired buffer, mark some files and run the command. If there's an open mes
       :after evil evil-collection
       :init
       (setq dired-dwim-target t)
+      (setq dired-listing-switches "-alh") ;; add human-readable sizes
       ;; image dired
       (setq image-dired-thumb-width 250)
       (setq image-dired-thumbs-per-row 4)

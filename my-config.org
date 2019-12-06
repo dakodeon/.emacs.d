@@ -245,12 +245,12 @@ The code snippets are loaded by =init.el=, which also loads =use-package=.
 
     (defun my/cmd-after-saved-file ()
       "Evaluate the init file automatically"
-	(when (string= (buffer-file-name) "~/.emacs.d/my-config.org")
+	(when (string= (buffer-file-name) (expand-file-name "~/.emacs.d/my-config.org"))
 	  (louk/reload-emacs)))
 
     (add-hook 'after-save-hook 'my/cmd-after-saved-file)
 
-    ;; also makes sense to bind a "refresh" key
+    ;; also makes sense to bind a "refresh" key, similar to the i3 config
     (global-set-key (kbd "C-M-S-r") 'louk/reload-emacs)
     #+end_src
 
@@ -464,21 +464,34 @@ Open a dired buffer, mark some files and run the command. If there's an open mes
       (setq image-dired-thumbs-per-row 4)
       (setq image-dired-external-viewer "sxiv")
       :config
+      (remove-hook 'dired-mode-hook 'ranger-set-dired-key) ;; this is a bug??
       (add-hook 'dired-mode-hook
 		(lambda ()
 		  (dired-hide-details-mode)
 		  (dired-omit-mode)))
       ;; evil bindings
-     (evil-define-key 'normal dired-mode-map (kbd "h") 'dired-up-directory)
-     (evil-define-key 'normal dired-mode-map (kbd "l") 'dired-find-file)
-     (evil-define-key 'normal dired-mode-map (kbd "z") 'dired-omit-mode)
-     (evil-define-key 'normal dired-mode-map (kbd "g") 'louk/dired-nav-map)
+      (eval-after-load "evil-collection"
+	'(progn
+	   (evil-define-key 'normal dired-mode-map (kbd "h") 'dired-up-directory)
+	   (evil-define-key 'normal dired-mode-map (kbd "l") 'dired-find-file)
+	   (evil-define-key 'normal dired-mode-map (kbd "z") 'dired-omit-mode)
+	   (evil-define-key 'normal dired-mode-map (kbd "g") 'louk/dired-nav-map)
+	   (evil-define-key 'normal dired-mode-map (kbd "r") nil)
+	   (add-hook 'dired-mode-hook 'evil-normalize-keymaps)))
       :bind
       (:map dired-mode-map
 	    ("G" . 'revert-buffer)
 	    ("g" . 'louk/dired-nav-map)
 	    ("z" . 'dired-omit-mode)
 	    ("C-x M-." . 'compose-attach-marked-files)))
+    #+end_src
+*** Dired subtree
+    #+begin_src emacs-lisp
+    (use-package dired-subtree
+      :ensure t
+      :after dired
+      :config
+      (evil-define-key 'normal dired-mode-map (kbd "TAB") 'dired-subtree-toggle))
     #+end_src
 *** Peep dired
 
@@ -491,6 +504,34 @@ Open a dired buffer, mark some files and run the command. If there's an open mes
       ;; (setq peep-dired-cleanup-eagerly t)
       (setq peep-dired-ignored-extensions '("mkv" "mp4" "avi" "mov" "mp3" "wav" "iso"))
       :config
+      ;; custom functions for better peep navigation
+      (defun louk/peep-dired-up-directory ()
+	"Immediately peep first file when moving up directory in peep-mode"
+	(interactive)
+	(dired-up-directory)
+	(peep-dired-display-file-other-window))
+
+      (defun louk/peep-dired-find-file ()
+	"Immediately peep first file when entering a subdirectory. If the selection is a file, just go to the peeped window."
+	(interactive)
+	(if (file-directory-p (dired-file-name-at-point))
+	    (progn
+	      (dired-find-file)
+	      (peep-dired-display-file-other-window))
+	  (other-window 1)))
+
+      (defun louk/peep-dired-prev-dirline ()
+	"Immediately peep after visiting previous dirline."
+	(interactive)
+	(dired-prev-dirline 1)
+	(peep-dired-display-file-other-window))
+
+      (defun louk/peep-dired-next-dirline ()
+	"Immediately peep after visiting next dirline."
+	(interactive)
+	(dired-next-dirline 1)
+	(peep-dired-display-file-other-window))
+
       ;; evil integration
       (eval-after-load "evil"
 	'(progn
@@ -500,7 +541,13 @@ Open a dired buffer, mark some files and run the command. If there's an open mes
 	     (kbd "j") 'peep-dired-next-file
 	     (kbd "<down>") 'peep-dired-next-file
 	     (kbd "k") 'peep-dired-prev-file
-	     (kbd "<up>") 'peep-dired-prev-file)
+	     (kbd "<up>") 'peep-dired-prev-file
+	     (kbd "h") 'louk/peep-dired-up-directory
+	     (kbd "<left>") 'louk/peep-dired-up-directory
+	     (kbd "l") 'louk/peep-dired-find-file
+	     (kbd "<right>") 'louk/peep-dired-find-file
+	     (kbd ">") 'louk/peep-dired-next-dirline
+	     (kbd "<") 'louk/peep-dired-prev-dirline)
 	   (evil-define-key 'normal dired-mode-map (kbd "p") 'peep-dired)
 	   (add-hook 'peep-dired-hook 'evil-normalize-keymaps)))
       :bind
@@ -508,23 +555,59 @@ Open a dired buffer, mark some files and run the command. If there's an open mes
 	    ("p" . 'peep-dired)))
     #+end_src
 
-*** Ranger dired
+*** Dired rainbow
 
-    #+begin_src emacs-lisp
-    ;; (use-package ranger
-    ;;   :ensure t
-    ;;   :after dired evil-collection
-    ;;   :init
-    ;;   (setq ranger-show-literal nil)
-    ;;   (setq ranger-show-hidden nil)
-    ;;   (setq ranger-dont-show-binary t)
-    ;;   (setq ranger-cleanup-on-disable t)
-    ;;   (setq ranger-cleanup-eagerly t)
-    ;;   :bind
-    ;;   (:map dired-mode-map
-    ;; 	("r" . dired-do-rename)
-    ;; 	("R" . ranger-mode)))
-    #+end_src
+Prettier dired
+#+begin_src emacs-lisp
+(use-package dired-rainbow
+  :ensure t
+  :config
+  (progn
+    (dired-rainbow-define-chmod directory "#6cb2eb" "d.*")
+    (dired-rainbow-define html "#eb5286" ("css" "less" "sass" "scss" "htm" "html" "jhtm" "mht" "eml" "mustache" "xhtml"))
+    (dired-rainbow-define xml "#f2d024" ("xml" "xsd" "xsl" "xslt" "wsdl" "bib" "json" "msg" "pgn" "rss" "yaml" "yml" "rdata"))
+    (dired-rainbow-define document "#9561e2" ("docm" "doc" "docx" "odb" "odt" "pdb" "pdf" "ps" "rtf" "djvu" "epub" "odp" "ppt" "pptx"))
+    (dired-rainbow-define markdown "#ffed4a" ("org" "etx" "info" "markdown" "md" "mkd" "nfo" "pod" "rst" "tex" "textfile" "txt"))
+    (dired-rainbow-define database "#6574cd" ("xlsx" "xls" "csv" "accdb" "db" "mdb" "sqlite" "nc"))
+    (dired-rainbow-define media "#de751f" ("mp3" "mp4" "MP3" "MP4" "avi" "mpeg" "mpg" "flv" "ogg" "mov" "mid" "midi" "wav" "aiff" "flac"))
+    (dired-rainbow-define image "#f66d9b" ("tiff" "tif" "cdr" "gif" "ico" "jpeg" "jpg" "png" "psd" "eps" "svg"))
+    (dired-rainbow-define log "#c17d11" ("log"))
+    (dired-rainbow-define shell "#f6993f" ("awk" "bash" "bat" "sed" "sh" "zsh" "vim"))
+    (dired-rainbow-define interpreted "#38c172" ("py" "ipynb" "rb" "pl" "t" "msql" "mysql" "pgsql" "sql" "r" "clj" "cljs" "scala" "js"))
+    (dired-rainbow-define compiled "#4dc0b5" ("asm" "cl" "lisp" "el" "c" "h" "c++" "h++" "hpp" "hxx" "m" "cc" "cs" "cp" "cpp" "go" "f" "for" "ftn" "f90" "f95" "f03" "f08" "s" "rs" "hi" "hs" "pyc" ".java"))
+    (dired-rainbow-define executable "#8cc4ff" ("exe" "msi"))
+    (dired-rainbow-define compressed "#51d88a" ("7z" "zip" "bz2" "tgz" "txz" "gz" "xz" "z" "Z" "jar" "war" "ear" "rar" "sar" "xpi" "apk" "xz" "tar"))
+    (dired-rainbow-define packaged "#faad63" ("deb" "rpm" "apk" "jad" "jar" "cab" "pak" "pk3" "vdf" "vpk" "bsp"))
+    (dired-rainbow-define encrypted "#ffed4a" ("gpg" "pgp" "asc" "bfe" "enc" "signature" "sig" "p12" "pem"))
+    (dired-rainbow-define fonts "#6cb2eb" ("afm" "fon" "fnt" "pfb" "pfm" "ttf" "otf"))
+    (dired-rainbow-define partition "#e3342f" ("dmg" "iso" "bin" "nrg" "qcow" "toast" "vcd" "vmdk" "bak"))
+    (dired-rainbow-define vc "#0074d9" ("git" "gitignore" "gitattributes" "gitmodules"))
+    (dired-rainbow-define-chmod executable-unix "#38c172" "-.*x.*")
+    )) 
+#+end_src
+
+*** Dired hacks
+Testing ground
+#+begin_src emacs-lisp
+(use-package dired-narrow
+  :ensure t
+  :after dired evil evil-collection
+  :config
+  (evil-define-key 'normal dired-mode-map (kbd "f") 'dired-narrow)
+  :bind
+  (:map dired-mode-map
+	("f" . 'dired-narrow)))
+
+(use-package dired-ranger
+  :ensure t
+  :after dired evil evil-collection
+  :config
+  (eval-after-load "evil"
+    '(progn
+       (evil-define-key 'normal dired-mode-map (kbd "r c") 'dired-ranger-copy)
+       (evil-define-key 'normal dired-mode-map (kbd "r m") 'dired-ranger-move)
+       (evil-define-key 'normal dired-mode-map (kbd "r p") 'dired-ranger-paste))))
+#+end_src
 
 ** PDF TOOLS
    #+begin_src emacs-lisp
@@ -667,6 +750,7 @@ Open a dired buffer, mark some files and run the command. If there's an open mes
       :bind
       (:map mu4e-compose-mode-map ("M-c" . 'org-msg-edit-mode)))
     #+end_src
+
 ** LATEX
 
    #+begin_src emacs-lisp
@@ -889,6 +973,7 @@ Auto start mu4e on emacs startup
      (setq evil-want-keybinding nil)
      (setq evil-find-skip-newlines t)
      :config 
+     (evil-mode 1)
      (evil-set-initial-state 'Info-mode 'emacs)
      (evil-set-initial-state 'org-capture-mode 'emacs)
      (evil-set-initial-state 'mu4e-compose-mode 'emacs)
@@ -900,7 +985,6 @@ Auto start mu4e on emacs startup
        :message "-- EMACS INSERT --"
        :input-method t)
      (defadvice evil-insert-state (around emacs-state-instead-of-insert-state activate) (evil-emacs-state))
-     (evil-mode 1)
      :bind
      (:map evil-normal-state-map
 	   ("j" . 'evil-next-visual-line)

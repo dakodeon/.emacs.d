@@ -417,74 +417,212 @@ The code snippets are loaded by =init.el=, which also loads =use-package=.
       :config
       (setq dired-omit-files (concat dired-omit-files "\\|^\\..+$\\|xmp$\\|srt$")))
     #+end_src
-*** Attatch marked files to email
-Using dired, as found [[https://emacs.stackexchange.com/questions/14652/attach-multiple-files-from-the-same-directory-to-an-email-message][here]].
+*** Some useful functions
+**** Attatch marked files to email
+ Using dired, as found [[https://emacs.stackexchange.com/questions/14652/attach-multiple-files-from-the-same-directory-to-an-email-message][here]].
 
-Open a dired buffer, mark some files and run the command. If there's an open message buffer use it, else create new message
+ Open a dired buffer, mark some files and run the command. If there's an open message buffer use it, else create new message
 
-#+begin_src emacs-lisp
-  (defun compose-attach-marked-files ()
-    "Compose mail and attach all the marked files from a dired buffer. Uses `compose-mail', or `org-msg-attach-attach' if org-msg is enabled."
-    (interactive)
-    (let ((files (dired-get-marked-files)))
-      (compose-mail nil nil nil t)
-      (dolist (file files)
-	    (if (file-regular-p file)
-		(mml-attach-file file
-				 (mm-default-file-encoding file)
-				 nil "attachment")
-	      (message "skipping non-regular file %s" file)))))
-#+end_src
+ #+begin_src emacs-lisp
+   (defun compose-attach-marked-files ()
+     "Compose mail and attach all the marked files from a dired buffer. Uses `compose-mail', (or `org-msg-attach-attach' if org-msg is enabled -- this is not true yet)."
+     (interactive)
+     (let ((files (dired-get-marked-files)))
+       (compose-mail nil nil nil t)
+       (dolist (file files)
+	     (if (file-regular-p file)
+		 (mml-attach-file file
+				  (mm-default-file-encoding file)
+				  nil "attachment")
+	       (message "skipping non-regular file %s" file)))))
+ #+end_src
+
+**** Get files size
+     Source: https://www.emacswiki.org/emacs/dired-extension.el
+     #+begin_src emacs-lisp
+     (defun dired-get-size ()
+       "Get total size of marked files with `du' command.
+     If not marked any files, default is current file or directory."
+       (interactive)
+       (let ((files (dired-get-marked-files)))
+	 (with-temp-buffer
+	   (apply 'call-process "/usr/bin/du" nil t nil "-sch" files)
+	   (message "Size of all marked files: %s"
+		    (progn
+		      (re-search-backward "\\(^[0-9.,]+[A-Za-z]+\\).*\\(total\\|总用量\\)$")
+		      (match-string 1))))))
+     #+end_src
+
+**** Go to first/last directory
+ Instead of going to the beginning of the buffer, go to the first directory line. Going to the last directory line is used for consistency.
+ Source: https://www.emacswiki.org/emacs/dired-extension.el
+
+ #+begin_src emacs-lisp
+ (defun dired-goto-first-file ()
+   "Move cursor to first file of dired."
+   (interactive)
+   (goto-char (point-min))
+   (while (not (dired-move-to-filename))
+     (call-interactively 'dired-next-line)))
+
+ (defun dired-goto-last-file ()
+   "Move cursor to last file of dired."
+   (interactive)
+   (goto-char (point-max))
+   (while (not (dired-move-to-filename))
+     (call-interactively 'dired-previous-line)))
+ #+end_src
 
 *** Dired custom maps
     #+begin_src emacs-lisp
     (define-prefix-command 'louk/dired-nav-map)
 
-    (define-key 'louk/dired-nav-map (kbd "h") (lambda () (interactive) (dired "~/")))
-    (define-key 'louk/dired-nav-map (kbd "D") (lambda () (interactive) (dired "~/Downloads/")))
-    (define-key 'louk/dired-nav-map (kbd "d") (lambda () (interactive) (dired "~/Documents/")))
-    (define-key 'louk/dired-nav-map (kbd "p") (lambda () (interactive) (dired "~/Pictures/")))
-    (define-key 'louk/dired-nav-map (kbd "M") (lambda () (interactive) (dired "~/Music/")))
-    (define-key 'louk/dired-nav-map (kbd "v") (lambda () (interactive) (dired "~/Videos/")))
-    (define-key 'louk/dired-nav-map (kbd "m") (lambda () (interactive) (dired "/run/media/louk/")))
-    (define-key 'louk/dired-nav-map (kbd "C") (lambda () (interactive) (dired "~/.config/")))
-    (define-key 'louk/dired-nav-map (kbd "E") (lambda () (interactive) (dired "~/.emacs.d/")))
-    (define-key 'louk/dired-nav-map (kbd "!") (lambda () (interactive) (dired "~/dotfiles/")))
+    (define-key louk/dired-nav-map (kbd "h") (lambda () (interactive) (dired "~/")))
+    (define-key louk/dired-nav-map (kbd "D") (lambda () (interactive) (dired "~/Downloads/")))
+    (define-key louk/dired-nav-map (kbd "d") (lambda () (interactive) (dired "~/Documents/")))
+    (define-key louk/dired-nav-map (kbd "p") (lambda () (interactive) (dired "~/Pictures/")))
+    (define-key louk/dired-nav-map (kbd "M") (lambda () (interactive) (dired "~/Music/")))
+    (define-key louk/dired-nav-map (kbd "v") (lambda () (interactive) (dired "~/Videos/")))
+    (define-key louk/dired-nav-map (kbd "m") (lambda () (interactive) (dired "/run/media/louk/")))
+    (define-key louk/dired-nav-map (kbd "C") (lambda () (interactive) (dired "~/.config/")))
+    (define-key louk/dired-nav-map (kbd "E") (lambda () (interactive) (dired "~/.emacs.d/")))
+    (define-key louk/dired-nav-map (kbd "!") (lambda () (interactive) (dired "~/dotfiles/")))
     #+end_src
-*** Dired overall
+
+*** Dired defaults
     #+begin_src emacs-lisp
-    (use-package dired
-      :ensure nil
-      :after evil evil-collection
-      :init
-      (setq dired-dwim-target t)
-      (setq dired-listing-switches "-alh") ;; add human-readable sizes
-      ;; image dired
+    (setq dired-dwim-target t)
+    (setq dired-listing-switches "-alh") ;; add human-readable sizes
+
+    (add-hook 'dired-mode-hook
+	      (lambda ()
+		(dired-hide-details-mode)
+		(dired-omit-mode)))
+
+    (remove-hook 'dired-mode-hook 'ranger-set-dired-key) ;; this stupid bug...
+    #+end_src 
+    
+*** Image dired
+    #+begin_src emacs-lisp
       (setq image-dired-thumb-width 250)
       (setq image-dired-thumbs-per-row 4)
       (setq image-dired-external-viewer "sxiv")
-      :config
-      (remove-hook 'dired-mode-hook 'ranger-set-dired-key) ;; this is a bug??
-      (add-hook 'dired-mode-hook
-		(lambda ()
-		  (dired-hide-details-mode)
-		  (dired-omit-mode)))
-      ;; evil bindings
-      (eval-after-load "evil-collection"
-	'(progn
-	   (evil-define-key 'normal dired-mode-map (kbd "h") 'dired-up-directory)
-	   (evil-define-key 'normal dired-mode-map (kbd "l") 'dired-find-file)
-	   (evil-define-key 'normal dired-mode-map (kbd "z") 'dired-omit-mode)
-	   (evil-define-key 'normal dired-mode-map (kbd "g") 'louk/dired-nav-map)
-	   (evil-define-key 'normal dired-mode-map (kbd "r") nil)
-	   (add-hook 'dired-mode-hook 'evil-normalize-keymaps)))
-      :bind
-      (:map dired-mode-map
-	    ("G" . 'revert-buffer)
-	    ("g" . 'louk/dired-nav-map)
-	    ("z" . 'dired-omit-mode)
-	    ("C-x M-." . 'compose-attach-marked-files)))
     #+end_src
+    
+*** Dired keybindings
+Changing some default keybindings
+    #+begin_src emacs-lisp
+    (define-key dired-mode-map "G" 'revert-buffer)
+    (define-key dired-mode-map "g" 'louk/dired-nav-map)
+    (define-key dired-mode-map "z" 'dired-omit-mode)
+    (define-key dired-mode-map (kbd "C-x M-.") 'compose-attach-marked-files)
+    (define-key dired-mode-map (kbd "M-<") 'dired-goto-first-file)
+    (define-key dired-mode-map (kbd "M->") 'dired-goto-last-file)
+    #+end_src
+    
+*** Dired evil bindings
+
+   Loading the whole evil-collection proved cumbersome for me, there was some trouble with my custom keybindings (eg. I couldn't use 'r' as a prefix key, even when binding it to nil after loading evil-collection). Might be sth that I did wrong, but anyhow...
+
+   #+begin_src emacs-lisp
+   ;; this is from evil-collection with some changes
+   (eval-after-load "evil"
+     '(progn
+	(evil-define-key 'normal dired-mode-map
+	  ;; basics
+	  "q" 'quit-window
+	  ;; basic movement
+	  "j" 'dired-next-line
+	  "k" 'dired-previous-line
+	  "h" 'dired-up-directory
+	  "l" 'dired-find-file
+	  ">" 'dired-next-dirline
+	  "<" 'dired-prev-dirline
+	  "gg" 'dired-goto-first-file
+	  "G" 'dired-goto-last-file
+	  ;; basic functions
+	  "A" 'dired-do-find-regexp
+	  "B" 'dired-do-byte-compile
+	  "C" 'dired-do-copy
+	  "D" 'dired-do-delete
+	  ;; dired-do-chgrp
+	  "H" 'dired-do-hardlink
+	  "L" 'dired-do-load
+	  "M" 'dired-do-chmod
+	  "O" 'dired-do-chown
+	  "P" 'dired-do-print
+	  "Q" 'dired-do-find-regexp-and-replace
+	  "R" 'dired-do-rename
+	  "S" 'dired-do-symlink
+	  "T" 'dired-do-touch
+	  "Z" 'dired-do-compress
+	  "c" 'dired-do-compress-to
+	  "!" 'dired-do-shell-command
+	  "&" 'dired-do-async-shell-command
+	  "=" 'dired-diff
+	  ;; regexp operations
+	  "%" nil ;; prefix
+	  "%u" 'dired-upcase
+	  "%l" 'dired-downcase
+	  "%d" 'dired-flag-files-regexp
+	  "%g" 'dired-mark-files-containing-regexp
+	  "%m" 'dired-mark-files-regexp
+	  "%C" 'dired-do-copy-regexp
+	  "%H" 'dired-do-hardlink-regexp
+	  "%R" 'dired-do-rename-regexp
+	  "%S" 'dired-do-symlink-regexp
+	  "%&" 'dired-flag-garbage-files
+	  ;; marks & flags
+	  "U" 'dired-unmark-all-marks
+	  "u" 'dired-unmark
+	  "m" 'dired-mark
+	  " " 'dired-mark
+	  "t" 'dired-toggle-marks
+	  "d" 'dired-flag-file-deletion
+	  "x" 'dired-do-flagged-delete
+	  (kbd "* <delete>") 'dired-unmark-backward
+	  (kbd "<delete>") 'dired-unmark-backward
+	  "*" nil ;; prefix
+	  "**" 'dired-mark-executables
+	  "*/" 'dired-mark-directories
+	  "*@" 'dired-mark-symlinks
+	  "*%" 'dired-mark-files-regexp
+	  "*(" 'dired-mark-sexp
+	  "*." 'dired-mark-extension
+	  "*O" 'dired-mark-omitted
+	  "*c" 'dired-change-marks
+	  "*s" 'dired-mark-subdir-files
+	  "*?" 'dired-unmark-all-files
+	  "*!" 'dired-unmark-all-marks
+	  ;; encryption-decryption (epa-dired)
+	  ";d" 'epa-dired-do-decrypt
+	  ";v" 'epa-dired-do-verify
+	  ";s" 'epa-dired-do-sign
+	  ";e" 'epa-dired-do-encrypt
+	  ;; unsorted
+	  "z" 'dired-omit-mode
+	  "g" 'louk/dired-nav-map
+	  "gr" 'revert-buffer
+	  "gR" 'dired-do-redisplay
+	  "I" 'dired-maybe-insert-subdir
+	  "i" 'dired-toggle-read-only
+	  "J" 'dired-goto-file
+	  "K" 'dired-do-kill-lines
+	  "a" 'dired-find-alternate-file
+	  "gy" 'dired-show-file-type
+	  "Y" 'dired-copy-filename-as-kill
+	  "+" 'dired-create-directory
+	  (kbd "S-<return>") 'dired-find-file-other-window
+	  (kbd "RET") 'dired-find-file
+	  (kbd "M-<return>") 'browse-url-of-dired-file
+	  "o" 'dired-sort-toggle-or-edit
+	  "(" 'dired-hide-details-mode
+	  "g?" 'dired-summary
+	  "?" 'dired-get-size)
+
+	(add-hook 'dired-mode-hook 'evil-normalize-keymaps)))
+   #+end_src
+    
 *** Dired subtree
     #+begin_src emacs-lisp
     (use-package dired-subtree
@@ -494,7 +632,52 @@ Open a dired buffer, mark some files and run the command. If there's an open mes
       (evil-define-key 'normal dired-mode-map (kbd "TAB") 'dired-subtree-toggle))
     #+end_src
 *** Peep dired
+    Peep dired sounds naughty!
+**** Peepy-fied dired functions
+     Some functions for a more consistent peeping experience.
 
+     #+begin_src emacs-lisp
+     (defun louk/peep-dired-up-directory ()
+       "Peep first file when moving up directory."
+       (interactive)
+       (dired-up-directory)
+       (peep-dired-display-file-other-window))
+
+     (defun louk/peep-dired-find-file ()
+       "Peep first file when entering a subdirectory. If the selection is a file, just go to the peeped window."
+       (interactive)
+       (if (file-directory-p (dired-file-name-at-point))
+	   (progn
+	     (dired-find-file)
+	     (peep-dired-display-file-other-window))
+	 (other-window 1)))
+
+     (defun louk/peep-dired-prev-dirline ()
+       "Peep previous dirline."
+       (interactive)
+       (dired-prev-dirline 1)
+       (peep-dired-display-file-other-window))
+
+     (defun louk/peep-dired-next-dirline ()
+       "Peep next dirline."
+       (interactive)
+       (dired-next-dirline 1)
+       (peep-dired-display-file-other-window))
+
+     (defun louk/peep-dired-goto-first-file ()
+       "Go to first file line and peep there. Uses `dired-goto-first-file'"
+       (interactive)
+       (dired-goto-first-file)
+       (peep-dired-display-file-other-window))
+
+     (defun louk/peep-dired-goto-last-file ()
+       "Go to last file line and peep there. Uses `dired-goto-last-file'"
+       (interactive)
+       (dired-goto-last-file)
+       (peep-dired-display-file-other-window))
+     #+end_src 
+
+**** Load Peep
     #+begin_src emacs-lisp
     (use-package peep-dired
       :ensure t
@@ -504,34 +687,6 @@ Open a dired buffer, mark some files and run the command. If there's an open mes
       ;; (setq peep-dired-cleanup-eagerly t)
       (setq peep-dired-ignored-extensions '("mkv" "mp4" "avi" "mov" "mp3" "wav" "iso"))
       :config
-      ;; custom functions for better peep navigation
-      (defun louk/peep-dired-up-directory ()
-	"Immediately peep first file when moving up directory in peep-mode"
-	(interactive)
-	(dired-up-directory)
-	(peep-dired-display-file-other-window))
-
-      (defun louk/peep-dired-find-file ()
-	"Immediately peep first file when entering a subdirectory. If the selection is a file, just go to the peeped window."
-	(interactive)
-	(if (file-directory-p (dired-file-name-at-point))
-	    (progn
-	      (dired-find-file)
-	      (peep-dired-display-file-other-window))
-	  (other-window 1)))
-
-      (defun louk/peep-dired-prev-dirline ()
-	"Immediately peep after visiting previous dirline."
-	(interactive)
-	(dired-prev-dirline 1)
-	(peep-dired-display-file-other-window))
-
-      (defun louk/peep-dired-next-dirline ()
-	"Immediately peep after visiting next dirline."
-	(interactive)
-	(dired-next-dirline 1)
-	(peep-dired-display-file-other-window))
-
       ;; evil integration
       (eval-after-load "evil"
 	'(progn
@@ -547,7 +702,9 @@ Open a dired buffer, mark some files and run the command. If there's an open mes
 	     (kbd "l") 'louk/peep-dired-find-file
 	     (kbd "<right>") 'louk/peep-dired-find-file
 	     (kbd ">") 'louk/peep-dired-next-dirline
-	     (kbd "<") 'louk/peep-dired-prev-dirline)
+	     (kbd "<") 'louk/peep-dired-prev-dirline
+	     (kbd "g g") 'louk/peep-dired-goto-first-file
+	     (kbd "G") 'louk/peep-dired-goto-last-file)
 	   (evil-define-key 'normal dired-mode-map (kbd "p") 'peep-dired)
 	   (add-hook 'peep-dired-hook 'evil-normalize-keymaps)))
       :bind
@@ -555,43 +712,12 @@ Open a dired buffer, mark some files and run the command. If there's an open mes
 	    ("p" . 'peep-dired)))
     #+end_src
 
-*** Dired rainbow
-
-Prettier dired
-#+begin_src emacs-lisp
-(use-package dired-rainbow
-  :ensure t
-  :config
-  (progn
-    (dired-rainbow-define-chmod directory "#6cb2eb" "d.*")
-    (dired-rainbow-define html "#eb5286" ("css" "less" "sass" "scss" "htm" "html" "jhtm" "mht" "eml" "mustache" "xhtml"))
-    (dired-rainbow-define xml "#f2d024" ("xml" "xsd" "xsl" "xslt" "wsdl" "bib" "json" "msg" "pgn" "rss" "yaml" "yml" "rdata"))
-    (dired-rainbow-define document "#9561e2" ("docm" "doc" "docx" "odb" "odt" "pdb" "pdf" "ps" "rtf" "djvu" "epub" "odp" "ppt" "pptx"))
-    (dired-rainbow-define markdown "#ffed4a" ("org" "etx" "info" "markdown" "md" "mkd" "nfo" "pod" "rst" "tex" "textfile" "txt"))
-    (dired-rainbow-define database "#6574cd" ("xlsx" "xls" "csv" "accdb" "db" "mdb" "sqlite" "nc"))
-    (dired-rainbow-define media "#de751f" ("mp3" "mp4" "MP3" "MP4" "avi" "mpeg" "mpg" "flv" "ogg" "mov" "mid" "midi" "wav" "aiff" "flac"))
-    (dired-rainbow-define image "#f66d9b" ("tiff" "tif" "cdr" "gif" "ico" "jpeg" "jpg" "png" "psd" "eps" "svg"))
-    (dired-rainbow-define log "#c17d11" ("log"))
-    (dired-rainbow-define shell "#f6993f" ("awk" "bash" "bat" "sed" "sh" "zsh" "vim"))
-    (dired-rainbow-define interpreted "#38c172" ("py" "ipynb" "rb" "pl" "t" "msql" "mysql" "pgsql" "sql" "r" "clj" "cljs" "scala" "js"))
-    (dired-rainbow-define compiled "#4dc0b5" ("asm" "cl" "lisp" "el" "c" "h" "c++" "h++" "hpp" "hxx" "m" "cc" "cs" "cp" "cpp" "go" "f" "for" "ftn" "f90" "f95" "f03" "f08" "s" "rs" "hi" "hs" "pyc" ".java"))
-    (dired-rainbow-define executable "#8cc4ff" ("exe" "msi"))
-    (dired-rainbow-define compressed "#51d88a" ("7z" "zip" "bz2" "tgz" "txz" "gz" "xz" "z" "Z" "jar" "war" "ear" "rar" "sar" "xpi" "apk" "xz" "tar"))
-    (dired-rainbow-define packaged "#faad63" ("deb" "rpm" "apk" "jad" "jar" "cab" "pak" "pk3" "vdf" "vpk" "bsp"))
-    (dired-rainbow-define encrypted "#ffed4a" ("gpg" "pgp" "asc" "bfe" "enc" "signature" "sig" "p12" "pem"))
-    (dired-rainbow-define fonts "#6cb2eb" ("afm" "fon" "fnt" "pfb" "pfm" "ttf" "otf"))
-    (dired-rainbow-define partition "#e3342f" ("dmg" "iso" "bin" "nrg" "qcow" "toast" "vcd" "vmdk" "bak"))
-    (dired-rainbow-define vc "#0074d9" ("git" "gitignore" "gitattributes" "gitmodules"))
-    (dired-rainbow-define-chmod executable-unix "#38c172" "-.*x.*")
-    )) 
-#+end_src
-
 *** Dired hacks
 Testing ground
 #+begin_src emacs-lisp
 (use-package dired-narrow
   :ensure t
-  :after dired evil evil-collection
+  :after dired evil
   :config
   (evil-define-key 'normal dired-mode-map (kbd "f") 'dired-narrow)
   :bind
@@ -600,14 +726,45 @@ Testing ground
 
 (use-package dired-ranger
   :ensure t
-  :after dired evil evil-collection
+  :after dired
   :config
   (eval-after-load "evil"
     '(progn
-       (evil-define-key 'normal dired-mode-map (kbd "r c") 'dired-ranger-copy)
-       (evil-define-key 'normal dired-mode-map (kbd "r m") 'dired-ranger-move)
-       (evil-define-key 'normal dired-mode-map (kbd "r p") 'dired-ranger-paste))))
+       (evil-define-key 'normal dired-mode-map "rc" 'dired-ranger-copy)
+       (evil-define-key 'normal dired-mode-map "rm" 'dired-ranger-move)
+       (evil-define-key 'normal dired-mode-map "rp" 'dired-ranger-paste))))
 #+end_src
+
+*** Dired rainbow
+
+ Prettier dired
+ #+begin_src emacs-lisp
+ (use-package dired-rainbow
+   :ensure t
+   :config
+   (progn
+     (dired-rainbow-define-chmod directory "#6cb2eb" "d.*")
+     (dired-rainbow-define html "#eb5286" ("css" "less" "sass" "scss" "htm" "html" "jhtm" "mht" "eml" "mustache" "xhtml"))
+     (dired-rainbow-define xml "#f2d024" ("xml" "xsd" "xsl" "xslt" "wsdl" "bib" "json" "msg" "pgn" "rss" "yaml" "yml" "rdata"))
+     (dired-rainbow-define document "#9561e2" ("docm" "doc" "docx" "odb" "odt" "pdb" "pdf" "ps" "rtf" "djvu" "epub" "odp" "ppt" "pptx"))
+     (dired-rainbow-define markdown "#ffed4a" ("org" "etx" "info" "markdown" "md" "mkd" "nfo" "pod" "rst" "tex" "textfile" "txt"))
+     (dired-rainbow-define database "#6574cd" ("xlsx" "xls" "csv" "accdb" "db" "mdb" "sqlite" "nc"))
+     (dired-rainbow-define media "#de751f" ("mp3" "mp4" "MP3" "MP4" "avi" "mpeg" "mpg" "flv" "ogg" "mov" "mid" "midi" "wav" "aiff" "flac"))
+     (dired-rainbow-define image "#f66d9b" ("tiff" "tif" "cdr" "gif" "ico" "jpeg" "jpg" "png" "psd" "eps" "svg"))
+     (dired-rainbow-define log "#c17d11" ("log"))
+     (dired-rainbow-define shell "#f6993f" ("awk" "bash" "bat" "sed" "sh" "zsh" "vim"))
+     (dired-rainbow-define interpreted "#38c172" ("py" "ipynb" "rb" "pl" "t" "msql" "mysql" "pgsql" "sql" "r" "clj" "cljs" "scala" "js"))
+     (dired-rainbow-define compiled "#4dc0b5" ("asm" "cl" "lisp" "el" "c" "h" "c++" "h++" "hpp" "hxx" "m" "cc" "cs" "cp" "cpp" "go" "f" "for" "ftn" "f90" "f95" "f03" "f08" "s" "rs" "hi" "hs" "pyc" ".java"))
+     (dired-rainbow-define executable "#8cc4ff" ("exe" "msi"))
+     (dired-rainbow-define compressed "#51d88a" ("7z" "zip" "bz2" "tgz" "txz" "gz" "xz" "z" "Z" "jar" "war" "ear" "rar" "sar" "xpi" "apk" "xz" "tar"))
+     (dired-rainbow-define packaged "#faad63" ("deb" "rpm" "apk" "jad" "jar" "cab" "pak" "pk3" "vdf" "vpk" "bsp"))
+     (dired-rainbow-define encrypted "#ffed4a" ("gpg" "pgp" "asc" "bfe" "enc" "signature" "sig" "p12" "pem"))
+     (dired-rainbow-define fonts "#6cb2eb" ("afm" "fon" "fnt" "pfb" "pfm" "ttf" "otf"))
+     (dired-rainbow-define partition "#e3342f" ("dmg" "iso" "bin" "nrg" "qcow" "toast" "vcd" "vmdk" "bak"))
+     (dired-rainbow-define vc "#0074d9" ("git" "gitignore" "gitattributes" "gitmodules"))
+     (dired-rainbow-define-chmod executable-unix "#38c172" "-.*x.*")
+     )) 
+ #+end_src
 
 ** PDF TOOLS
    #+begin_src emacs-lisp
@@ -946,11 +1103,13 @@ Auto start mu4e on emacs startup
    A bunch of evil bindings
 
    #+begin_src emacs-lisp
-   (use-package evil-collection
-     :after evil
-     :ensure t
-     :config
-     (evil-collection-init))
+   ;;    (use-package evil-collection
+   ;;      :after evil
+   ;;      :ensure t
+   ;;      :config
+   ;;      (evil-collection-init))
+   ;; ;;     (evil-collection-define-key 'normal 'dired-mode-map "r" nil))
+
    #+end_src
 
 ** EVIL

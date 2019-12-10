@@ -730,9 +730,11 @@ Testing ground
   :config
   (eval-after-load "evil"
     '(progn
-       (evil-define-key 'normal dired-mode-map "rc" 'dired-ranger-copy)
-       (evil-define-key 'normal dired-mode-map "rm" 'dired-ranger-move)
-       (evil-define-key 'normal dired-mode-map "rp" 'dired-ranger-paste))))
+       (evil-define-key 'normal dired-mode-map
+	 "y" nil ;; prefix
+	 "yy" 'dired-ranger-copy
+	 "yd" 'dired-ranger-move
+	 "yp" 'dired-ranger-paste))))
 #+end_src
 
 *** Dired rainbow

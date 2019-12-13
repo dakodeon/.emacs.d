@@ -223,20 +223,6 @@ Icons for emacs.
     (global-set-key (kbd "C-c d") 'duplicate-line)
     #+end_src
 
-*** Windows movement and resizing
-  
-    This would be good if my damn keyboard worked correctly. I think I should use vim keys or sth
-
-    #+begin_src emacs-lisp
-    (windmove-default-keybindings) ;; use arrow keys ot navigate
-
-    ;; resize shortcuts
-    (global-set-key (kbd "S-C-<left>") 'shrink-window-horizontally)
-    (global-set-key (kbd "S-C-<right>") 'enlarge-window-horizontally)
-    (global-set-key (kbd "S-C-<down>") 'shrink-window)
-    (global-set-key (kbd "S-C-<up>") 'enlarge-window)
-    #+end_src
-
 *** Auto-evaluate init file
     
     Auto-evaluate the init.el file when saving this org file. A must have!
@@ -271,6 +257,20 @@ Restart emacs from within emacs (duh!)
 #+end_src
 
 ** WINDOW MANAGEMENT
+*** Windows movement and resizing
+  
+    This would be good if my damn keyboard worked correctly. I think I should use vim keys or sth
+
+    #+begin_src emacs-lisp
+    (windmove-default-keybindings) ;; use arrow keys ot navigate
+
+    ;; resize shortcuts
+    (global-set-key (kbd "S-C-<left>") 'shrink-window-horizontally)
+    (global-set-key (kbd "S-C-<right>") 'enlarge-window-horizontally)
+    (global-set-key (kbd "S-C-<down>") 'shrink-window)
+    (global-set-key (kbd "S-C-<up>") 'enlarge-window)
+    #+end_src
+
 *** Ace-window
 
     #+begin_src emacs-lisp
@@ -449,8 +449,11 @@ Window functions with evil mode.
    #+end_src
 
 ** DIRED
-   This is my new file manager!
+   
+   This *IS* my new file manager!
+
 *** Dired-x
+    
     #+begin_src emacs-lisp
     (use-package dired-x
       :ensure nil
@@ -458,28 +461,33 @@ Window functions with evil mode.
       :config
       (setq dired-omit-files (concat dired-omit-files "\\|^\\..+$\\|xmp$\\|srt$")))
     #+end_src
+    
 *** Some useful functions
+    
 **** Attatch marked files to email:
- Using dired, as found [[https://emacs.stackexchange.com/questions/14652/attach-multiple-files-from-the-same-directory-to-an-email-message][here]].
+     
+     Using dired, as found [[https://emacs.stackexchange.com/questions/14652/attach-multiple-files-from-the-same-directory-to-an-email-message][here]].
+     
+     Open a dired buffer, mark some files and run the command. If there's an open message buffer use it, else create new message
 
- Open a dired buffer, mark some files and run the command. If there's an open message buffer use it, else create new message
-
- #+begin_src emacs-lisp
-   (defun compose-attach-marked-files ()
-     "Compose mail and attach all the marked files from a dired buffer. Uses `compose-mail', (or `org-msg-attach-attach' if org-msg is enabled -- this is not true yet)."
-     (interactive)
-     (let ((files (dired-get-marked-files)))
-       (compose-mail nil nil nil t)
-       (dolist (file files)
-	     (if (file-regular-p file)
-		 (mml-attach-file file
-				  (mm-default-file-encoding file)
-				  nil "attachment")
-	       (message "skipping non-regular file %s" file)))))
- #+end_src
+     #+begin_src emacs-lisp
+     (defun compose-attach-marked-files ()
+       "Compose mail and attach all the marked files from a dired buffer. Uses `compose-mail', (or `org-msg-attach-attach' if org-msg is enabled -- this is not true yet)."
+       (interactive)
+       (let ((files (dired-get-marked-files)))
+	 (compose-mail nil nil nil t)
+	 (dolist (file files)
+	   (if (file-regular-p file)
+	       (mml-attach-file file
+				(mm-default-file-encoding file)
+				nil "attachment")
+	     (message "skipping non-regular file %s" file)))))
+     #+end_src
 
 **** Get files size:
+     
      Source: https://www.emacswiki.org/emacs/dired-extension.el
+     
      #+begin_src emacs-lisp
      (defun dired-get-size ()
        "Get total size of marked files with `du' command.
@@ -495,26 +503,73 @@ Window functions with evil mode.
      #+end_src
 
 **** Go to first/last directory:
- Instead of going to the beginning of the buffer, go to the first directory line. Going to the last directory line is used for consistency.
- Source: https://www.emacswiki.org/emacs/dired-extension.el
+     
+     Instead of going to the beginning or end of the buffer, go to the first or last directory line
+     Source: https://www.emacswiki.org/emacs/dired-extension.el
 
- #+begin_src emacs-lisp
- (defun dired-goto-first-file ()
-   "Move cursor to first file of dired."
-   (interactive)
-   (goto-char (point-min))
-   (while (not (dired-move-to-filename))
-     (call-interactively 'dired-next-line)))
+     #+begin_src emacs-lisp
+     (defun dired-goto-first-file ()
+       "Move cursor to first file of dired."
+       (interactive)
+       (goto-char (point-min))
+       (while (not (dired-move-to-filename))
+	 (call-interactively 'dired-next-line)))
 
- (defun dired-goto-last-file ()
-   "Move cursor to last file of dired."
-   (interactive)
-   (goto-char (point-max))
-   (while (not (dired-move-to-filename))
-     (call-interactively 'dired-previous-line)))
- #+end_src
+     (defun dired-goto-last-file ()
+       "Move cursor to last file of dired."
+       (interactive)
+       (goto-char (point-max))
+       (while (not (dired-move-to-filename))
+	 (call-interactively 'dired-previous-line)))
+     #+end_src
+
+**** Sorting functions:
+
+     Change the ls flags that dired uses for different sorting options
+
+     #+begin_src emacs-lisp
+     ;; sort by
+     (defun louk/dired-sort-by (sw)
+       "Sort dired buffer by given switches and go to first line. If the switches provided are the same with the current switches, do nothing"
+       (let ((switches dired-actual-switches))
+	 (unless (string= sw switches)
+	   (dired-sort-other sw)
+	   (dired-goto-first-file))))
+
+     ;; callable functions
+     ;; by name
+     (defun louk/dired-sort-by-name ()
+       (interactive)
+       (louk/dired-sort-by "-alh"))
+
+     ;; by date
+     (defun louk/dired-sort-by-date ()
+       (interactive)
+       (louk/dired-sort-by "-alht"))
+
+     ;; by size
+     (defun louk/dired-sort-by-size ()
+       (interactive)
+       (louk/dired-sort-by "-alhS"))
+
+     ;; by extension
+     (defun louk/dired-sort-by-ext ()
+       (interactive)
+       (louk/dired-sort-by "-alhX"))
+
+     ;; toggle directories first
+     (defun louk/dired-sort-dirs-first ()
+       (interactive)
+       (let ((switches dired-actual-switches))
+	 (if (string-match-p (regexp-quote " --group-directories-first") switches)
+	     (setq switches (replace-regexp-in-string " --group-directories-first" "" switches))
+	   (setq switches (concat switches " --group-directories-first")))
+	 (dired-sort-other switches))
+       (dired-goto-first-file))
+     #+end_src
 
 *** Dired custom maps
+    
     #+begin_src emacs-lisp
     (define-prefix-command 'louk/dired-nav-map)
 
@@ -531,6 +586,7 @@ Window functions with evil mode.
     #+end_src
 
 *** Dired defaults
+
     #+begin_src emacs-lisp
     (setq dired-dwim-target t)
     (setq dired-listing-switches "-alh") ;; add human-readable sizes
@@ -545,6 +601,7 @@ Window functions with evil mode.
     #+end_src 
     
 *** Image dired
+
     #+begin_src emacs-lisp
       (setq image-dired-thumb-width 250)
       (setq image-dired-thumbs-per-row 4)
@@ -552,7 +609,9 @@ Window functions with evil mode.
     #+end_src
     
 *** Dired keybindings
-Changing some default keybindings
+    
+    Changing some default keybindings
+    
     #+begin_src emacs-lisp
       (eval-after-load "dired"
 	'(progn
@@ -659,7 +718,13 @@ Changing some default keybindings
 	  (kbd "S-<return>") 'dired-find-file-other-window
 	  (kbd "RET") 'dired-find-file
 	  (kbd "M-<return>") 'browse-url-of-dired-file
-	  "o" 'dired-sort-toggle-or-edit
+	  ;; sorting
+	  "o" nil ;; prefix -- was dired-sort-toggle-or-edit
+	  "oo" 'louk/dired-sort-by-name
+	  "od" 'louk/dired-sort-by-date
+	  "os" 'louk/dired-sort-by-size
+	  "ox" 'louk/dired-sort-by-ext
+	  "o=" 'louk/dired-sort-dirs-first
 	  "(" 'dired-hide-details-mode
 	  "g?" 'dired-summary
 	  "?" 'dired-get-size)
@@ -668,6 +733,7 @@ Changing some default keybindings
    #+end_src
     
 *** Dired subtree
+    
     #+begin_src emacs-lisp
     (use-package dired-subtree
       :ensure t
@@ -675,9 +741,13 @@ Changing some default keybindings
       :config
       (evil-define-key 'normal dired-mode-map (kbd "TAB") 'dired-subtree-toggle))
     #+end_src
+    
 *** Peep dired
+    
     Peep dired sounds naughty!
+    
 **** Peepy-fied dired functions
+     
      Some functions for a more consistent peeping experience.
 
      #+begin_src emacs-lisp
@@ -722,6 +792,7 @@ Changing some default keybindings
      #+end_src 
 
 **** Load Peep
+     
     #+begin_src emacs-lisp
     (use-package peep-dired
       :ensure t
@@ -757,96 +828,111 @@ Changing some default keybindings
     #+end_src
 
 *** Dired filter
-Narrow down what is shown in dired by filtering filenames.
-#+begin_src emacs-lisp
-(use-package dired-narrow
-  :ensure t
-  :after dired evil
-  :config
-  (evil-define-key 'normal dired-mode-map (kbd "f") 'dired-narrow)
-  :bind
-  (:map dired-mode-map
-	("f" . 'dired-narrow)))
+    
+    Narrow down what is shown in dired by filtering filenames.
+    
+    #+begin_src emacs-lisp
+    (use-package dired-narrow
+      :ensure t
+      :after dired evil
+      :config
+      (evil-define-key 'normal dired-mode-map (kbd "f") 'dired-narrow)
+      :bind
+      (:map dired-mode-map
+	    ("f" . 'dired-narrow)))
 
-#+end_src
+    #+end_src
+    
 *** Copying and pasting
-Three methods of copying and pasting:
-1. Normal: The default dired way, copy and select destination on execution. Works neatly with the =dired-target-dwim= option, but sometimes you want to mark some files to copy and then paste them after some navigation.
-2. Dired-ranger: Ranger-like copying and pasting (also bookmarks, check those out)
-#+begin_src emacs-lisp
-(use-package dired-ranger
-  :ensure t
-  :after dired
-  :config
-  (eval-after-load "evil"
-    '(progn
-       (evil-define-key 'normal dired-mode-map "y" nil)
-       (evil-define-key 'normal dired-mode-map "yy" 'dired-ranger-copy)
-       (evil-define-key 'normal dired-mode-map "yP" 'dired-ranger-move)
-       (evil-define-key 'normal dired-mode-map "yp" 'dired-ranger-paste))))
-#+end_src
-3. Dired-rsync: Really useful for BIG files, as it does not freeze emacs. Also, progress is shown in the modeline! Some other benefits, like copy-pasting from remote, are not yet explored. Works like normal copying.
-#+begin_src emacs-lisp
-(use-package dired-rsync
-  :ensure t
-  :after dired
-  :init
-  (setq dired-rsync-unmark-on-completion nil)
-  :config
-  (eval-after-load "evil"
-    '(progn
-       (evil-define-key 'normal dired-mode-map "r" 'dired-rsync))))
-#+end_src
+    
+    Three methods of copying and pasting:
+    1. Normal: The default dired way, copy and select destination on execution. Works neatly with the =dired-target-dwim= option, but sometimes you want to mark some files to copy and then paste them after some navigation.
+       
+    2. Dired-ranger: Ranger-like copying and pasting (also bookmarks, but I have to check those out)
+       
+    #+begin_src emacs-lisp
+    (use-package dired-ranger
+      :ensure t
+      :after dired
+      :config
+      (eval-after-load "evil"
+	'(progn
+	   (evil-define-key 'normal dired-mode-map "y" nil)
+	   (evil-define-key 'normal dired-mode-map "yy" 'dired-ranger-copy)
+	   (evil-define-key 'normal dired-mode-map "yP" 'dired-ranger-move)
+	   (evil-define-key 'normal dired-mode-map "yp" 'dired-ranger-paste))))
+    #+end_src
+    
+    3. Dired-rsync: Really useful for BIG files, as it does not freeze emacs. Also, progress is shown in the modeline! Some other benefits, like copy-pasting from remote, are not yet explored. Works like normal copying.
+       
+    #+begin_src emacs-lisp
+    (use-package dired-rsync
+      :ensure t
+      :after dired
+      :init
+      (setq dired-rsync-unmark-on-completion nil)
+      :config
+      (eval-after-load "evil"
+	'(progn
+	   (evil-define-key 'normal dired-mode-map "r" 'dired-rsync))))
+    #+end_src
+    
 **** TODO Simplify keystrokes:
-All this is really nice, but now I have three different keys related to copy-pasting (C, y, r). Maybe I should fix this somehow? I guess I will decide as I use it.
+     All this is really nice, but now I have three different keys related to copy-pasting (C, y, r). Maybe I should fix this somehow? I guess I will decide as I use it.
+
 *** Dired rainbow
 
- Prettier dired
- #+begin_src emacs-lisp
- (use-package dired-rainbow
-   :ensure t
-   :config
-   (progn
-     (dired-rainbow-define-chmod directory "#6cb2eb" "d.*")
-     (dired-rainbow-define html "#eb5286" ("css" "less" "sass" "scss" "htm" "html" "jhtm" "mht" "eml" "mustache" "xhtml"))
-     (dired-rainbow-define xml "#f2d024" ("xml" "xsd" "xsl" "xslt" "wsdl" "bib" "json" "msg" "pgn" "rss" "yaml" "yml" "rdata"))
-     (dired-rainbow-define document "#9561e2" ("docm" "doc" "docx" "odb" "odt" "pdb" "pdf" "ps" "rtf" "djvu" "epub" "odp" "ppt" "pptx"))
-     (dired-rainbow-define markdown "#ffed4a" ("org" "etx" "info" "markdown" "md" "mkd" "nfo" "pod" "rst" "tex" "textfile" "txt"))
-     (dired-rainbow-define database "#6574cd" ("xlsx" "xls" "csv" "accdb" "db" "mdb" "sqlite" "nc"))
-     (dired-rainbow-define media "#de751f" ("mp3" "mp4" "MP3" "MP4" "avi" "mpeg" "mpg" "flv" "ogg" "mov" "mid" "midi" "wav" "aiff" "flac"))
-     (dired-rainbow-define image "#f66d9b" ("tiff" "tif" "cdr" "gif" "ico" "jpeg" "jpg" "png" "psd" "eps" "svg"))
-     (dired-rainbow-define log "#c17d11" ("log"))
-     (dired-rainbow-define shell "#f6993f" ("awk" "bash" "bat" "sed" "sh" "zsh" "vim"))
-     (dired-rainbow-define interpreted "#38c172" ("py" "ipynb" "rb" "pl" "t" "msql" "mysql" "pgsql" "sql" "r" "clj" "cljs" "scala" "js"))
-     (dired-rainbow-define compiled "#4dc0b5" ("asm" "cl" "lisp" "el" "c" "h" "c++" "h++" "hpp" "hxx" "m" "cc" "cs" "cp" "cpp" "go" "f" "for" "ftn" "f90" "f95" "f03" "f08" "s" "rs" "hi" "hs" "pyc" ".java"))
-     (dired-rainbow-define executable "#8cc4ff" ("exe" "msi"))
-     (dired-rainbow-define compressed "#51d88a" ("7z" "zip" "bz2" "tgz" "txz" "gz" "xz" "z" "Z" "jar" "war" "ear" "rar" "sar" "xpi" "apk" "xz" "tar"))
-     (dired-rainbow-define packaged "#faad63" ("deb" "rpm" "apk" "jad" "jar" "cab" "pak" "pk3" "vdf" "vpk" "bsp"))
-     (dired-rainbow-define encrypted "#ffed4a" ("gpg" "pgp" "asc" "bfe" "enc" "signature" "sig" "p12" "pem"))
-     (dired-rainbow-define fonts "#6cb2eb" ("afm" "fon" "fnt" "pfb" "pfm" "ttf" "otf"))
-     (dired-rainbow-define partition "#e3342f" ("dmg" "iso" "bin" "nrg" "qcow" "toast" "vcd" "vmdk" "bak"))
-     (dired-rainbow-define vc "#0074d9" ("git" "gitignore" "gitattributes" "gitmodules"))
-     (dired-rainbow-define-chmod executable-unix "#38c172" "-.*x.*")
-     )) 
- #+end_src
+    Prettier dired. I haven't really tweaked anything, it's just some defaults from their github page.
+    
+    #+begin_src emacs-lisp
+    (use-package dired-rainbow
+      :ensure t
+      :config
+      (progn
+	(dired-rainbow-define-chmod directory "#6cb2eb" "d.*")
+	(dired-rainbow-define html "#eb5286" ("css" "less" "sass" "scss" "htm" "html" "jhtm" "mht" "eml" "mustache" "xhtml"))
+	(dired-rainbow-define xml "#f2d024" ("xml" "xsd" "xsl" "xslt" "wsdl" "bib" "json" "msg" "pgn" "rss" "yaml" "yml" "rdata"))
+	(dired-rainbow-define document "#9561e2" ("docm" "doc" "docx" "odb" "odt" "pdb" "pdf" "ps" "rtf" "djvu" "epub" "odp" "ppt" "pptx"))
+	(dired-rainbow-define markdown "#ffed4a" ("org" "etx" "info" "markdown" "md" "mkd" "nfo" "pod" "rst" "tex" "textfile" "txt"))
+	(dired-rainbow-define database "#6574cd" ("xlsx" "xls" "csv" "accdb" "db" "mdb" "sqlite" "nc"))
+	(dired-rainbow-define media "#de751f" ("mp3" "mp4" "MP3" "MP4" "avi" "mpeg" "mpg" "flv" "ogg" "mov" "mid" "midi" "wav" "aiff" "flac"))
+	(dired-rainbow-define image "#f66d9b" ("tiff" "tif" "cdr" "gif" "ico" "jpeg" "jpg" "png" "psd" "eps" "svg"))
+	(dired-rainbow-define log "#c17d11" ("log"))
+	(dired-rainbow-define shell "#f6993f" ("awk" "bash" "bat" "sed" "sh" "zsh" "vim"))
+	(dired-rainbow-define interpreted "#38c172" ("py" "ipynb" "rb" "pl" "t" "msql" "mysql" "pgsql" "sql" "r" "clj" "cljs" "scala" "js"))
+	(dired-rainbow-define compiled "#4dc0b5" ("asm" "cl" "lisp" "el" "c" "h" "c++" "h++" "hpp" "hxx" "m" "cc" "cs" "cp" "cpp" "go" "f" "for" "ftn" "f90" "f95" "f03" "f08" "s" "rs" "hi" "hs" "pyc" ".java"))
+	(dired-rainbow-define executable "#8cc4ff" ("exe" "msi"))
+	(dired-rainbow-define compressed "#51d88a" ("7z" "zip" "bz2" "tgz" "txz" "gz" "xz" "z" "Z" "jar" "war" "ear" "rar" "sar" "xpi" "apk" "xz" "tar"))
+	(dired-rainbow-define packaged "#faad63" ("deb" "rpm" "apk" "jad" "jar" "cab" "pak" "pk3" "vdf" "vpk" "bsp"))
+	(dired-rainbow-define encrypted "#ffed4a" ("gpg" "pgp" "asc" "bfe" "enc" "signature" "sig" "p12" "pem"))
+	(dired-rainbow-define fonts "#6cb2eb" ("afm" "fon" "fnt" "pfb" "pfm" "ttf" "otf"))
+	(dired-rainbow-define partition "#e3342f" ("dmg" "iso" "bin" "nrg" "qcow" "toast" "vcd" "vmdk" "bak"))
+	(dired-rainbow-define vc "#0074d9" ("git" "gitignore" "gitattributes" "gitmodules"))
+	(dired-rainbow-define-chmod executable-unix "#38c172" "-.*x.*")
+	)) 
+    #+end_src
 
 *** Dired icons
-Pretty icons for Dired!
-#+begin_src emacs-lisp
-(use-package all-the-icons-dired
-  :ensure t
-  :after dired all-the-icons
-  :config
-  (add-hook 'dired-mode-hook 'all-the-icons-dired-mode))
-#+end_src
+    
+    Pretty icons for Dired!
+
+    #+begin_src emacs-lisp
+    (use-package all-the-icons-dired
+      :ensure t
+      :after dired all-the-icons
+      :config
+      (add-hook 'dired-mode-hook 'all-the-icons-dired-mode))
+    #+end_src
 
 ** PDF TOOLS
+   
    #+begin_src emacs-lisp
    (use-package pdf-tools
      :ensure t
      :init
      (pdf-tools-install))
    #+end_src
+   
 ** DIARY AND CALENDAR
 *** Default diary file
     #+begin_src emacs-lisp

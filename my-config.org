@@ -1,4 +1,4 @@
-* EMACS CONFIG
+* MY EMACS CONFIGURATION
 
 Emacs configuration managed with org-mode and use-package.
 

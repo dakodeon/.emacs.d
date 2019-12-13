@@ -3,3 +3,7 @@
 Nothing too fancy -- just that!
 
 File =init.el= loads all code snippets found in =my-config.org=
+
+Here we go...
+
+#+INCLUDE: "my-config.org"

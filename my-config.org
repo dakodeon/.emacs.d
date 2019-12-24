@@ -124,7 +124,7 @@ Icons for emacs.
     (setq backup-directory-alist `(("." . "~/.emacs.d/backups")))
     (setq backup-by-copying t) ;; this is to ensure all edited files keep their inodes
     #+end_src
-    
+
 ** FUNCTIONALITY
 *** Whole buffer evaluation
 
@@ -171,7 +171,7 @@ Icons for emacs.
     #+end_src
 
 *** Smarter move to beginning of line
-    
+
     Part of Prelude
 
     #+begin_src emacs-lisp
@@ -204,7 +204,7 @@ Icons for emacs.
     Kill the whole line
 
     #+begin_src emacs-lisp
-    (global-set-key (kbd "C-S-k") 'kill-whole-line)   
+    (global-set-key (kbd "C-S-k") 'kill-whole-line)
     #+end_src
 
 *** Duplicate line
@@ -224,14 +224,14 @@ Icons for emacs.
     #+end_src
 
 *** Auto-evaluate init file
-    
+
     Auto-evaluate the init.el file when saving this org file. A must have!
 
     Got the general idea from https://www.reddit.com/r/emacs/comments/8hpyp5/tip_how_to_execute_a_bash_function_when_saving_a/
 
     #+begin_src emacs-lisp
 
-    (defun louk/reload-emacs ()
+    (defun l/reload-emacs ()
       "Reload the init file"
       (interactive)
       (load-file "~/.emacs.d/init.el"))
@@ -239,12 +239,12 @@ Icons for emacs.
     (defun my/cmd-after-saved-file ()
       "Evaluate the init file automatically"
 	(when (string= (buffer-file-name) (expand-file-name "~/.emacs.d/my-config.org"))
-	  (louk/reload-emacs)))
+	  (l/reload-emacs)))
 
     (add-hook 'after-save-hook 'my/cmd-after-saved-file)
 
     ;; also makes sense to bind a "refresh" key, similar to the i3 config
-    (global-set-key (kbd "C-M-S-r") 'louk/reload-emacs)
+    (global-set-key (kbd "C-M-S-r") 'l/reload-emacs)
     #+end_src
 
 *** Restart emacs
@@ -256,9 +256,15 @@ Restart emacs from within emacs (duh!)
 
 #+end_src
 
+*** Syntax highlighting for rc files
+
+    #+begin_src emacs-lisp
+    (add-to-list 'auto-mode-alist '("*rc$" . conf-mode) t)
+    #+end_src
+
 ** WINDOW MANAGEMENT
 *** Windows movement and resizing
-  
+
     This would be good if my damn keyboard worked correctly. I think I should use vim keys or sth
 
     #+begin_src emacs-lisp
@@ -273,9 +279,13 @@ Restart emacs from within emacs (duh!)
 
 *** Ace-window
 
+    Ace-window is a more efficient way to move between windows.
+
     #+begin_src emacs-lisp
     (use-package ace-window
       :ensure t
+      :init
+      (setq aw-keys '(?h ?j ?k ?l ?a ?s ?d ?f ?g))
       :bind
       (("C-x o" . ace-window)
        ("C-x M-o" . ace-swap-window)))
@@ -283,23 +293,27 @@ Restart emacs from within emacs (duh!)
 
 *** Split windows and follow
 
+    The default behaviour after splitting a window is to stay in the initial window. I always want to go to the new one.
+
+    I don't remember from where I got this.
+
     #+begin_src emacs-lisp
-    (defun split-and-follow-horizontally ()
+    (defun split-window-and-follow-below ()
       "Split and follow container horizontally."
       (interactive)
       (split-window-below)
       (balance-windows)
       (other-window 1))
 
-    (defun split-and-follow-vertically ()
+    (defun split-window-and-follow-right ()
       "Split and follow container vertically."
       (interactive)
       (split-window-right)
       (balance-windows)
       (other-window 1))
 
-    (global-set-key (kbd "C-x 2") 'split-and-follow-horizontally)
-    (global-set-key (kbd "C-x 3") 'split-and-follow-vertically)
+    (global-set-key (kbd "C-x 2") 'split-window-and-follow-below)
+    (global-set-key (kbd "C-x 3") 'split-window-and-follow-right)
 
     #+end_src
 
@@ -342,28 +356,31 @@ Restart emacs from within emacs (duh!)
     #+end_src
 
 *** Evil window bindings
-Window functions with evil mode.
-#+begin_src emacs-lisp
-(eval-after-load "evil"
-  '(progn
-     (define-key evil-normal-state-map "\\" nil) ;; prefix
-     (define-key evil-normal-state-map "\\q" 'delete-window)
-     (define-key evil-normal-state-map "\\1" 'delete-other-windows)
-     (define-key evil-normal-state-map "\\h" 'windmove-left)
-     (define-key evil-normal-state-map "\\j" 'windmove-down)
-     (define-key evil-normal-state-map "\\k" 'windmove-up)
-     (define-key evil-normal-state-map "\\l" 'windmove-right)
-     (define-key evil-normal-state-map "\\'" 'split-and-follow-horizontally)
-     (define-key evil-normal-state-map "\\;" 'split-and-follow-vertically)
-     (define-key evil-normal-state-map "\\_" 'toggle-window-split)
-     (define-key evil-normal-state-map "\\-" 'window-swap-states)
-     (define-key evil-normal-state-map "\\\\" 'ace-window)
-     (define-key evil-normal-state-map "\\|" 'ace-swap-window)
-     (define-key evil-normal-state-map (kbd "M-H") 'shrink-window-horizontally)
-     (define-key evil-normal-state-map (kbd "M-L") 'enlarge-window-horizontally)
-     (define-key evil-normal-state-map (kbd "M-J") 'shrink-window)
-     (define-key evil-normal-state-map (kbd "M-K") 'enlarge-window)))
-#+end_src
+
+    Window functions with evil mode.
+
+    #+begin_src emacs-lisp
+    (eval-after-load "evil"
+      '(progn
+	 (define-key evil-normal-state-map "\\" nil) ;; prefix
+	 (define-key evil-normal-state-map "\\q" 'delete-window)
+	 (define-key evil-normal-state-map "\\Q" 'kill-buffer-and-window)
+	 (define-key evil-normal-state-map "\\1" 'delete-other-windows)
+	 (define-key evil-normal-state-map "\\h" 'windmove-left)
+	 (define-key evil-normal-state-map "\\j" 'windmove-down)
+	 (define-key evil-normal-state-map "\\k" 'windmove-up)
+	 (define-key evil-normal-state-map "\\l" 'windmove-right)
+	 (define-key evil-normal-state-map "\\s" 'split-window-and-follow-right)
+	 (define-key evil-normal-state-map "\\v" 'split-window-and-follow-below)
+	 (define-key evil-normal-state-map "\\_" 'toggle-window-split)
+	 (define-key evil-normal-state-map "\\-" 'window-swap-states)
+	 (define-key evil-normal-state-map "\\\\" 'ace-window)
+	 (define-key evil-normal-state-map "\\|" 'ace-swap-window)
+	 (define-key evil-normal-state-map (kbd "M-H") 'shrink-window-horizontally)
+	 (define-key evil-normal-state-map (kbd "M-L") 'enlarge-window-horizontally)
+	 (define-key evil-normal-state-map (kbd "M-J") 'shrink-window)
+	 (define-key evil-normal-state-map (kbd "M-K") 'enlarge-window)))
+    #+end_src
 
 ** HELM
 *** Basics
@@ -382,7 +399,7 @@ Window functions with evil mode.
      ("M-y" . helm-show-kill-ring)
      ([remap switch-to-buffer] . helm-buffers-list))
    #+end_src
-   
+
 *** Helm-swoop
     #+begin_src emacs-lisp
     (use-package helm-swoop
@@ -407,8 +424,17 @@ Window functions with evil mode.
 	    ("M-i" . 'helm-swoop-from-evil-search)))
 
     #+end_src
+** IVY
+
+   I will try to replace helm with ivy.
+
+   #+begin_src emacs-lisp
+   ;; counsel brings ivy
+   (use-package counsel
+     :ensure t)
+   #+end_src
 ** AUTOCOMPLETE
-   
+
    Maybe use another option, like company. I have to check it out.
 
    #+begin_src emacs-lisp
@@ -449,11 +475,11 @@ Window functions with evil mode.
    #+end_src
 
 ** DIRED
-   
+
    This *IS* my new file manager!
 
 *** Dired-x
-    
+
     #+begin_src emacs-lisp
     (use-package dired-x
       :ensure nil
@@ -461,13 +487,13 @@ Window functions with evil mode.
       :config
       (setq dired-omit-files (concat dired-omit-files "\\|^\\..+$\\|xmp$\\|srt$")))
     #+end_src
-    
+
 *** Some useful functions
-    
+
 **** Attatch marked files to email:
-     
+
      Using dired, as found [[https://emacs.stackexchange.com/questions/14652/attach-multiple-files-from-the-same-directory-to-an-email-message][here]].
-     
+
      Open a dired buffer, mark some files and run the command. If there's an open message buffer use it, else create new message
 
      #+begin_src emacs-lisp
@@ -485,9 +511,9 @@ Window functions with evil mode.
      #+end_src
 
 **** Get files size:
-     
+
      Source: https://www.emacswiki.org/emacs/dired-extension.el
-     
+
      #+begin_src emacs-lisp
      (defun dired-get-size ()
        "Get total size of marked files with `du' command.
@@ -503,7 +529,7 @@ Window functions with evil mode.
      #+end_src
 
 **** Go to first/last directory:
-     
+
      Instead of going to the beginning or end of the buffer, go to the first or last directory line
      Source: https://www.emacswiki.org/emacs/dired-extension.el
 
@@ -529,7 +555,7 @@ Window functions with evil mode.
 
      #+begin_src emacs-lisp
      ;; sort by
-     (defun louk/dired-sort-by (sw)
+     (defun l/dired-sort-by (sw)
        "Sort dired buffer by given switches and go to first line. If the switches provided are the same with the current switches, do nothing"
        (let ((switches dired-actual-switches))
 	 (unless (string= sw switches)
@@ -538,27 +564,32 @@ Window functions with evil mode.
 
      ;; callable functions
      ;; by name
-     (defun louk/dired-sort-by-name ()
+     (defun l/dired-sort-by-name ()
+       "Sort by name. Calls `l/dired-sort-by'."
        (interactive)
-       (louk/dired-sort-by "-alh"))
+       (l/dired-sort-by "-alh"))
 
      ;; by date
-     (defun louk/dired-sort-by-date ()
+     (defun l/dired-sort-by-date ()
+       "Sort by date. Calls `l/dired-sort-by'."
        (interactive)
-       (louk/dired-sort-by "-alht"))
+       (l/dired-sort-by "-alht"))
 
      ;; by size
-     (defun louk/dired-sort-by-size ()
+     (defun l/dired-sort-by-size ()
+       "Sort by size. Calls `l/dired-sort-by'."
        (interactive)
-       (louk/dired-sort-by "-alhS"))
+       (l/dired-sort-by "-alhS"))
 
      ;; by extension
-     (defun louk/dired-sort-by-ext ()
+     (defun l/dired-sort-by-ext ()
+       "Sort by extension. Calls `l/dired-sort-by'."
        (interactive)
-       (louk/dired-sort-by "-alhX"))
+       (l/dired-sort-by "-alhX"))
 
      ;; toggle directories first
-     (defun louk/dired-sort-dirs-first ()
+     (defun l/dired-sort-dirs-first ()
+       "Toggles grouping directories first."
        (interactive)
        (let ((switches dired-actual-switches))
 	 (if (string-match-p (regexp-quote " --group-directories-first") switches)
@@ -569,20 +600,20 @@ Window functions with evil mode.
      #+end_src
 
 *** Dired custom maps
-    
-    #+begin_src emacs-lisp
-    (define-prefix-command 'louk/dired-nav-map)
 
-    (define-key louk/dired-nav-map (kbd "h") (lambda () (interactive) (dired "~/")))
-    (define-key louk/dired-nav-map (kbd "D") (lambda () (interactive) (dired "~/Downloads/")))
-    (define-key louk/dired-nav-map (kbd "d") (lambda () (interactive) (dired "~/Documents/")))
-    (define-key louk/dired-nav-map (kbd "p") (lambda () (interactive) (dired "~/Pictures/")))
-    (define-key louk/dired-nav-map (kbd "M") (lambda () (interactive) (dired "~/Music/")))
-    (define-key louk/dired-nav-map (kbd "v") (lambda () (interactive) (dired "~/Videos/")))
-    (define-key louk/dired-nav-map (kbd "m") (lambda () (interactive) (dired "/run/media/louk/")))
-    (define-key louk/dired-nav-map (kbd "C") (lambda () (interactive) (dired "~/.config/")))
-    (define-key louk/dired-nav-map (kbd "E") (lambda () (interactive) (dired "~/.emacs.d/")))
-    (define-key louk/dired-nav-map (kbd "!") (lambda () (interactive) (dired "~/dotfiles/")))
+    #+begin_src emacs-lisp
+    (define-prefix-command 'l/dired-nav-map)
+
+    (define-key l/dired-nav-map (kbd "h") (lambda () (interactive) (dired "~/")))
+    (define-key l/dired-nav-map (kbd "D") (lambda () (interactive) (dired "~/Downloads/")))
+    (define-key l/dired-nav-map (kbd "d") (lambda () (interactive) (dired "~/Documents/")))
+    (define-key l/dired-nav-map (kbd "p") (lambda () (interactive) (dired "~/Pictures/")))
+    (define-key l/dired-nav-map (kbd "M") (lambda () (interactive) (dired "~/Music/")))
+    (define-key l/dired-nav-map (kbd "v") (lambda () (interactive) (dired "~/Videos/")))
+    (define-key l/dired-nav-map (kbd "m") (lambda () (interactive) (dired "/run/media/louk/")))
+    (define-key l/dired-nav-map (kbd "C") (lambda () (interactive) (dired "~/.config/")))
+    (define-key l/dired-nav-map (kbd "E") (lambda () (interactive) (dired "~/.emacs.d/")))
+    (define-key l/dired-nav-map (kbd "!") (lambda () (interactive) (dired "~/dotfiles/")))
     #+end_src
 
 *** Dired defaults
@@ -598,8 +629,8 @@ Window functions with evil mode.
 
     ;; This hook seems to be added automatically to my 'custom.el' file and breaks dired. I have to find out where it comes from. It was a part of the `ranger' package, which I have deleted.
     (remove-hook 'dired-mode-hook 'ranger-set-dired-key)
-    #+end_src 
-    
+    #+end_src
+
 *** Image dired
 
     #+begin_src emacs-lisp
@@ -607,22 +638,22 @@ Window functions with evil mode.
       (setq image-dired-thumbs-per-row 4)
       (setq image-dired-external-viewer "sxiv")
     #+end_src
-    
+
 *** Dired keybindings
-    
+
     Changing some default keybindings
-    
+
     #+begin_src emacs-lisp
       (eval-after-load "dired"
 	'(progn
 	   (define-key dired-mode-map "G" 'revert-buffer)
-	   (define-key dired-mode-map "g" 'louk/dired-nav-map)
+	   (define-key dired-mode-map "g" 'l/dired-nav-map)
 	   (define-key dired-mode-map "z" 'dired-omit-mode)
 	   (define-key dired-mode-map (kbd "C-x M-.") 'compose-attach-marked-files)
 	   (define-key dired-mode-map (kbd "M-<") 'dired-goto-first-file)
 	   (define-key dired-mode-map (kbd "M->") 'dired-goto-last-file)))
     #+end_src
-    
+
 *** Dired evil bindings
 
    Loading the whole evil-collection proved cumbersome for me, there was some trouble with my custom keybindings (eg. I couldn't use 'r' as a prefix key, even when binding it to nil after loading evil-collection). Might be sth that I did wrong, but anyhow...
@@ -704,7 +735,7 @@ Window functions with evil mode.
 	  ";e" 'epa-dired-do-encrypt
 	  ;; unsorted
 	  "z" 'dired-omit-mode
-	  "g" 'louk/dired-nav-map
+	  "g" 'l/dired-nav-map
 	  "gr" 'revert-buffer
 	  "gR" 'dired-do-redisplay
 	  "I" 'dired-maybe-insert-subdir
@@ -720,44 +751,44 @@ Window functions with evil mode.
 	  (kbd "M-<return>") 'browse-url-of-dired-file
 	  ;; sorting
 	  "o" nil ;; prefix -- was dired-sort-toggle-or-edit
-	  "oo" 'louk/dired-sort-by-name
-	  "od" 'louk/dired-sort-by-date
-	  "os" 'louk/dired-sort-by-size
-	  "ox" 'louk/dired-sort-by-ext
-	  "o=" 'louk/dired-sort-dirs-first
+	  "oo" 'l/dired-sort-by-name
+	  "od" 'l/dired-sort-by-date
+	  "os" 'l/dired-sort-by-size
+	  "ox" 'l/dired-sort-by-ext
+	  "o=" 'l/dired-sort-dirs-first
 	  "(" 'dired-hide-details-mode
 	  "g?" 'dired-summary
 	  "?" 'dired-get-size)
 
 	(add-hook 'dired-mode-hook 'evil-normalize-keymaps)))
    #+end_src
-    
+
 *** Dired subtree
-    
+
     #+begin_src emacs-lisp
     (use-package dired-subtree
       :ensure t
-      :after dired evil 
+      :after dired evil
       :config
       (evil-define-key 'normal dired-mode-map (kbd "TAB") 'dired-subtree-toggle))
     #+end_src
-    
+
 *** Peep dired
-    
+
     Peep dired sounds naughty!
-    
+
 **** Peepy-fied dired functions
-     
+
      Some functions for a more consistent peeping experience.
 
      #+begin_src emacs-lisp
-     (defun louk/peep-dired-up-directory ()
+     (defun l/peep-dired-up-directory ()
        "Peep first file when moving up directory."
        (interactive)
        (dired-up-directory)
        (peep-dired-display-file-other-window))
 
-     (defun louk/peep-dired-find-file ()
+     (defun l/peep-dired-find-file ()
        "Peep first file when entering a subdirectory. If the selection is a file, just go to the peeped window."
        (interactive)
        (if (file-directory-p (dired-file-name-at-point))
@@ -766,75 +797,81 @@ Window functions with evil mode.
 	     (peep-dired-display-file-other-window))
 	 (other-window 1)))
 
-     (defun louk/peep-dired-prev-dirline ()
+     (defun l/peep-dired-prev-dirline ()
        "Peep previous dirline."
        (interactive)
        (dired-prev-dirline 1)
        (peep-dired-display-file-other-window))
 
-     (defun louk/peep-dired-next-dirline ()
+     (defun l/peep-dired-next-dirline ()
        "Peep next dirline."
        (interactive)
        (dired-next-dirline 1)
        (peep-dired-display-file-other-window))
 
-     (defun louk/peep-dired-goto-first-file ()
+     (defun l/peep-dired-goto-first-file ()
        "Go to first file line and peep there. Uses `dired-goto-first-file'"
        (interactive)
        (dired-goto-first-file)
        (peep-dired-display-file-other-window))
 
-     (defun louk/peep-dired-goto-last-file ()
+     (defun l/peep-dired-goto-last-file ()
        "Go to last file line and peep there. Uses `dired-goto-last-file'"
        (interactive)
        (dired-goto-last-file)
        (peep-dired-display-file-other-window))
-     #+end_src 
+     #+end_src
 
 **** Load Peep
-     
+
     #+begin_src emacs-lisp
-    (use-package peep-dired
-      :ensure t
-      :after dired-x
-      :init
-      ;; is this that creates an error? -- Yes, do not use it, or fix it
-      ;; (setq peep-dired-cleanup-eagerly t)
-      (setq peep-dired-ignored-extensions '("mkv" "mp4" "avi" "mov" "mp3" "wav" "iso"))
-      :config
-      ;; evil integration
-      (eval-after-load "evil"
-	'(progn
-	   (evil-define-key 'normal peep-dired-mode-map (kbd "<SPC>") 'peep-dired-scroll-page-down
-	     (kbd "<C-SPC>") 'peep-dired-scroll-page-up
-	     (kbd "<backspace>") 'peep-dired-scroll-page-up
-	     (kbd "j") 'peep-dired-next-file
-	     (kbd "<down>") 'peep-dired-next-file
-	     (kbd "k") 'peep-dired-prev-file
-	     (kbd "<up>") 'peep-dired-prev-file
-	     (kbd "h") 'louk/peep-dired-up-directory
-	     (kbd "<left>") 'louk/peep-dired-up-directory
-	     (kbd "l") 'louk/peep-dired-find-file
-	     (kbd "<right>") 'louk/peep-dired-find-file
-	     (kbd ">") 'louk/peep-dired-next-dirline
-	     (kbd "<") 'louk/peep-dired-prev-dirline
-	     (kbd "g g") 'louk/peep-dired-goto-first-file
-	     (kbd "G") 'louk/peep-dired-goto-last-file)
-	   (evil-define-key 'normal dired-mode-map (kbd "p") 'peep-dired)
-	   (add-hook 'peep-dired-hook 'evil-normalize-keymaps)))
-      :bind
-      (:map dired-mode-map
-	    ("p" . 'peep-dired)))
+	(use-package peep-dired
+	  :ensure t
+	  :after dired-x
+	  :init
+	  ;; is this that creates an error? -- Yes, do not use it, or fix it
+	  ;; (setq peep-dired-cleanup-eagerly t)
+	  (setq peep-dired-ignored-extensions '("mkv" "mp4" "avi" "mov" "mp3" "wav" "iso"))
+	  :config
+	  ;; unbind SPC and DEL from emacs mode as it messes with Wdired
+	  (define-key peep-dired-mode-map (kbd "<backspace>") nil)
+	  (define-key peep-dired-mode-map (kbd "SPC") nil)
+	  (define-key peep-dired-mode-map (kbd "C-SPC") nil)
+	  ;; evil integration
+	  (eval-after-load "evil"
+	    '(progn
+	       (evil-define-key 'normal peep-dired-mode-map
+		 (kbd "C-j") 'peep-dired-scroll-page-down
+		 (kbd "C-k") 'peep-dired-scroll-page-up
+		 (kbd "j") 'peep-dired-next-file
+		 (kbd "<down>") 'peep-dired-next-file
+		 (kbd "k") 'peep-dired-prev-file
+		 (kbd "<up>") 'peep-dired-prev-file
+		 (kbd "h") 'l/peep-dired-up-directory
+		 (kbd "<left>") 'l/peep-dired-up-directory
+		 (kbd "l") 'l/peep-dired-find-file
+		 (kbd "<right>") 'l/peep-dired-find-file
+		 (kbd ">") 'l/peep-dired-next-dirline
+		 (kbd "<") 'l/peep-dired-prev-dirline
+		 (kbd "g g") 'l/peep-dired-goto-first-file
+		 (kbd "G") 'l/peep-dired-goto-last-file)
+	       (evil-define-key 'normal dired-mode-map (kbd "p") 'peep-dired)
+	       (add-hook 'peep-dired-hook 'evil-normalize-keymaps)))
+	  :bind
+	  (:map dired-mode-map
+		("p" . 'peep-dired)))
     #+end_src
 
-*** Dired filter
-    
+*** Dired narrow
+
     Narrow down what is shown in dired by filtering filenames.
-    
+
     #+begin_src emacs-lisp
     (use-package dired-narrow
       :ensure t
       :after dired evil
+      :init
+      (setq dired-narrow-exit-when-one-left t)
       :config
       (evil-define-key 'normal dired-mode-map (kbd "f") 'dired-narrow)
       :bind
@@ -842,29 +879,43 @@ Window functions with evil mode.
 	    ("f" . 'dired-narrow)))
 
     #+end_src
-    
-*** Copying and pasting
-    
+
+*** Copying and pasting (and bookmarks)
+
     Three methods of copying and pasting:
     1. Normal: The default dired way, copy and select destination on execution. Works neatly with the =dired-target-dwim= option, but sometimes you want to mark some files to copy and then paste them after some navigation.
-       
+
     2. Dired-ranger: Ranger-like copying and pasting (also bookmarks, but I have to check those out)
-       
+
     #+begin_src emacs-lisp
     (use-package dired-ranger
       :ensure t
       :after dired
+      :init
+      (setq dired-ranger-bookmark-reopen 'always)
       :config
+      ;; function to visit previous directory
+      (defun l/dired-ranger-bookmark-visit-LRU ()
+	"Go to last visited directory."
+	(interactive)
+	(dired-ranger-bookmark-visit dired-ranger-bookmark-LRU))
+
+      ;; evil integration
       (eval-after-load "evil"
 	'(progn
-	   (evil-define-key 'normal dired-mode-map "y" nil)
-	   (evil-define-key 'normal dired-mode-map "yy" 'dired-ranger-copy)
-	   (evil-define-key 'normal dired-mode-map "yP" 'dired-ranger-move)
-	   (evil-define-key 'normal dired-mode-map "yp" 'dired-ranger-paste))))
+	   (evil-define-key 'normal dired-mode-map
+	     "y" nil ;; prefix
+	     "yy" 'dired-ranger-copy
+	     "yP" 'dired-ranger-move
+	     "yp" 'dired-ranger-paste
+	     "`" nil ;; prefix
+	     "``" 'l/dired-ranger-bookmark-visit-LRU
+	     "`v" 'dired-ranger-bookmark-visit
+	     "`m" 'dired-ranger-bookmark))))
     #+end_src
-    
+
     3. Dired-rsync: Really useful for BIG files, as it does not freeze emacs. Also, progress is shown in the modeline! Some other benefits, like copy-pasting from remote, are not yet explored. Works like normal copying.
-       
+
     #+begin_src emacs-lisp
     (use-package dired-rsync
       :ensure t
@@ -876,14 +927,57 @@ Window functions with evil mode.
 	'(progn
 	   (evil-define-key 'normal dired-mode-map "r" 'dired-rsync))))
     #+end_src
-    
+
 **** TODO Simplify keystrokes:
      All this is really nice, but now I have three different keys related to copy-pasting (C, y, r). Maybe I should fix this somehow? I guess I will decide as I use it.
+
+*** Wdired
+
+**** Renaming functions
+     #+begin_src emacs-lisp
+     (defun l/evil-wdired-append-to-filename ()
+       "Renaming helper for `wdired'. Append to filename before the extension."
+       (interactive)
+       (move-end-of-line nil)
+       (search-backward ".")
+       (evil-insert 1))
+
+     (defun l/evil-wdired-change-filename ()
+       "Renaming helper for `wdired'. Change the filename but keep the extension."
+       (interactive)
+       (move-end-of-line nil)
+       (search-backward ".")
+       (kill-region 1 (point))
+       (evil-insert 1))
+
+     (defun l/evil-wdired-change-extension ()
+       "Renaming helper for `wdired'. Change file's extension."
+       (interactive)
+       (move-end-of-line nil)
+       (set-mark-command nil)
+       (search-backward ".")
+       (forward-char)
+       (kill-region (point) (mark))
+       (evil-insert 1))
+     #+end_src
+
+**** Wdired hook
+
+     Just display a message when entering wdired!
+
+     #+begin_src emacs-lisp
+     (eval-after-load "evil"
+       '(progn
+	  (evil-define-key 'normal wdired-mode-map
+	    (kbd "C-r w") 'l/evil-wdired-change-filename
+	    (kbd "C-r a") 'l/evil-wdired-append-to-filename
+	    (kbd "C-r x") 'l/evil-wdired-change-extension)))
+     #+end_src
 
 *** Dired rainbow
 
     Prettier dired. I haven't really tweaked anything, it's just some defaults from their github page.
-    
+
     #+begin_src emacs-lisp
     (use-package dired-rainbow
       :ensure t
@@ -909,11 +1003,11 @@ Window functions with evil mode.
 	(dired-rainbow-define partition "#e3342f" ("dmg" "iso" "bin" "nrg" "qcow" "toast" "vcd" "vmdk" "bak"))
 	(dired-rainbow-define vc "#0074d9" ("git" "gitignore" "gitattributes" "gitmodules"))
 	(dired-rainbow-define-chmod executable-unix "#38c172" "-.*x.*")
-	)) 
+	))
     #+end_src
 
 *** Dired icons
-    
+
     Pretty icons for Dired!
 
     #+begin_src emacs-lisp
@@ -925,14 +1019,14 @@ Window functions with evil mode.
     #+end_src
 
 ** PDF TOOLS
-   
+
    #+begin_src emacs-lisp
    (use-package pdf-tools
      :ensure t
      :init
      (pdf-tools-install))
    #+end_src
-   
+
 ** DIARY AND CALENDAR
 *** Default diary file
     #+begin_src emacs-lisp
@@ -1000,17 +1094,17 @@ Window functions with evil mode.
     (global-set-key (kbd "C-c C-x C-z") 'org-resolve-clocks)
 
     ;; some capture functions from Zamansky's configuration
-    (defadvice org-capture-finalize 
-	(after delete-capture-frame activate)  
-      "Advise capture-finalize to close the frame"  
-      (if (equal "capture" (frame-parameter nil 'name))  
+    (defadvice org-capture-finalize
+	(after delete-capture-frame activate)
+      "Advise capture-finalize to close the frame"
+      (if (equal "capture" (frame-parameter nil 'name))
 	  (delete-frame)))
 
-    (defadvice org-capture-destroy 
-	(after delete-capture-frame activate)  
-      "Advise capture-destroy to close the frame"  
-      (if (equal "capture" (frame-parameter nil 'name))  
-	  (delete-frame)))  
+    (defadvice org-capture-destroy
+	(after delete-capture-frame activate)
+      "Advise capture-destroy to close the frame"
+      (if (equal "capture" (frame-parameter nil 'name))
+	  (delete-frame)))
 
     (defun make-capture-frame ()
       "Create a new frame and run org-capture."
@@ -1048,9 +1142,9 @@ Window functions with evil mode.
 	    ;;  "* %^{nickname}\n:PROPERTIES:\n:NAME: %^{name}\n:EMAIL: [[%^{email}]]\n:END:")
 	    ))
     #+end_src
-    
+
 *** Org-contacts
-    
+
     #+begin_src emacs-lisp
     (use-package org-contacts
       :ensure nil
@@ -1083,7 +1177,7 @@ Window functions with evil mode.
 
    (add-hook 'after-save-hook #'latex-save-compile)
    #+end_src
-   
+
 ** MU4E
 *** mu4e basic setup
 
@@ -1215,7 +1309,7 @@ Window functions with evil mode.
     #+end_src
 
 *** mu4e open in headers of specific account
-   
+
     #+begin_src emacs-lisp
     (defun mu4e-open-in-headers (account)
       "Open mu4e in account's Inbox"
@@ -1272,7 +1366,7 @@ Auto start mu4e on emacs startup
    #+end_src
 
 ** EVIL
-   
+
    It's good to have vim's normal-state to move around, change words, search etc, but for a true combination of emacs and vim, I replaced insert-state with emacs-state. The best of two worlds!
 
    -- Note: there's a bunch of bindings in normal-state beause of the visual-line-mode that I use. I have to get rid of that at some point.
@@ -1290,7 +1384,7 @@ Auto start mu4e on emacs startup
      (setq evil-want-integration t)
      (setq evil-want-keybinding t)
      (setq evil-find-skip-newlines t)
-     :config 
+     :config
      (evil-mode 1)
      (evil-set-initial-state 'Info-mode 'emacs)
      (evil-set-initial-state 'org-capture-mode 'emacs)

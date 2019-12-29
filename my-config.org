@@ -357,7 +357,7 @@ Restart emacs from within emacs (duh!)
 
 *** Evil window bindings
 
-    Window functions with evil mode.
+    Window functions with evil mode. Also some functions that make sense for me to be configured here, like buffer actions.
 
     #+begin_src emacs-lisp
     (eval-after-load "evil"
@@ -379,7 +379,10 @@ Restart emacs from within emacs (duh!)
 	 (define-key evil-normal-state-map (kbd "M-H") 'shrink-window-horizontally)
 	 (define-key evil-normal-state-map (kbd "M-L") 'enlarge-window-horizontally)
 	 (define-key evil-normal-state-map (kbd "M-J") 'shrink-window)
-	 (define-key evil-normal-state-map (kbd "M-K") 'enlarge-window)))
+	 (define-key evil-normal-state-map (kbd "M-K") 'enlarge-window)
+	 (define-key evil-normal-state-map (kbd "M-+") 'balance-windows)
+	 (define-key evil-normal-state-map "\\b" 'switch-to-buffer)))
+
     #+end_src
 
 ** HELM
@@ -485,14 +488,15 @@ Restart emacs from within emacs (duh!)
       :ensure nil
       :after dired
       :config
-      (setq dired-omit-files (concat dired-omit-files "\\|^\\..+$\\|xmp$\\|srt$")))
+      ;; files to be ommited: beginning with one or more dots, beginning with $ (some files that come from Windows), ending with xmp (eg darktable data files), ending with srt, sub (I don't want to see subtitle files)
+      (setq dired-omit-files (concat dired-omit-files "\\|^\\..+$\\|^\\$\\|xmp$\\|srt$\\|sub$")))
     #+end_src
 
 *** Some useful functions
 
 **** Attatch marked files to email:
 
-     Using dired, as found [[https://emacs.stackexchange.com/questions/14652/attach-multiple-files-from-the-same-directory-to-an-email-message][here]].
+     Found [[https://emacs.stackexchange.com/questions/14652/attach-multiple-files-from-the-same-directory-to-an-email-message][here]].
 
      Open a dired buffer, mark some files and run the command. If there's an open message buffer use it, else create new message
 
@@ -531,6 +535,7 @@ Restart emacs from within emacs (duh!)
 **** Go to first/last directory:
 
      Instead of going to the beginning or end of the buffer, go to the first or last directory line
+     
      Source: https://www.emacswiki.org/emacs/dired-extension.el
 
      #+begin_src emacs-lisp
@@ -780,35 +785,10 @@ Restart emacs from within emacs (duh!)
 **** Peepy-fied dired functions
 
      Some functions for a more consistent peeping experience.
+     
+     Note: these were left out of my peep-dired fork because they are not part of dired
 
      #+begin_src emacs-lisp
-     (defun l/peep-dired-up-directory ()
-       "Peep first file when moving up directory."
-       (interactive)
-       (dired-up-directory)
-       (peep-dired-display-file-other-window))
-
-     (defun l/peep-dired-find-file ()
-       "Peep first file when entering a subdirectory. If the selection is a file, just go to the peeped window."
-       (interactive)
-       (if (file-directory-p (dired-file-name-at-point))
-	   (progn
-	     (dired-find-file)
-	     (peep-dired-display-file-other-window))
-	 (other-window 1)))
-
-     (defun l/peep-dired-prev-dirline ()
-       "Peep previous dirline."
-       (interactive)
-       (dired-prev-dirline 1)
-       (peep-dired-display-file-other-window))
-
-     (defun l/peep-dired-next-dirline ()
-       "Peep next dirline."
-       (interactive)
-       (dired-next-dirline 1)
-       (peep-dired-display-file-other-window))
-
      (defun l/peep-dired-goto-first-file ()
        "Go to first file line and peep there. Uses `dired-goto-first-file'"
        (interactive)
@@ -824,42 +804,40 @@ Restart emacs from within emacs (duh!)
 
 **** Load Peep
 
+     This is my fork of peep-dired. clone it from [[https://github.com/dakodeon/peep-dired/tree/luc][github]] and set =:load-path= to point to the correct path.
+
     #+begin_src emacs-lisp
-	(use-package peep-dired
-	  :ensure t
-	  :after dired-x
-	  :init
-	  ;; is this that creates an error? -- Yes, do not use it, or fix it
-	  ;; (setq peep-dired-cleanup-eagerly t)
-	  (setq peep-dired-ignored-extensions '("mkv" "mp4" "avi" "mov" "mp3" "wav" "iso"))
-	  :config
-	  ;; unbind SPC and DEL from emacs mode as it messes with Wdired
-	  (define-key peep-dired-mode-map (kbd "<backspace>") nil)
-	  (define-key peep-dired-mode-map (kbd "SPC") nil)
-	  (define-key peep-dired-mode-map (kbd "C-SPC") nil)
-	  ;; evil integration
-	  (eval-after-load "evil"
-	    '(progn
-	       (evil-define-key 'normal peep-dired-mode-map
-		 (kbd "C-j") 'peep-dired-scroll-page-down
-		 (kbd "C-k") 'peep-dired-scroll-page-up
-		 (kbd "j") 'peep-dired-next-file
-		 (kbd "<down>") 'peep-dired-next-file
-		 (kbd "k") 'peep-dired-prev-file
-		 (kbd "<up>") 'peep-dired-prev-file
-		 (kbd "h") 'l/peep-dired-up-directory
-		 (kbd "<left>") 'l/peep-dired-up-directory
-		 (kbd "l") 'l/peep-dired-find-file
-		 (kbd "<right>") 'l/peep-dired-find-file
-		 (kbd ">") 'l/peep-dired-next-dirline
-		 (kbd "<") 'l/peep-dired-prev-dirline
-		 (kbd "g g") 'l/peep-dired-goto-first-file
-		 (kbd "G") 'l/peep-dired-goto-last-file)
-	       (evil-define-key 'normal dired-mode-map (kbd "p") 'peep-dired)
-	       (add-hook 'peep-dired-hook 'evil-normalize-keymaps)))
-	  :bind
-	  (:map dired-mode-map
-		("p" . 'peep-dired)))
+    (use-package peep-dired
+      :load-path "~/.source/peep-dired"
+      :after dired-x
+      :init
+      ;; is this that creates an error? -- Yes, do not use it, or fix it
+      (setq peep-dired-cleanup-eagerly t)
+      (setq peep-dired-ignored-extensions '("mkv" "mp4" "avi" "mov" "mp3" "wav" "iso"))
+      :config
+      ;; evil integration
+      (eval-after-load "evil"
+	'(progn
+	   (evil-define-key 'normal peep-dired-mode-map
+	     (kbd "C-j") 'peep-dired-scroll-page-down
+	     (kbd "C-k") 'peep-dired-scroll-page-up
+	     (kbd "j") 'peep-dired-next-file
+	     (kbd "<down>") 'peep-dired-next-file
+	     (kbd "k") 'peep-dired-prev-file
+	     (kbd "<up>") 'peep-dired-prev-file
+	     (kbd "h") 'peep-dired-up-directory
+	     (kbd "<left>") 'peep-dired-up-directory
+	     (kbd "l") 'peep-dired-find-file
+	     (kbd "<right>") 'peep-dired-find-file
+	     (kbd ">") 'peep-dired-next-dirline
+	     (kbd "<") 'peep-dired-prev-dirline
+	     (kbd "g g") 'l/peep-dired-goto-first-file
+	     (kbd "G") 'l/peep-dired-goto-last-file)
+	   (evil-define-key 'normal dired-mode-map (kbd "p") 'peep-dired)
+	   (add-hook 'peep-dired-hook 'evil-normalize-keymaps)))
+      :bind
+      (:map dired-mode-map
+	    ("p" . 'peep-dired)))
     #+end_src
 
 *** Dired narrow

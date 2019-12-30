@@ -85,6 +85,7 @@ The code snippets are loaded by =init.el=, which also loads =use-package=.
     #+begin_src emacs-lisp
     (use-package rainbow-mode
       :ensure t
+      :delight
       :hook prog-mode)
     #+end_src
 
@@ -102,13 +103,32 @@ Icons for emacs.
 #+begin_src emacs-lisp
 ;; Note: After the first load, run `all-the-icons-install-fonts'
 (use-package all-the-icons
-  :ensure t)
+  :ensure t
+  :delight)
 #+end_src
+
+*** Hide info from modeline (delight)
+
+    Normally I use the =:delight= keyword of use package, here are the built-in modes that I want to omit.
+
+    #+begin_src emacs-lisp
+    (use-package delight
+      :ensure t
+      :config
+      (delight 'dired-mode "")
+      (delight 'undo-tree-mode nil 'undo-tree)
+      (delight 'visual-line-mode " ⏎" 'simple)
+      (delight 'eldoc-mode nil 'eldoc)
+      ;; for some reason, I cannot set this in use-package declaration of smartparens
+      (delight 'smartparens-mode " {⬄}" 'smartparens))
+    #+end_src
+    
 *** Which key
 
     #+begin_src emacs-lisp
     (use-package which-key
       :ensure t
+      :delight
       :config (which-key-mode))
     #+end_src
 *** Default files
@@ -144,6 +164,7 @@ Icons for emacs.
     #+begin_src emacs-lisp
     (use-package smartparens-config
       :ensure smartparens
+      ;; :delight ('smartparens-mode " \(\)" 'smartparens)
       :init
       (smartparens-global-mode 1)
       (show-smartparens-global-mode 1)
@@ -381,7 +402,8 @@ Restart emacs from within emacs (duh!)
 	 (define-key evil-normal-state-map (kbd "M-J") 'shrink-window)
 	 (define-key evil-normal-state-map (kbd "M-K") 'enlarge-window)
 	 (define-key evil-normal-state-map (kbd "M-+") 'balance-windows)
-	 (define-key evil-normal-state-map "\\b" 'switch-to-buffer)))
+	 (define-key evil-normal-state-map "\\b" 'switch-to-buffer)
+	 (define-key evil-normal-state-map "\\z" 'kill-current-buffer)))
 
     #+end_src
 
@@ -390,6 +412,7 @@ Restart emacs from within emacs (duh!)
    #+begin_src emacs-lisp
    (use-package helm-config
      :ensure helm
+     :delight helm-mode
      :defer 1
      :init
      (setq helm-follow-mode-persistent t)
@@ -480,12 +503,12 @@ Restart emacs from within emacs (duh!)
 ** DIRED
 
    This *IS* my new file manager!
-
 *** Dired-x
 
     #+begin_src emacs-lisp
     (use-package dired-x
       :ensure nil
+      :delight dired-omit-mode
       :after dired
       :config
       ;; files to be ommited: beginning with one or more dots, beginning with $ (some files that come from Windows), ending with xmp (eg darktable data files), ending with srt, sub (I don't want to see subtitle files)
@@ -809,6 +832,7 @@ Restart emacs from within emacs (duh!)
     #+begin_src emacs-lisp
     (use-package peep-dired
       :load-path "~/.source/peep-dired"
+      :delight (peep-dired " ")
       :after dired-x
       :init
       ;; is this that creates an error? -- Yes, do not use it, or fix it
@@ -991,11 +1015,37 @@ Restart emacs from within emacs (duh!)
     #+begin_src emacs-lisp
     (use-package all-the-icons-dired
       :ensure t
+      :delight
       :after dired all-the-icons
       :config
       (add-hook 'dired-mode-hook 'all-the-icons-dired-mode))
     #+end_src
 
+*** Modeline style
+
+    I override the default behaviour of [[file:/usr/share/emacs/26.3/lisp/dired.el.gz::(defun dired-sort-set-mode-line ()][dired-sort-set-mode-line]], as it was not appealing to me. Needs more tweaking for sure, but it works for now.
+
+    #+begin_src emacs-lisp
+    (eval-after-load "dired"
+      (defun dired-sort-set-mode-line ()
+	;; Set mode line display according to dired-actual-switches.
+	;; Mode line display of "by name" or "by date" guarantees the user a
+	;; match with the corresponding regexps.  Non-matching switches are
+	;; shown literally.
+	(when (eq major-mode 'dired-mode)
+	  (setq mode-name
+		(let (case-fold-search)
+		  (cond ((string-match-p
+			  dired-sort-by-name-regexp dired-actual-switches)
+			 "-N")
+			((string-match-p
+			  dired-sort-by-date-regexp dired-actual-switches)
+			 "-D")
+			(t
+			 ""))))
+	  (force-mode-line-update))))
+
+    #+end_src
 ** PDF TOOLS
 
    #+begin_src emacs-lisp

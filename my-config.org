@@ -629,24 +629,23 @@ Restart emacs from within emacs (duh!)
 
 **** Get subtitles:
 
-     Use [[https://github.com/Diaoul/subliminal][subliminal]] to find subtitles online. The gist of using 'start-process' comes from [[http://ergoemacs.org/emacs/elisp_call_shell_command.html][here]].
+     Use [[https://github.com/Diaoul/subliminal][subliminal]] to find subtitles online. The gist of using 'start-process' comes from [[http://ergoemacs.org/emacs/elisp_call_shell_command.html][here]], and the idea of using 'apply' from [[https://stackoverflow.com/questions/17075920/passing-list-to-rest-args?rq=1][here]].
 
      #+begin_src emacs-lisp
      (defun get-subtitles ()
-       "Get subtitles for marked files while in a dired buffer. Depends on subliminal, so it has to be installed on your system."
+       "Get subtitles for marked files while in a dired buffer. Depends on subliminal, so it has to be on your system."
        (interactive)
        (when (eq major-mode 'dired-mode)
 	 (let* ((lang-list '("en" "gr"))
-		(lang (completing-read "Select language: " lang-list nil t)))
+		(lang (completing-read "Select language: " lang-list nil t))
+		(files (dired-get-marked-files))
+		(process-connection-type nil))
 	   (if (get-buffer "*get-subtitles*")
 	       (kill-buffer "*get-subtitles*"))
-	   (mapc
-	    (lambda (x)
-	      (let ((process-connection-type nil))
-		(start-process "get-subtitles" "*get-subtitles*" "subliminal" "download" "-l" lang x)))
-	    (dired-get-marked-files)))
+	   (apply 'start-process
+		  (append (list "get-subtitles" "*get-subtitles*" "subliminal" "download" "-l" lang) files))
 	 (switch-to-buffer-other-window "*get-subtitles*")
-	 (special-mode)))
+	 (special-mode))))
      #+end_src
 
 **** Get files size:

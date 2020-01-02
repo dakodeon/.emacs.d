@@ -122,6 +122,14 @@ Icons for emacs.
       ;; for some reason, I cannot set this in use-package declaration of smartparens
       (delight 'smartparens-mode " {⬄}" 'smartparens))
     #+end_src
+
+This seems a reasonable way to change modeline info for major modes. Why use delight for that? It also seems to work better for, e.g, this case.
+
+    #+begin_src emacs-lisp
+    (add-hook 'emacs-lisp-mode-hook
+	  (lambda ()
+	    (setq mode-name "ELisp")))
+    #+end_src
     
 *** Which key
 
@@ -384,15 +392,19 @@ Restart emacs from within emacs (duh!)
     (eval-after-load "evil"
       '(progn
 	 (define-key evil-normal-state-map "\\" nil) ;; prefix
+	 (define-key evil-normal-state-map "\\0" 'ace-delete-window)
 	 (define-key evil-normal-state-map "\\q" 'delete-window)
 	 (define-key evil-normal-state-map "\\Q" 'kill-buffer-and-window)
 	 (define-key evil-normal-state-map "\\1" 'delete-other-windows)
-	 (define-key evil-normal-state-map "\\h" 'windmove-left)
-	 (define-key evil-normal-state-map "\\j" 'windmove-down)
-	 (define-key evil-normal-state-map "\\k" 'windmove-up)
-	 (define-key evil-normal-state-map "\\l" 'windmove-right)
+	 ;; for movement, it made more sense to use "gaming" keys (also because of the prefix key position)
+	 (define-key evil-normal-state-map "\\a" 'windmove-left)
+	 (define-key evil-normal-state-map "\\s" 'windmove-down)
+	 (define-key evil-normal-state-map "\\w" 'windmove-up)
+	 (define-key evil-normal-state-map "\\d" 'windmove-right)
 	 (define-key evil-normal-state-map "\\s" 'split-window-and-follow-right)
+	 (define-key evil-normal-state-map "\\3" 'split-window-and-follow-right)
 	 (define-key evil-normal-state-map "\\v" 'split-window-and-follow-below)
+	 (define-key evil-normal-state-map "\\2" 'split-window-and-follow-below)
 	 (define-key evil-normal-state-map "\\_" 'toggle-window-split)
 	 (define-key evil-normal-state-map "\\-" 'window-swap-states)
 	 (define-key evil-normal-state-map "\\\\" 'ace-window)
@@ -403,7 +415,10 @@ Restart emacs from within emacs (duh!)
 	 (define-key evil-normal-state-map (kbd "M-K") 'enlarge-window)
 	 (define-key evil-normal-state-map (kbd "M-+") 'balance-windows)
 	 (define-key evil-normal-state-map "\\b" 'switch-to-buffer)
-	 (define-key evil-normal-state-map "\\z" 'kill-current-buffer)))
+	 (define-key evil-normal-state-map "\\," '(lambda () (interactive) (switch-to-buffer "*scratch*")))
+	 (define-key evil-normal-state-map "\\<" 'switch-to-prev-buffer)
+	 (define-key evil-normal-state-map "\\>" 'switch-to-next-buffer)
+	 (define-key evil-normal-state-map "\\Z" 'kill-current-buffer)))
 
     #+end_src
 
@@ -466,6 +481,7 @@ Restart emacs from within emacs (duh!)
    #+begin_src emacs-lisp
    (use-package auto-complete
      :ensure t
+     :delight (auto-complete-mode " ⋯")
      :init
      (ac-config-default)
      (global-auto-complete-mode t)
@@ -535,24 +551,6 @@ Restart emacs from within emacs (duh!)
 				(mm-default-file-encoding file)
 				nil "attachment")
 	     (message "skipping non-regular file %s" file)))))
-     #+end_src
-
-**** Get files size:
-
-     Source: https://www.emacswiki.org/emacs/dired-extension.el
-
-     #+begin_src emacs-lisp
-     (defun dired-get-size ()
-       "Get total size of marked files with `du' command.
-     If not marked any files, default is current file or directory."
-       (interactive)
-       (let ((files (dired-get-marked-files)))
-	 (with-temp-buffer
-	   (apply 'call-process "/usr/bin/du" nil t nil "-sch" files)
-	   (message "%s"
-		    (progn
-		      (re-search-backward "\\(^[0-9.,]+[A-Za-z]+\\).*\\(total\\|总用量\\)$")
-		      (match-string 1))))))
      #+end_src
 
 **** Go to first/last directory:
@@ -627,21 +625,67 @@ Restart emacs from within emacs (duh!)
        (dired-goto-first-file))
      #+end_src
 
+*** Some useful (external) functions
+
+**** Get subtitles:
+
+     Use [[https://github.com/Diaoul/subliminal][subliminal]] to find subtitles online. The gist of using 'start-process' comes from [[http://ergoemacs.org/emacs/elisp_call_shell_command.html][here]].
+
+     #+begin_src emacs-lisp
+     (defun get-subtitles ()
+       "Get subtitles for marked files while in a dired buffer. Depends on subliminal, so it has to be installed on your system."
+       (interactive)
+       (when (eq major-mode 'dired-mode)
+	 (let* ((lang-list '("en" "gr"))
+		(lang (completing-read "Select language: " lang-list nil t)))
+	   (if (get-buffer "*get-subtitles*")
+	       (kill-buffer "*get-subtitles*"))
+	   (mapc
+	    (lambda (x)
+	      (let ((process-connection-type nil))
+		(start-process "get-subtitles" "*get-subtitles*" "subliminal" "download" "-l" lang x)))
+	    (dired-get-marked-files)))
+	 (switch-to-buffer-other-window "*get-subtitles*")
+	 (special-mode)))
+     #+end_src
+
+**** Get files size:
+
+     Source: https://www.emacswiki.org/emacs/dired-extension.el
+
+     #+begin_src emacs-lisp
+     (defun dired-get-size ()
+       "Get total size of marked files with `du' command.
+     If not marked any files, default is current file or directory."
+       (interactive)
+       (let ((files (dired-get-marked-files)))
+	 (with-temp-buffer
+	   (apply 'call-process "/usr/bin/du" nil t nil "-sch" files)
+	   (message "%s"
+		    (progn
+		      (re-search-backward "\\(^[0-9.,]+[A-Za-z]+\\).*\\(total\\|总用量\\)$")
+		      (match-string 1))))))
+     #+end_src
+
 *** Dired custom maps
 
     #+begin_src emacs-lisp
     (define-prefix-command 'l/dired-nav-map)
 
-    (define-key l/dired-nav-map (kbd "h") (lambda () (interactive) (dired "~/")))
-    (define-key l/dired-nav-map (kbd "D") (lambda () (interactive) (dired "~/Downloads/")))
-    (define-key l/dired-nav-map (kbd "d") (lambda () (interactive) (dired "~/Documents/")))
-    (define-key l/dired-nav-map (kbd "p") (lambda () (interactive) (dired "~/Pictures/")))
-    (define-key l/dired-nav-map (kbd "M") (lambda () (interactive) (dired "~/Music/")))
-    (define-key l/dired-nav-map (kbd "v") (lambda () (interactive) (dired "~/Videos/")))
-    (define-key l/dired-nav-map (kbd "m") (lambda () (interactive) (dired "/run/media/louk/")))
-    (define-key l/dired-nav-map (kbd "C") (lambda () (interactive) (dired "~/.config/")))
-    (define-key l/dired-nav-map (kbd "E") (lambda () (interactive) (dired "~/.emacs.d/")))
-    (define-key l/dired-nav-map (kbd "!") (lambda () (interactive) (dired "~/dotfiles/")))
+    (define-key l/dired-nav-map "h" (lambda () (interactive) (dired "~/")))
+    (define-key l/dired-nav-map "D" (lambda () (interactive) (dired "~/Downloads/")))
+    (define-key l/dired-nav-map "d" (lambda () (interactive) (dired "~/Documents/")))
+    (define-key l/dired-nav-map "p" (lambda () (interactive) (dired "~/Pictures/")))
+    (define-key l/dired-nav-map "M" (lambda () (interactive) (dired "~/Music/")))
+    (define-key l/dired-nav-map "v" (lambda () (interactive) (dired "~/Videos/")))
+    (define-key l/dired-nav-map "m" (lambda () (interactive) (dired "/run/media/louk/")))
+    (define-key l/dired-nav-map "C" (lambda () (interactive) (dired "~/.config/")))
+    (define-key l/dired-nav-map "E" (lambda () (interactive) (dired "~/.emacs.d/")))
+    (define-key l/dired-nav-map "!" (lambda () (interactive) (dired "~/dotfiles/")))
+
+    (define-prefix-command 'l/dired-my-ext-cmds)
+
+    (define-key l/dired-my-ext-cmds "s" 'get-subtitles)
     #+end_src
 
 *** Dired defaults
@@ -682,7 +726,7 @@ Restart emacs from within emacs (duh!)
 	   (define-key dired-mode-map (kbd "M->") 'dired-goto-last-file)))
     #+end_src
 
-*** Dired evil bindings
+*** Evil dired bindings
 
    Loading the whole evil-collection proved cumbersome for me, there was some trouble with my custom keybindings (eg. I couldn't use 'r' as a prefix key, even when binding it to nil after loading evil-collection). Might be sth that I did wrong, but anyhow...
 
@@ -762,6 +806,7 @@ Restart emacs from within emacs (duh!)
 	  ";s" 'epa-dired-do-sign
 	  ";e" 'epa-dired-do-encrypt
 	  ;; unsorted
+	  "X" 'l/dired-my-ext-cmds
 	  "z" 'dired-omit-mode
 	  "g" 'l/dired-nav-map
 	  "gr" 'revert-buffer
@@ -871,6 +916,7 @@ Restart emacs from within emacs (duh!)
     #+begin_src emacs-lisp
     (use-package dired-narrow
       :ensure t
+      :delight (dired-narrow-mode " >⋅<")
       :after dired evil
       :init
       (setq dired-narrow-exit-when-one-left t)
@@ -1035,14 +1081,19 @@ Restart emacs from within emacs (duh!)
 	(when (eq major-mode 'dired-mode)
 	  (setq mode-name
 		(let (case-fold-search)
-		  (cond ((string-match-p
-			  dired-sort-by-name-regexp dired-actual-switches)
-			 "-N")
-			((string-match-p
-			  dired-sort-by-date-regexp dired-actual-switches)
-			 "-D")
+		  (cond ((string-match-p (concat (regexp-quote "-alh") "\\(\\s-\\|$\\)") dired-actual-switches)
+			 "")
+			((string-match-p (concat (regexp-quote "-alht") "\\(\\s-\\|$\\)") dired-actual-switches)
+			 "⇓D")
+			((string-match-p (concat (regexp-quote "-alhS") "\\(\\s-\\|$\\)") dired-actual-switches)
+			 "⇓S")
+			((string-match-p (concat (regexp-quote "-alhX") "\\(\\s-\\|$\\)") dired-actual-switches)
+			 "⇓X")
 			(t
-			 ""))))
+			 "⇓?"))))
+	  (if (string-match-p (regexp-quote " --group-directories-first") dired-actual-switches)
+	      (setq mode-name (concat mode-name "⋮"))
+	    (setq mode-name (replace-regexp-in-string "⋮" "" mode-name)))
 	  (force-mode-line-update))))
 
     #+end_src
@@ -1051,6 +1102,7 @@ Restart emacs from within emacs (duh!)
    #+begin_src emacs-lisp
    (use-package pdf-tools
      :ensure t
+     :pin manual ;; don't reinstall on updates
      :init
      (pdf-tools-install))
    #+end_src
@@ -1471,3 +1523,20 @@ Auto start mu4e on emacs startup
    (define-key z-map (kbd "c") (lambda () (interactive) (goto-file-or-dir "~/dotfiles/")))
    (define-key z-map (kbd "S") (lambda () (interactive) (goto-file-or-dir "~/.config/scripts/")))
    #+end_src
+** 2048
+
+   Nice game, here it is with vim bindings
+
+    #+begin_src emacs-lisp
+    (use-package 2048-game
+      :ensure t
+      :config
+      (eval-after-load "evil"
+	'(progn
+	   (evil-define-key 'normal 2048-mode-map
+	     "q" 'quit-window
+	     "h" '2048-left
+	     "j" '2048-down
+	     "k" '2048-up
+	     "l" '2048-right))))
+    #+end_src

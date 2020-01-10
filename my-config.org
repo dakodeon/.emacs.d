@@ -414,11 +414,18 @@ Restart emacs from within emacs (duh!)
 	 (define-key evil-normal-state-map (kbd "M-J") 'shrink-window)
 	 (define-key evil-normal-state-map (kbd "M-K") 'enlarge-window)
 	 (define-key evil-normal-state-map (kbd "M-+") 'balance-windows)
+	 (define-key evil-normal-state-map "\\f" 'find-file)
 	 (define-key evil-normal-state-map "\\b" 'switch-to-buffer)
 	 (define-key evil-normal-state-map "\\," '(lambda () (interactive) (switch-to-buffer "*scratch*")))
 	 (define-key evil-normal-state-map "\\<" 'switch-to-prev-buffer)
 	 (define-key evil-normal-state-map "\\>" 'switch-to-next-buffer)
-	 (define-key evil-normal-state-map "\\z" 'kill-current-buffer)))
+	 (define-key evil-normal-state-map "\\z" 'kill-current-buffer)
+	 (define-key evil-normal-state-map "\\D" 'dired)
+	 ;; other window
+	 (define-key evil-normal-state-map "\\'" nil) ;;prefix
+	 (define-key evil-normal-state-map "\\'f" 'find-file-other-window)
+	 (define-key evil-normal-state-map "\\'b" 'switch-to-buffer-other-window)
+	 (define-key evil-normal-state-map "\\'D" 'dired-other-window)))
 
     #+end_src
 
@@ -915,7 +922,7 @@ Restart emacs from within emacs (duh!)
 
 *** Peep dired
 
-    Peep dired sounds naughty!
+    Peep dired is loaded from [[https://github.com/dakodeon/peep-dired][my fork]].
 
 **** Peepy-fied dired functions
 

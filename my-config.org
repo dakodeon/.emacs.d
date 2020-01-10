@@ -288,7 +288,7 @@ Restart emacs from within emacs (duh!)
 *** Syntax highlighting for rc files
 
     #+begin_src emacs-lisp
-    (add-to-list 'auto-mode-alist '("*rc$" . conf-mode) t)
+    (add-to-list 'auto-mode-alist '("\\.*rc$" . conf-mode))
     #+end_src
 
 ** WINDOW MANAGEMENT
@@ -418,7 +418,7 @@ Restart emacs from within emacs (duh!)
 	 (define-key evil-normal-state-map "\\," '(lambda () (interactive) (switch-to-buffer "*scratch*")))
 	 (define-key evil-normal-state-map "\\<" 'switch-to-prev-buffer)
 	 (define-key evil-normal-state-map "\\>" 'switch-to-next-buffer)
-	 (define-key evil-normal-state-map "\\Z" 'kill-current-buffer)))
+	 (define-key evil-normal-state-map "\\z" 'kill-current-buffer)))
 
     #+end_src
 
@@ -526,6 +526,8 @@ Restart emacs from within emacs (duh!)
       :ensure nil
       :delight dired-omit-mode
       :after dired
+      :init
+      (setq dired-omit-verbose nil)
       :config
       ;; files to be ommited: beginning with one or more dots, beginning with $ (some files that come from Windows), ending with xmp (eg darktable data files), ending with srt, sub (I don't want to see subtitle files)
       (setq dired-omit-files (concat dired-omit-files "\\|^\\..+$\\|^\\$\\|xmp$\\|srt$\\|sub$")))
@@ -625,7 +627,41 @@ Restart emacs from within emacs (duh!)
        (dired-goto-first-file))
      #+end_src
 
+**** Mark and move backwards:
+
+     This was always a missing feature imho.
+
+     #+begin_src emacs-lisp
+	  (defun l/dired-mark-backwards ()
+	    "Mark file at point and move backwards."
+	    (interactive)
+	    (if (dired-move-to-filename)
+	      (progn
+		(dired-mark 1)
+		(dired-previous-line 2))))
+
+     #+end_src
+
+**** Narrow to marked files:
+
+     #+begin_src emacs-lisp
+     (defun l/dired-narrow-to-marked-files ()
+       "Show only marked files in dired buffer."
+       (interactive)
+       (let ((files (dired-get-marked-files)))
+	 (unless (eq (length files) 1)
+	   (dired-toggle-marks)
+	   (dired-do-kill-lines))))
+     #+end_src
+
 *** Some useful (external) functions
+    
+    Useful functions that use external programs.
+
+    Still missing:
+
+    - Set desktop background using feh
+    - Mount / unmount (and maybe format) functionality using udiskie (temporarily, till new/better script is written)
 
 **** Get subtitles:
 
@@ -666,9 +702,27 @@ Restart emacs from within emacs (duh!)
 		      (match-string 1))))))
      #+end_src
 
+**** Change desktop background:
+     
+     Needs some refining, eg. the way the command is stored.
+
+     #+begin_src emacs-lisp
+     (defun l/change-desktop-background ()
+       "Change the desktop background using feh."
+       (interactive)
+       (let ((fit-type (completing-read "Select fit: " '("scale" "center" "fill" "max") nil t))
+	     (entry (shell-quote-argument (expand-file-name (dired-file-name-at-point))))
+	     (targetfile (shell-quote-argument (expand-file-name "~/.config/.wallpaper.jpg"))))
+	 (setq cpcmd (concat "cp " entry " " targetfile))
+	 (setq fehcmd (concat "feh --bg-" fit-type " " targetfile))
+	 (setq cmd (concat cpcmd " && " fehcmd " && echo " fehcmd " > " (expand-file-name "~/.config/scripts/remember_bg.sh")))
+	 (shell-command cmd))) 
+     #+end_src
+
 *** Dired custom maps
 
     #+begin_src emacs-lisp
+    ;; navigation map
     (define-prefix-command 'l/dired-nav-map)
 
     (define-key l/dired-nav-map "h" (lambda () (interactive) (dired "~/")))
@@ -682,9 +736,12 @@ Restart emacs from within emacs (duh!)
     (define-key l/dired-nav-map "E" (lambda () (interactive) (dired "~/.emacs.d/")))
     (define-key l/dired-nav-map "!" (lambda () (interactive) (dired "~/dotfiles/")))
 
+    ;; external scripts map
     (define-prefix-command 'l/dired-my-ext-cmds)
 
     (define-key l/dired-my-ext-cmds "s" 'get-subtitles)
+    (define-key l/dired-my-ext-cmds "?" 'dired-get-size)
+    (define-key l/dired-my-ext-cmds "B" 'l/change-desktop-background)
     #+end_src
 
 *** Dired defaults
@@ -781,7 +838,8 @@ Restart emacs from within emacs (duh!)
 	  "U" 'dired-unmark-all-marks
 	  "u" 'dired-unmark
 	  "m" 'dired-mark
-	  " " 'dired-mark
+	  (kbd "<SPC>") 'dired-mark
+	  (kbd "C-<SPC>") 'l/dired-mark-backwards
 	  "t" 'dired-toggle-marks
 	  "d" 'dired-flag-file-deletion
 	  "x" 'dired-do-flagged-delete
@@ -799,6 +857,7 @@ Restart emacs from within emacs (duh!)
 	  "*s" 'dired-mark-subdir-files
 	  "*?" 'dired-unmark-all-files
 	  "*!" 'dired-unmark-all-marks
+	  "*f" 'l/dired-narrow-to-marked-files
 	  ;; encryption-decryption (epa-dired)
 	  ";d" 'epa-dired-do-decrypt
 	  ";v" 'epa-dired-do-verify
@@ -1522,20 +1581,38 @@ Auto start mu4e on emacs startup
    (define-key z-map (kbd "c") (lambda () (interactive) (goto-file-or-dir "~/dotfiles/")))
    (define-key z-map (kbd "S") (lambda () (interactive) (goto-file-or-dir "~/.config/scripts/")))
    #+end_src
-** 2048
 
-   Nice game, here it is with vim bindings
+** GAMES 
+*** 2048 GAME
+
+    Nice game, here it is with vim bindings
+
+     #+begin_src emacs-lisp
+     (use-package 2048-game
+       :ensure t
+       :config
+       (eval-after-load "evil"
+	 '(progn
+	    (evil-define-key 'normal 2048-mode-map
+	      "q" 'quit-window
+	      "h" '2048-left
+	      "j" '2048-down
+	      "k" '2048-up
+	      "l" '2048-right))))
+     #+end_src
+     
+*** SNAKE
 
     #+begin_src emacs-lisp
-    (use-package 2048-game
-      :ensure t
-      :config
-      (eval-after-load "evil"
-	'(progn
-	   (evil-define-key 'normal 2048-mode-map
-	     "q" 'quit-window
-	     "h" '2048-left
-	     "j" '2048-down
-	     "k" '2048-up
-	     "l" '2048-right))))
+    (eval-after-load "evil"
+      '(progn
+	 (evil-set-initial-state 'snake-mode 'normal)
+	 (evil-define-key 'normal snake-mode-map
+	   "h" 'snake-move-left
+	   "j" 'snake-move-down
+	   "k" 'snake-move-up
+	   "l" 'snake-move-right
+	   "p" 'snake-pause-game
+	   "q" 'quit-window
+	   "N" 'snake-start-game)))
     #+end_src

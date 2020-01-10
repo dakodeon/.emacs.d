@@ -519,6 +519,7 @@ Restart emacs from within emacs (duh!)
 ** DIRED
 
    This *IS* my new file manager!
+   
 *** Dired-x
 
     #+begin_src emacs-lisp
@@ -658,9 +659,6 @@ Restart emacs from within emacs (duh!)
     
     Useful functions that use external programs.
 
-    Still missing:
-
-    - Set desktop background using feh
     - Mount / unmount (and maybe format) functionality using udiskie (temporarily, till new/better script is written)
 
 **** Get subtitles:
@@ -703,8 +701,6 @@ Restart emacs from within emacs (duh!)
      #+end_src
 
 **** Change desktop background:
-     
-     Needs some refining, eg. the way the command is stored.
 
      #+begin_src emacs-lisp
      (defun l/change-desktop-background ()
@@ -715,8 +711,21 @@ Restart emacs from within emacs (duh!)
 	     (targetfile (shell-quote-argument (expand-file-name "~/.config/.wallpaper.jpg"))))
 	 (setq cpcmd (concat "cp " entry " " targetfile))
 	 (setq fehcmd (concat "feh --bg-" fit-type " " targetfile))
-	 (setq cmd (concat cpcmd " && " fehcmd " && echo " fehcmd " > " (expand-file-name "~/.config/scripts/remember_bg.sh")))
+	 (setq cmd (concat cpcmd " && " fehcmd))
 	 (shell-command cmd))) 
+     #+end_src
+
+**** Unmount drives
+
+     Simple script to unmount drive. Uses 'mountpoint' and 'umount'. If unmounting fails, give some options (todo).
+
+     #+begin_src emacs-lisp
+     (defun l/unmount-drive ()
+       "Unmount selected directories, if they correspond to mountpoints."
+       (interactive)
+       (let ((dirs (dired-get-marked-files)))
+	 (dired-do-shell-command "mountpoint -q ? && umount ?" nil dirs)
+	 (revert-buffer)))
      #+end_src
 
 *** Dired custom maps

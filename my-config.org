@@ -24,8 +24,8 @@ The code snippets are loaded by =init.el=, which also loads =use-package=.
     (column-number-mode 1)               ;; show cursor position
     (global-visual-line-mode t)          ;; visual line mode everywhere
     (global-hl-line-mode t)              ;; highlight active line
-    ;; (set-face-background ('hl-line) "#202020")
     (fset 'yes-or-no-p 'y-or-n-p)        ;; ask me for y or n
+    (setq default-directory (file-name-as-directory (getenv "HOME"))) ;; change the default directory to $HOME
     (setq select-enable-clipboard t)     ;; use the clipboard for yanking
     (setq save-interprogram-paste-before-kill t)
     (setq help-window-select t)          ;; always focus on help windows
@@ -673,7 +673,7 @@ Restart emacs from within emacs (duh!)
      Use [[https://github.com/Diaoul/subliminal][subliminal]] to find subtitles online. The gist of using 'start-process' comes from [[http://ergoemacs.org/emacs/elisp_call_shell_command.html][here]], and the idea of using 'apply' from [[https://stackoverflow.com/questions/17075920/passing-list-to-rest-args?rq=1][here]].
 
      #+begin_src emacs-lisp
-     (defun get-subtitles ()
+     (defun l/get-subtitles ()
        "Get subtitles for marked files while in a dired buffer. Depends on subliminal, so it has to be on your system."
        (interactive)
        (when (eq major-mode 'dired-mode)
@@ -752,12 +752,13 @@ Restart emacs from within emacs (duh!)
     (define-key l/dired-nav-map "E" (lambda () (interactive) (dired "~/.emacs.d/")))
     (define-key l/dired-nav-map "!" (lambda () (interactive) (dired "~/dotfiles/")))
 
-    ;; external scripts map
+    ;; external scripts map -- Note: after using those, I think it's better to write full shell scripts and run those in emacs -- Sidenote: use dmenu for selection if those are run externally, but in emacs use the default completing mechanisms.
     (define-prefix-command 'l/dired-my-ext-cmds)
 
-    (define-key l/dired-my-ext-cmds "s" 'get-subtitles)
+    (define-key l/dired-my-ext-cmds "s" 'l/get-subtitles)
     (define-key l/dired-my-ext-cmds "?" 'dired-get-size)
     (define-key l/dired-my-ext-cmds "B" 'l/change-desktop-background)
+    (define-key l/dired-my-ext-cmds "u" 'l/unmount-drive)
     #+end_src
 
 *** Dired defaults
@@ -1511,12 +1512,15 @@ Auto start mu4e on emacs startup
    A bunch of evil bindings
 
    #+begin_src emacs-lisp
-   ;;    (use-package evil-collection
-   ;;      :after evil
-   ;;      :ensure t
-   ;;      :config
-   ;;      (evil-collection-init))
-
+      (use-package evil-collection
+	:after evil
+	:ensure t
+	:config
+	(evil-collection-init 'mu4e)
+	(evil-collection-init 'help)
+	(evil-collection-init 'man)
+	(evil-collection-init 'tetris)
+	(evil-collection-init '2048-game))
    #+end_src
 
 ** EVIL
@@ -1536,7 +1540,7 @@ Auto start mu4e on emacs startup
      (setq evil-emacs-state-cursor 'bar)
      (setq evil-replace-state-cursor 'hbar)
      (setq evil-want-integration t)
-     (setq evil-want-keybinding t)
+     (setq evil-want-keybinding nil)
      (setq evil-find-skip-newlines t)
      :config
      (evil-mode 1)
@@ -1545,6 +1549,7 @@ Auto start mu4e on emacs startup
      (evil-set-initial-state 'mu4e-compose-mode 'emacs)
      (evil-set-initial-state 'org-msg-mode 'emacs)
      (evil-set-initial-state 'package-menu-mode 'emacs)
+     (evil-set-initial-state 'special-mode 'emacs)
      (evil-define-state emacs
        "Emacs used as insert state in evil."
        :tag " <EE> "
@@ -1604,17 +1609,17 @@ Auto start mu4e on emacs startup
     Nice game, here it is with vim bindings
 
      #+begin_src emacs-lisp
-     (use-package 2048-game
-       :ensure t
-       :config
-       (eval-after-load "evil"
-	 '(progn
-	    (evil-define-key 'normal 2048-mode-map
-	      "q" 'quit-window
-	      "h" '2048-left
-	      "j" '2048-down
-	      "k" '2048-up
-	      "l" '2048-right))))
+     ;; (use-package 2048-game
+     ;;   :ensure t
+     ;;   :config
+     ;;   (eval-after-load "evil"
+     ;;     '(progn
+     ;;        (evil-define-key 'normal 2048-mode-map
+     ;; 	 "q" 'quit-window
+     ;; 	 "h" '2048-left
+     ;; 	 "j" '2048-down
+     ;; 	 "k" '2048-up
+     ;; 	 "l" '2048-right))))
      #+end_src
      
 *** SNAKE

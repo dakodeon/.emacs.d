@@ -291,10 +291,24 @@ Restart emacs from within emacs (duh!)
     (add-to-list 'auto-mode-alist '("\\.*rc$" . conf-mode))
     #+end_src
 
+*** Auto package update 
+
+    #+begin_src emacs-lisp
+    (use-package auto-package-update
+      :ensure t
+      :init
+      (setq auto-package-update-interval 7)
+      (setq auto-package-update-prompt-before-update t)
+      :config
+      (auto-package-update-maybe)
+      (eval-after-load "evil"
+	'(progn
+	   (evil-define-key 'normal auto-package-update-minor-mode-map "q" 'quit-window)
+	   (add-hook 'auto-package-update-minor-mode-hook 'evil-normalize-keymaps))))
+    #+end_src
+
 ** WINDOW MANAGEMENT
 *** Windows movement and resizing
-
-    This would be good if my damn keyboard worked correctly. I think I should use vim keys or sth
 
     #+begin_src emacs-lisp
     (windmove-default-keybindings) ;; use arrow keys ot navigate
@@ -347,6 +361,8 @@ Restart emacs from within emacs (duh!)
     #+end_src
 
 *** Toggle window split
+    
+    I don't remember from where I got this either...
 
     #+begin_src emacs-lisp
     (defun toggle-window-split ()
@@ -1550,12 +1566,13 @@ Auto start mu4e on emacs startup
      (evil-set-initial-state 'org-msg-mode 'emacs)
      (evil-set-initial-state 'package-menu-mode 'emacs)
      (evil-set-initial-state 'special-mode 'emacs)
+     ;; Use emacs state instead of insert state
      (evil-define-state emacs
        "Emacs used as insert state in evil."
        :tag " <EE> "
        :message "-- EMACS INSERT --"
        :input-method t)
-     (defadvice evil-insert-state (around emacs-state-instead-of-insert-state activate) (evil-emacs-state))
+     (defadvice evil-insert-state (around emacs-state-instead-of-insert-state activate) "Emacs instead of Insert." (evil-emacs-state))
      :bind
      (:map evil-normal-state-map
 	   ("j" . 'evil-next-visual-line)

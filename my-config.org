@@ -11,27 +11,27 @@ The code snippets are loaded by =init.el=, which also loads =use-package=.
     (use-package try
       :ensure t)
     #+end_src
-
+    
 *** Defaults
 
     #+begin_src emacs-lisp
-    (setq inhibit-splash-screen t)       ;; disable the splash screen
-    (setq initial-scratch-message nil)   ;; disable scratch message
-    (tool-bar-mode -1)                   ;; all bars off
+    (setq inhibit-splash-screen t)       	;; disable the splash screen
+    (setq initial-scratch-message nil)   	;; disable scratch message
+    (tool-bar-mode -1)                   	;; all bars off
     (menu-bar-mode -1)
     (scroll-bar-mode -1)
     (blink-cursor-mode -1)
-    (column-number-mode 1)               ;; show cursor position
-    (global-visual-line-mode t)          ;; visual line mode everywhere
-    (global-hl-line-mode t)              ;; highlight active line
-    (fset 'yes-or-no-p 'y-or-n-p)        ;; ask me for y or n
+    (column-number-mode 1)               	;; show cursor position
+    (global-visual-line-mode t)          	;; visual line mode everywhere
+    (global-hl-line-mode t)              	;; highlight active line
+    (fset 'yes-or-no-p 'y-or-n-p)        	;; ask me for y or n
     (setq default-directory (file-name-as-directory (getenv "HOME"))) ;; change the default directory to $HOME
-    (setq select-enable-clipboard t)     ;; use the clipboard for yanking
+    (setq select-enable-clipboard t)				  ;; use the clipboard for yanking
     (setq save-interprogram-paste-before-kill t)
-    (setq help-window-select t)          ;; always focus on help windows
-    (setq sentence-end-double-space nil) ;; better sentence navigation
-    (delete-selection-mode 1)            ;; typing deletes selected text
-    (set-language-environment "UTF-8")   ;; always use UTF-8 encoding
+    (setq help-window-select t)	       ;; always focus on help windows
+    (setq sentence-end-double-space nil)   ;; better sentence navigation
+    (delete-selection-mode 1)	       ;; typing deletes selected text
+    (set-language-environment "UTF-8")     ;; always use UTF-8 encoding
     (set-default-coding-systems 'utf-8)
     #+end_src
 
@@ -53,7 +53,7 @@ The code snippets are loaded by =init.el=, which also loads =use-package=.
 *** Line numbering
 
     #+begin_src emacs-lisp
-    (display-line-numbers-mode t)
+    ;; (display-line-numbers-mode t)
 
     (use-package linum-relative
       :ensure t
@@ -107,6 +107,11 @@ Icons for emacs.
   :delight)
 #+end_src
 
+#+begin_src emacs-lisp
+(add-to-list 'load-path "~/.source")
+(require 'font-lock+)
+#+end_src
+
 *** Hide info from modeline (delight)
 
     Normally I use the =:delight= keyword of use package, here are the built-in modes that I want to omit.
@@ -151,6 +156,16 @@ This seems a reasonable way to change modeline info for major modes. Why use del
     ;; backup files
     (setq backup-directory-alist `(("." . "~/.emacs.d/backups")))
     (setq backup-by-copying t) ;; this is to ensure all edited files keep their inodes
+    #+end_src
+*** Emojis
+
+    Display emojis!
+
+    #+begin_src emacs-lisp
+    (use-package emojify
+      :ensure t
+      :config
+      (add-hook 'after-init-hook #'global-emojify-mode))
     #+end_src
 
 ** FUNCTIONALITY
@@ -430,13 +445,14 @@ Restart emacs from within emacs (duh!)
 	 (define-key evil-normal-state-map (kbd "M-J") 'shrink-window)
 	 (define-key evil-normal-state-map (kbd "M-K") 'enlarge-window)
 	 (define-key evil-normal-state-map (kbd "M-+") 'balance-windows)
-	 (define-key evil-normal-state-map "\\f" 'find-file)
+	 ;; (define-key evil-normal-state-map "\\f" 'find-file)
+	 (define-key evil-normal-state-map "\\f" 'helm-find-files)
 	 (define-key evil-normal-state-map "\\b" 'switch-to-buffer)
 	 (define-key evil-normal-state-map "\\," '(lambda () (interactive) (switch-to-buffer "*scratch*")))
 	 (define-key evil-normal-state-map "\\<" 'switch-to-prev-buffer)
 	 (define-key evil-normal-state-map "\\>" 'switch-to-next-buffer)
 	 (define-key evil-normal-state-map "\\z" 'kill-current-buffer)
-	 (define-key evil-normal-state-map "\\D" 'dired)
+	 (define-key evil-normal-state-map "\\D" 'dired-jump)
 	 ;; other window
 	 (define-key evil-normal-state-map "\\'" nil) ;;prefix
 	 (define-key evil-normal-state-map "\\'f" 'find-file-other-window)
@@ -738,7 +754,7 @@ Restart emacs from within emacs (duh!)
 	 (shell-command cmd))) 
      #+end_src
 
-**** Unmount drives
+**** Unmount drives:
 
      Simple script to unmount drive. Uses 'mountpoint' and 'umount'. If unmounting fails, give some options (todo).
 
@@ -749,6 +765,49 @@ Restart emacs from within emacs (duh!)
        (let ((dirs (dired-get-marked-files)))
 	 (dired-do-shell-command "mountpoint -q ? && umount ?" nil dirs)
 	 (revert-buffer)))
+     #+end_src
+
+**** Pack/Unpack:
+
+     I tried the dired-atool package, but I didn't like it. I needed something simpler, also I didn't like the output display.
+
+     So, I checked out the pack/unpack functions in the source, and made mine, but simpler.
+
+     #+begin_src emacs-lisp
+     ;; pack
+     (defun l/atool-pack ()
+       "Use the `atool' program to pack some files."
+       (interactive)
+       (when (eq major-mode 'dired-mode)
+	 (let ((files (dired-get-marked-files t))
+	       (archive (expand-file-name
+			 (read-file-name "Pack files as:" nil nil nil)))
+	       (process-connection-type nil))
+	   (if (get-buffer "*atool-pack*")
+	       (kill-buffer "*atool-pack*"))
+	   (apply 'start-process
+		  (append (list "atool-pack" "*atool-pack*" "atool" "--explain" archive "-a") files))
+	   (switch-to-buffer-other-window "*atool-pack*")
+	   (special-mode))))
+
+     ;; unpack
+     (defun l/atool-unpack ()
+       "Use the `atool' program to unpack some archives."
+       (interactive)
+       (when (eq major-mode 'dired-mode)
+	 (let ((files (dired-get-marked-files t))
+	       (dest (expand-file-name
+		      (read-directory-name "Unpack files to:"
+					   (dired-dwim-target-directory) nil nil)))
+	       (process-connection-type nil))
+	   (if (get-buffer "*atool-unpack*")
+	       (kill-buffer "*atool-unpack*"))
+	   (if (not (file-directory-p dest))
+	       (make-directory dest))
+	   (apply 'start-process
+		  (append (list "atool-unpack" "*atool-unpack*" "atool" "--explain" "-X" dest) files))
+	   (switch-to-buffer-other-window "*atool-unpack*")
+	   (special-mode))))
      #+end_src
 
 *** Dired custom maps
@@ -763,7 +822,7 @@ Restart emacs from within emacs (duh!)
     (define-key l/dired-nav-map "p" (lambda () (interactive) (dired "~/Pictures/")))
     (define-key l/dired-nav-map "M" (lambda () (interactive) (dired "~/Music/")))
     (define-key l/dired-nav-map "v" (lambda () (interactive) (dired "~/Videos/")))
-    (define-key l/dired-nav-map "m" (lambda () (interactive) (dired "/run/media/louk/")))
+    (define-key l/dired-nav-map "m" (lambda () (interactive) (dired "/media")))
     (define-key l/dired-nav-map "C" (lambda () (interactive) (dired "~/.config/")))
     (define-key l/dired-nav-map "E" (lambda () (interactive) (dired "~/.emacs.d/")))
     (define-key l/dired-nav-map "!" (lambda () (interactive) (dired "~/dotfiles/")))
@@ -775,6 +834,8 @@ Restart emacs from within emacs (duh!)
     (define-key l/dired-my-ext-cmds "?" 'dired-get-size)
     (define-key l/dired-my-ext-cmds "B" 'l/change-desktop-background)
     (define-key l/dired-my-ext-cmds "u" 'l/unmount-drive)
+    (define-key l/dired-my-ext-cmds "zz" 'l/atool-pack)
+    (define-key l/dired-my-ext-cmds "zx" 'l/atool-unpack)
     #+end_src
 
 *** Dired defaults
@@ -1062,9 +1123,17 @@ Restart emacs from within emacs (duh!)
       :init
       (setq dired-rsync-unmark-on-completion nil)
       :config
+      (defun l/dired-rsync-to-FAT32 ()
+	"Change `dired-rsync-options' temporarily to rsync to FAT32 driver."
+	(interactive)
+	(let ((dired-rsync-options "-rDz --info=progress2")
+	      (dest (read-file-name "rsync to: " (dired-dwim-target-directory)
+			      nil nil nil 'file-directory-p)))
+	      (dired-rsync dest)))
       (eval-after-load "evil"
 	'(progn
-	   (evil-define-key 'normal dired-mode-map "r" 'dired-rsync))))
+	   (evil-define-key 'normal dired-mode-map "rr" 'dired-rsync)
+	   (evil-define-key 'normal dired-mode-map "rf" 'l/dired-rsync-to-FAT32))))
     #+end_src
 
 **** TODO Simplify keystrokes:
@@ -1528,15 +1597,18 @@ Auto start mu4e on emacs startup
    A bunch of evil bindings
 
    #+begin_src emacs-lisp
-      (use-package evil-collection
-	:after evil
-	:ensure t
-	:config
-	(evil-collection-init 'mu4e)
-	(evil-collection-init 'help)
-	(evil-collection-init 'man)
-	(evil-collection-init 'tetris)
-	(evil-collection-init '2048-game))
+   (use-package evil-collection
+     :after evil
+     :ensure t
+     :config
+     (evil-collection-init 'mu4e)
+     (evil-collection-init 'outline)
+     (evil-collection-init 'help)
+     (evil-collection-init 'man)
+     (evil-collection-init 'package-menu)
+     (evil-collection-init 'pdf)
+     (evil-collection-init 'tetris)
+     (evil-collection-init '2048-game))
    #+end_src
 
 ** EVIL
@@ -1578,13 +1650,15 @@ Auto start mu4e on emacs startup
 	   ("j" . 'evil-next-visual-line)
 	   ("k" . 'evil-previous-visual-line)
 	   ("^" . 'evil-beginning-of-visual-line)
+	   ("g^" . 'evil-first-non-blank-of-visual-line)
 	   ("$" . 'evil-end-of-visual-line)
-	   ("g ^" . 'evil-beginning-of-line)
-	   ("g $" . 'evil-end-of-line)
+	   ;; ("g ^" . 'evil-beginning-of-line)
+	   ("g$" . 'evil-end-of-line)
 	   ([down] . 'evil-next-visual-line)
 	   ([up] . 'evil-previous-visual-line)
 	   ("s" . nil) ;; was evil-subtitute
 	   ("s p" . 'mark-paragraph)
+	   ("C-S-o" . 'evil-jump-forward)
 	   :map evil-emacs-state-map
 	   ([escape] . 'evil-normal-state)))
 
@@ -1619,28 +1693,10 @@ Auto start mu4e on emacs startup
    (define-key z-map (kbd "c") (lambda () (interactive) (goto-file-or-dir "~/dotfiles/")))
    (define-key z-map (kbd "S") (lambda () (interactive) (goto-file-or-dir "~/.config/scripts/")))
    #+end_src
-
-** GAMES 
-*** 2048 GAME
-
-    Nice game, here it is with vim bindings
-
-     #+begin_src emacs-lisp
-     ;; (use-package 2048-game
-     ;;   :ensure t
-     ;;   :config
-     ;;   (eval-after-load "evil"
-     ;;     '(progn
-     ;;        (evil-define-key 'normal 2048-mode-map
-     ;; 	 "q" 'quit-window
-     ;; 	 "h" '2048-left
-     ;; 	 "j" '2048-down
-     ;; 	 "k" '2048-up
-     ;; 	 "l" '2048-right))))
-     #+end_src
-     
+ 
+** GAMES
 *** SNAKE
-
+    
     #+begin_src emacs-lisp
     (eval-after-load "evil"
       '(progn
@@ -1653,4 +1709,10 @@ Auto start mu4e on emacs startup
 	   "p" 'snake-pause-game
 	   "q" 'quit-window
 	   "N" 'snake-start-game)))
+    #+end_src
+*** 2048
+
+    #+begin_src emacs-lisp
+    (use-package 2048-game
+      :ensure t)
     #+end_src

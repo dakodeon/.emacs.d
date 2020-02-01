@@ -33,6 +33,7 @@ The code snippets are loaded by =init.el=, which also loads =use-package=.
     (delete-selection-mode 1)	       ;; typing deletes selected text
     (set-language-environment "UTF-8")     ;; always use UTF-8 encoding
     (set-default-coding-systems 'utf-8)
+    (setq browse-url-browser-function 'browse-url-xdg-open) ;; open with default browser
     #+end_src
 
 *** Enable some disabled features
@@ -86,7 +87,7 @@ The code snippets are loaded by =init.el=, which also loads =use-package=.
     (use-package rainbow-mode
       :ensure t
       :delight
-      :hook prog-mode)
+      :hook prog-mode conf-mode)
     #+end_src
 
 *** Load theme
@@ -304,22 +305,6 @@ Restart emacs from within emacs (duh!)
 
     #+begin_src emacs-lisp
     (add-to-list 'auto-mode-alist '("\\.*rc$" . conf-mode))
-    #+end_src
-
-*** Auto package update 
-
-    #+begin_src emacs-lisp
-    (use-package auto-package-update
-      :ensure t
-      :init
-      (setq auto-package-update-interval 7)
-      (setq auto-package-update-prompt-before-update t)
-      :config
-      (auto-package-update-maybe)
-      (eval-after-load "evil"
-	'(progn
-	   (evil-define-key 'normal auto-package-update-minor-mode-map "q" 'quit-window)
-	   (add-hook 'auto-package-update-minor-mode-hook 'evil-normalize-keymaps))))
     #+end_src
 
 ** WINDOW MANAGEMENT
@@ -1259,11 +1244,17 @@ Restart emacs from within emacs (duh!)
     #+end_src
 ** PDF TOOLS
 
+   Pdf-tools cannot handle an update.
    #+begin_src emacs-lisp
-   (use-package pdf-tools
-     :ensure t
-     :pin manual ;; don't reinstall on updates
-     :init
+   ;; (use-package pdf-tools
+     ;; :ensure t
+     ;; :pin manual ;; don't reinstall on updates
+     ;; :init
+     ;; (pdf-tools-install))
+
+   (add-to-list 'load-path "~/.source/pdf-tools")
+   (require 'pdf-tools)
+   (eval-after-load "pdf-tools"
      (pdf-tools-install))
    #+end_src
 
@@ -1449,7 +1440,8 @@ Restart emacs from within emacs (duh!)
 
     (setq mu4e-user-mail-address-list '("loukas.bass@gmx.com"
 					"dakodeon@hotmail.com"
-					"freehuggs701@gmail.com"))
+					"freehuggs701@gmail.com"
+					"luc.bassoukos@gmail.com"))
     #+end_src
 
 *** mu4e (smtp setup)
@@ -1493,6 +1485,7 @@ Restart emacs from within emacs (duh!)
 	     ("/loukas.bass/Trash" . ?t)
 	     ("/loukas.bass/Drafts" . ?D)
 	     ("/gmail/Inbox" . ?g)
+	     ("/gmail_luc/Inbox" . ?G)
 	     ("/dakodeon/Inbox" . ?d)))
     #+end_src
 
@@ -1514,6 +1507,21 @@ Restart emacs from within emacs (duh!)
 		       (mu4e-sent-folder . "/loukas.bass/Sent")
 		       (mu4e-drafts-folder . "/loukas.bass/Drafts")
 		       (mu4e-trash-folder . "/loukas.bass/Trash")))
+
+	     ,(make-mu4e-context
+	       :name "gmail_luc"
+	       :match-func (lambda (msg)
+			     (when msg
+			       (mu4e-message-contact-field-matches msg
+								   :to "luc.bassoukos@gmail.com")))
+	       :vars '((smtpmail-smtp-user . "luc.bassoukos@gmail.com")
+		       (smtpmail-default-smtp-server . "smtp.gmail.com")
+		       (smtpmail-smtp-server . "smtp.gmail.com")
+		       (user-mail-address . "luc.bassoukos@gmail.com")
+		       (user-full-name . "freexon")
+		       (mu4e-sent-folder . "/gmail_luc/[Gmail]/Sent Mail")
+		       (mu4e-drafts-folder . "/gmail_luc/Drafts")
+		       (mu4e-trash-folder . "/gmail_luc/Trash")))
 
 	     ,(make-mu4e-context
 	       :name "gmail"

@@ -164,9 +164,7 @@ This seems a reasonable way to change modeline info for major modes. Why use del
 
     #+begin_src emacs-lisp
     (use-package emojify
-      :ensure t
-      :config
-      (add-hook 'after-init-hook #'global-emojify-mode))
+      :ensure t)
     #+end_src
 
 ** FUNCTIONALITY
@@ -1286,6 +1284,9 @@ Restart emacs from within emacs (duh!)
     ;; prettify
     (setq org-hide-leading-stars t)
 
+    ;; tables
+    (define-key org-mode-map (kbd "C-x ,") 'org-table-toggle-column-width)
+
     ;; src options
     (require 'org-tempo)
 
@@ -1295,8 +1296,8 @@ Restart emacs from within emacs (duh!)
     (setq org-edit-src-content-indentation 0)
 
     ;; export options -- for mail html export (fix it locally!)
-;;    (setq org-export-with-toc nil)
-  ;;  (setq org-export-with-section-numbers nil)
+    ;;    (setq org-export-with-toc nil)
+    ;;  (setq org-export-with-section-numbers nil)
 
     ;; links
     (setq org-link-search-must-match-exact-headline nil)

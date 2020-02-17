@@ -1257,18 +1257,36 @@ Restart emacs from within emacs (duh!)
    #+end_src
 
 ** DIARY AND CALENDAR
-*** Default diary file
-    #+begin_src emacs-lisp
-    (setq diary-file "~/.personal/diary")
-    #+end_src
-*** Preferred time format
-    #+begin_src emacs-lisp
-    (calendar-set-date-style 'european)
-    #+end_src
-*** Start diary
-    #+begin_src emacs-lisp
-    (diary)
-    #+end_src
+
+   It made sense for these two to be configured together.
+
+   I want to make diary/calendar mode my default scheduling application.
+   The diary will show upon entering emacs, and all the diary entries will be shown in the calendar.
+   
+   #+begin_src emacs-lisp
+   ;; default diary file
+   (setq diary-file "~/.personal/diary")
+
+   ;; default entries shown in the diary
+   (setq diary-number-of-entries 7)
+
+   ;; date style
+   (calendar-set-date-style 'european)
+
+   ;; calendar-diary integration
+   (setq calendar-view-diary-initially-flag t)
+   (setq calendar-mark-diary-entries-flag t)
+
+   ;; launch diary on startup
+   (diary)
+   #+end_src
+   
+*** TODO Future improvements
+    - External notifications using dunst
+    - Add/remove entries easily (org-capture?)
+    - Archive old entries, keep clean file (maybe)
+    - Integration with org-agenda
+
 ** ORG-MODE
 *** Ensure org-plus-contrib
 
@@ -1360,6 +1378,9 @@ Restart emacs from within emacs (duh!)
 
 	    ("pd" "Darkroom log" entry (file+datetree "darkroom-log.org")
 	     "* %U :darkroom:%^g\n%?" :clock-in t)
+
+	    ("r" "Rempetika lyrics" entry (file+headline "~/stixoi.org" "Στίχοι ρεμπέτικα")
+	     "* %^{ΤΙΤΛΟΣ}\n%^{ΤΡΑΓΟΥΔΙΣΤΗΣ}p%^{ΣΥΝΘΕΤΗΣ}p%^{ΡΥΘΜΟΣ}p%^{ΔΡΟΜΟΣ}p{ΤΟΝΟΣ}p\n%x")
 
 	    ;; ("B" "Web purchase" entry (file+headline "web-stuff.org" "Purchases")
 	    ;;  "* ORDERED %^{item desc.}\n\n%x\n\nEst. delivery: %?\n\nOrder placed on: %U")

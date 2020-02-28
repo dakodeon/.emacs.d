@@ -1380,7 +1380,7 @@ Restart emacs from within emacs (duh!)
 	     "* %U :darkroom:%^g\n%?" :clock-in t)
 
 	    ("r" "Rempetika lyrics" entry (file+headline "~/stixoi.org" "Στίχοι ρεμπέτικα")
-	     "* %^{ΤΙΤΛΟΣ}\n%^{ΤΡΑΓΟΥΔΙΣΤΗΣ}p%^{ΣΥΝΘΕΤΗΣ}p%^{ΡΥΘΜΟΣ}p%^{ΔΡΟΜΟΣ}p{ΤΟΝΟΣ}p\n%x")
+	     "* %^{ΤΙΤΛΟΣ}\n%^{ΤΡΑΓΟΥΔΙΣΤΗΣ}p%^{ΣΥΝΘΕΤΗΣ}p%^{ΡΥΘΜΟΣ}p%^{ΔΡΟΜΟΣ}p%^{ΤΟΝΟΣ}p\n%x")
 
 	    ;; ("B" "Web purchase" entry (file+headline "web-stuff.org" "Purchases")
 	    ;;  "* ORDERED %^{item desc.}\n\n%x\n\nEst. delivery: %?\n\nOrder placed on: %U")
@@ -1686,8 +1686,6 @@ Auto start mu4e on emacs startup
 	   ("g$" . 'evil-end-of-line)
 	   ([down] . 'evil-next-visual-line)
 	   ([up] . 'evil-previous-visual-line)
-	   ("s" . nil) ;; was evil-subtitute
-	   ("s p" . 'mark-paragraph)
 	   ("C-S-o" . 'evil-jump-forward)
 	   :map evil-emacs-state-map
 	   ([escape] . 'evil-normal-state)))

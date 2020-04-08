@@ -34,6 +34,7 @@ The code snippets are loaded by =init.el=, which also loads =use-package=.
     (set-language-environment "UTF-8")     ;; always use UTF-8 encoding
     (set-default-coding-systems 'utf-8)
     (setq browse-url-browser-function 'browse-url-xdg-open) ;; open with default browser
+    (global-set-key (kbd "M-SPC") nil)
     #+end_src
 
 *** Enable some disabled features
@@ -165,6 +166,15 @@ This seems a reasonable way to change modeline info for major modes. Why use del
     #+begin_src emacs-lisp
     (use-package emojify
       :ensure t)
+    #+end_src
+*** Transparency
+
+    Coz why not? Until I get bored with it. Or maybe make it toggle?
+    
+    UPDATE: It seems that there is some problems after all...
+
+    #+begin_src emacs-lisp
+    ;; (set-frame-parameter (selected-frame) 'alpha '(90 80))
     #+end_src
 
 ** FUNCTIONALITY
@@ -447,54 +457,199 @@ Restart emacs from within emacs (duh!)
 ** HELM
 *** Basics
    #+begin_src emacs-lisp
-   (use-package helm-config
-     :ensure helm
-     :delight helm-mode
-     :defer 1
-     :init
-     (setq helm-follow-mode-persistent t)
-     (setq  helm-split-window-inside-p t)
-     :config
-     (helm-mode 1)
-     :bind
-     ("M-x" . helm-M-x)
-     ("C-x C-f" . helm-find-files)
-     ("M-y" . helm-show-kill-ring)
-     ([remap switch-to-buffer] . helm-buffers-list))
+   ;; (use-package helm-config
+   ;;   :ensure helm
+   ;;   :delight helm-mode
+   ;;   :defer 1
+   ;;   :init
+   ;;   (setq helm-follow-mode-persistent t)
+   ;;   (setq  helm-split-window-inside-p t)
+   ;;   :config
+   ;;   (helm-mode 1)
+   ;;   :bind
+   ;;   ("M-x" . helm-M-x)
+   ;;   ("C-x C-f" . helm-find-files)
+   ;;   ("M-y" . helm-show-kill-ring)
+   ;;   ([remap switch-to-buffer] . helm-buffers-list))
    #+end_src
 
 *** Helm-swoop
     #+begin_src emacs-lisp
-    (use-package helm-swoop
-      :ensure t
-      :after helm evil
-      :init
-      (setq helm-swoop-speed-or-color t)
-      ;; pre-input disabled or marked word
-      (setq helm-swoop-pre-input-function
-	  (lambda ()
-	    (if mark-active
-		(buffer-substring-no-properties (mark) (point)) "")))
-      :bind
-      ("M-i" . 'helm-swoop)
-      ("C-M-i" . 'helm-multi-swoop)
-      ("M-I" . 'helm-swoop-back-to-last-point)
-      (:map helm-swoop-map
-	    ("M-i" . 'helm-multi-swoop-all-from-helm-swoop))
-      (:map isearch-mode-map
-	    ("M-i" . 'helm-swoop-from-isearch))
-      (:map evil-motion-state-map
-	    ("M-i" . 'helm-swoop-from-evil-search)))
+    ;; (use-package helm-swoop
+    ;;   :ensure t
+    ;;   :after helm evil
+    ;;   :init
+    ;;   (setq helm-swoop-speed-or-color t)
+    ;;   ;; pre-input disabled or marked word
+    ;;   (setq helm-swoop-pre-input-function
+    ;;       (lambda ()
+    ;; 	(if mark-active
+    ;; 	    (buffer-substring-no-properties (mark) (point)) "")))
+    ;;   :bind
+    ;;   ("M-i" . 'helm-swoop)
+    ;;   ("C-M-i" . 'helm-multi-swoop)
+    ;;   ("M-I" . 'helm-swoop-back-to-last-point)
+    ;;   (:map helm-swoop-map
+    ;; 	("M-i" . 'helm-multi-swoop-all-from-helm-swoop))
+    ;;   (:map isearch-mode-map
+    ;; 	("M-i" . 'helm-swoop-from-isearch))
+    ;;   (:map evil-motion-state-map
+    ;; 	("M-i" . 'helm-swoop-from-evil-search)))
 
     #+end_src
-** IVY
+** IVY-COUNSEL-SWIPER
 
-   I will try to replace helm with ivy.
+Completion framework - switched from helm. It is way easier to customize.
 
+*** IVY
+    
    #+begin_src emacs-lisp
-   ;; counsel brings ivy
+   (use-package ivy
+     :ensure t
+     :delight
+     :init
+     (setq ivy-use-virtual-buffers t)
+     :config
+     ;; better word and symbol yanking in the minibuffer
+     ;; UPDATE: -- I just learned that M-n calls `ivy-next-history-element', which does exactly what I want,
+     ;; it yanks to the minibuffer the symbol or the word at point, or the active region, so...
+     (defun l/ivy-yank-word ()
+       "Pull word at point from buffer into search string."
+       (interactive)
+       (let (text)
+	 (with-ivy-window
+	   (setq text (thing-at-point 'word 'no-properties)))
+	 (when text
+	   (insert (replace-regexp-in-string
+		    "  +" " "
+		    (ivy--yank-handle-case-fold text)
+		    t t)))))
+
+     (defun l/ivy-yank-symbol ()
+       "Pull symbol at point from buffer into search string."
+       (interactive)
+       (let (text)
+	 (with-ivy-window
+	   (setq text (thing-at-point 'symbol 'no-properties)))
+	 (when text
+	   (insert (replace-regexp-in-string
+		    "  +" " "
+		    (ivy--yank-handle-case-fold text)
+		    t t)))))
+     :bind
+     (:map ivy-minibuffer-map
+     ("M-w" . l/ivy-yank-word)
+     ("M-s" . l/ivy-yank-symbol)))
+   #+end_src
+   
+*** COUNSEL   
+    
+   #+begin_src emacs-lisp
    (use-package counsel
-     :ensure t)
+     :ensure t
+     :delight
+     :config
+     (defun l/counsel-fzf ()
+       "Wraps around `counsel-fzf' to allow input from marked region."
+       (interactive)
+       (let (text)
+	 (if mark-active
+	     (setq text (buffer-substring-no-properties (region-beginning) (region-end))))
+	 (counsel-fzf text)))
+
+     ;; based on code by prot
+     (defun l/counsel-fzf-dir (arg)
+       "Specify root directory for `counsel-fzf'."
+       (counsel-fzf ivy-text
+		    (read-directory-name
+		     (concat (car (split-string counsel-fzf-cmd))
+			     " in directory: "))))
+
+     (ivy-add-actions 'counsel-fzf
+		      '(("r" l/counsel-fzf-dir "change root directory")))
+
+   ;; from counsel-outline to fzf
+   (defun l/counsel-fzf-from-outline (arg)
+     "Search for outline header with fzf."
+     (counsel-fzf (car (last (split-string (substring-no-properties (ivy-state-current ivy-last)) "/")))))
+
+   (ivy-add-actions 'counsel-outline
+		    '(("f" l/counsel-fzf-from-outline "search with fzf")))
+
+     ;; surfraw frontend
+     (defvar l/surfraw-elvi-list
+       (mapcar (lambda (x) (split-string x "\t+-- "))
+	       (seq-remove
+		(lambda (str) (not (string-match-p "--" str)))
+		(split-string (shell-command-to-string "surfraw -elvi") "\n")))
+       "An association list of elvi. Used by `l/ivy-surfraw'")
+
+     (defun l/ivy-rich--ivy-surfraw-describe-elvi (elvi)
+       (car (cdr (assoc elvi l/surfraw-elvi-list))))
+
+     (defun l/ivy-surfraw ()
+       "Search the web with surfraw. If region is active, search for that."
+       (interactive)
+       (let (text)
+	 (if mark-active
+	     (setq text (buffer-substring-no-properties (mark) (point)))
+	   (setq text (read-string "What u wanna search? ")))
+	 (ivy-read "Select search engine: "
+		   (mapcar (lambda (entry) (car entry)) l/surfraw-elvi-list)
+		   :action (lambda (x)
+			     (let ((engine (replace-regexp-in-string " +.*$" "" x)))
+			       (shell-command (concat "surfraw " engine " " (shell-quote-argument text)))))
+		   :caller 'l/ivy-surfraw)))
+
+     (eval-after-load "evil"
+       '(progn
+	  (evil-define-key 'normal org-mode-map "**" 'counsel-outline)))
+     (ivy-mode 1)
+     :bind
+     (("M-x" . counsel-M-x)
+     ("C-h f" . counsel-describe-function)
+     ("C-h v" . counsel-describe-variable)
+     ("C-c f" . l/counsel-fzf)
+     ("C-c g" . counsel-rg)
+     ("C-c b" . l/ivy-surfraw)))
+   #+end_src
+   
+*** OTHER FUNCTIONALITY
+    
+   #+begin_src emacs-lisp
+   (use-package amx
+     :ensure t
+     :after ivy
+     :custom
+     (amx-backend 'auto)
+     (amx-save-file "~/.emacs.d/amx-items")
+     :config
+     (amx-mode 1))
+
+   (use-package ivy-rich
+     :ensure t
+     :config
+     (plist-put ivy-rich-display-transformers-list
+	      'l/ivy-surfraw '(:columns
+			       ((ivy-rich-candidate (:width 20))
+				(l/ivy-rich--ivy-surfraw-describe-elvi)
+				)))
+     (setcdr (assq t ivy-format-functions-alist) #'ivy-format-function-line)
+     (ivy-rich-mode 1))
+
+   (use-package ivy-posframe
+     :ensure t
+     :delight
+     :custom
+     (ivy-posframe-display-functions-alist
+      '((complete-symbol . ivy-posframe-display-at-point)
+	(counsel-describe-function . nil)
+	(counsel-describe-variable . nil)
+	(swiper . nil)
+	(swiper-isearch . nil)
+	(t . ivy-posframe-display-at-frame-center)))
+     :config
+     (ivy-posframe-mode 1))
    #+end_src
 ** AUTOCOMPLETE
 
@@ -746,15 +901,15 @@ Restart emacs from within emacs (duh!)
        "Unmount selected directories, if they correspond to mountpoints."
        (interactive)
        (let ((dirs (dired-get-marked-files)))
-	 (dired-do-shell-command "mountpoint -q ? && umount ?" nil dirs)
+	 (dired-do-shell-command "mountpoint -q ? && sudo umount ? && sudo rmdir ?" nil dirs)
 	 (revert-buffer)))
      #+end_src
 
 **** Pack/Unpack:
 
-     I tried the dired-atool package, but I didn't like it. I needed something simpler, also I didn't like the output display.
+     I tried the dired-atool package but I didn't like it. I needed something simpler, also I didn't like the output display.
 
-     So, I checked out the pack/unpack functions in the source, and made mine, but simpler.
+     So I checked out the pack/unpack functions in the source and made mine, but simpler.
 
      #+begin_src emacs-lisp
      ;; pack
@@ -826,6 +981,8 @@ Restart emacs from within emacs (duh!)
     #+begin_src emacs-lisp
     (setq dired-dwim-target t)
     (setq dired-listing-switches "-alh") ;; add human-readable sizes
+
+    (setq vc-follow-symlinks t) ;; don't ask when visiting symlinks
 
     (add-hook 'dired-mode-hook
 	      (lambda ()
@@ -1003,6 +1160,12 @@ Restart emacs from within emacs (duh!)
        (interactive)
        (dired-goto-last-file)
        (peep-dired-display-file-other-window))
+
+     (defun l/peep-dired-mark-backwards ()
+       "Mark and peep backwards."
+       (interactive)
+       (l/dired-mark-backwards)
+       (peep-dired-display-file-other-window))
      #+end_src
 
 **** Load Peep
@@ -1036,7 +1199,8 @@ Restart emacs from within emacs (duh!)
 	     (kbd ">") 'peep-dired-next-dirline
 	     (kbd "<") 'peep-dired-prev-dirline
 	     (kbd "g g") 'l/peep-dired-goto-first-file
-	     (kbd "G") 'l/peep-dired-goto-last-file)
+	     (kbd "G") 'l/peep-dired-goto-last-file
+	     (kbd "C-SPC") 'l/peep-dired-mark-backwards)
 	   (evil-define-key 'normal dired-mode-map (kbd "p") 'peep-dired)
 	   (add-hook 'peep-dired-hook 'evil-normalize-keymaps)))
       :bind
@@ -1244,16 +1408,16 @@ Restart emacs from within emacs (duh!)
 
    Pdf-tools cannot handle an update.
    #+begin_src emacs-lisp
-   ;; (use-package pdf-tools
-     ;; :ensure t
-     ;; :pin manual ;; don't reinstall on updates
-     ;; :init
-     ;; (pdf-tools-install))
+     ;; (use-package pdf-tools
+       ;; :ensure t
+       ;; :pin manual ;; don't reinstall on updates
+       ;; :init
+       ;; (pdf-tools-install))
 
-   (add-to-list 'load-path "~/.source/pdf-tools")
-   (require 'pdf-tools)
-   (eval-after-load "pdf-tools"
-     (pdf-tools-install))
+     ;; (add-to-list 'load-path "~/.source/pdf-tools")
+     ;; (require 'pdf-tools)
+     ;; (eval-after-load "pdf-tools"
+       ;; (pdf-tools-install))
    #+end_src
 
 ** DIARY AND CALENDAR
@@ -1313,6 +1477,8 @@ Restart emacs from within emacs (duh!)
     (setq org-confirm-babel-evaluate nil)
     (setq org-edit-src-content-indentation 0)
 
+    (setq org-special-ctrl-a/e t)
+    (setq org-src-window-setup 'current-window)
     ;; export options -- for mail html export (fix it locally!)
     ;;    (setq org-export-with-toc nil)
     ;;  (setq org-export-with-section-numbers nil)
@@ -1391,8 +1557,8 @@ Restart emacs from within emacs (duh!)
 	    ;; ("b" "Bibliography reference" entry (file "bib-references.org")
 	    ;;  "* @%^{.bib entry}: %^{description} %^g\n %^{page(s)} %?\n%U")
 
-	    ;; ("c" "Contact" entry (file "contacts.org")
-	    ;;  "* %^{nickname}\n:PROPERTIES:\n:NAME: %^{name}\n:EMAIL: [[%^{email}]]\n:END:")
+	    ("c" "Contact" entry (file "contacts.org")
+	     "* %^{NICKNAME}\n%^{EMAIL}p\n:END:")
 	    ))
     #+end_src
 
@@ -1453,6 +1619,8 @@ Restart emacs from within emacs (duh!)
     (setq mu4e-change-filenames-when-moving t)
     (setq mu4e-attachment-dir "~/Downloads")
     (setq mu4e-view-show-addresses t)
+    (setq mu4e-headers-visible-columns 60)
+    (setq mu4e-split-view 'vertical) ;; should write a function: if height is longer than width, split horizontally
     ;; this one does not work out of the box. Emacs needs to be compiled with imagemagick support. Will look into this
     (setq mu4e-show-images t)
     (when (fboundp 'imagemagick-register-types)
@@ -1483,7 +1651,7 @@ Restart emacs from within emacs (duh!)
 *** mu4e sync mail
 
     #+begin_src emacs-lisp
-    (setq mu4e-get-mail-command "mbsync -a")
+    (setq mu4e-get-mail-command "mbsync -c ~/.config/mbsyncrc -a") ;; default location of mbsyncrc is in ~
     (setq mu4e-html2text-command "w3m -T text/html")
     (setq mu4e-update-interval nil) ;; do not auto-update, this is done with cronjob
     (setq mu4e-headers-auto-update t)
@@ -1565,7 +1733,7 @@ Restart emacs from within emacs (duh!)
 	       :match-func (lambda (msg)
 			     (when msg
 			       (mu4e-message-contact-field-matches msg
-								   :to "dakodeon@hotmail.com.com")))
+								   :to "dakodeon@hotmail.com")))
 	       :vars '((smtpmail-smtp-user . "dakodeon@hotmail.com")
 		       (smtpmail-default-smtp-server . "smtp.office365.com")
 		       (smtpmail-smtp-server . "smtp.office365.com")
@@ -1576,6 +1744,55 @@ Restart emacs from within emacs (duh!)
 		       (mu4e-trash-folder . "/dakodeon/Trash")))))
 
     (setq mu4e-context-policy 'pick-first)
+
+    ;; it is useful for a lot of queries to have a list of contexts
+
+    (defvar l/mu4e-context-names
+      (mapcar (lambda (x) (car x))
+	      (cl-map 'list (lambda (context)
+			      (cons (mu4e-context-name context) context))
+		      mu4e-contexts)))
+    #+end_src
+
+*** mu4e bookmarks
+
+    #+begin_src emacs-lisp
+    ;; get only the last received message
+    (defvar l/mu4e-last-received-msg nil
+      "Stores the id of the last received message.")
+
+    (add-hook 'mu4e-index-updated-hook
+	      (defun l/mu4e-fetch-last-received-msg ()
+		(let* ((query (string-trim (format "%s" (mapcar (lambda (x) (concat "maildir:/" x "/Inbox OR ")) l/mu4e-context-names)) "(" " OR )")))
+		  (setq l/mu4e-last-received-msg (string-trim (shell-command-to-string (concat "mu find -n 1 --fields \"i\" --sortfield=date --reverse " query)) nil "\n")))))
+
+
+    ;; brazenly stolen from the manual, then changed to fit my contexts
+    ;; Asks for how many days' messages to show
+    (defun l/mu4e-bookmark-num-days-old-query (days-old)
+      (interactive (list (read-number "How many days? " 2)))
+      (let ((start-date (subtract-time (current-time) (days-to-time days-old)))
+	    (maildirquery (string-trim (format "%s" (mapcar (lambda (x) (concat "maildir:/" x "/Inbox OR ")) l/mu4e-context-names)) "(" " OR )")))
+	(concat "(" maildirquery ") AND date:"
+		(format-time-string "%Y%m%d" start-date))))
+
+    (setq mu4e-bookmarks
+	  `( ,(make-mu4e-bookmark
+	       :name "Unread messages"
+	       :query "flag:unread AND NOT flag:trashed"
+	       :key ?u)
+	     ,(make-mu4e-bookmark
+	       :name "Today's messages"
+	       :query "date:today..now"
+	       :key ?t)
+	     ,(make-mu4e-bookmark
+	       :name "Messages from last [x] days"
+	       :query (lambda () (call-interactively 'l/mu4e-bookmark-num-days-old-query))
+	       :key ?w)
+	     ,(make-mu4e-bookmark
+	       :name "Last received message"
+	       :query (concat "msgid:" l/mu4e-last-received-msg)
+	       :key ?l)))
     #+end_src
 
 *** mu4e open in headers of specific account
@@ -1588,6 +1805,30 @@ Restart emacs from within emacs (duh!)
       (if (get-buffer "*mu4e-headers*" )
 	  (switch-to-buffer "*mu4e-headers*"))
       (mu4e-headers-search (concat "maildir:/" account "/Inbox")))
+    #+end_src
+
+*** mu4e open directly in unread messages
+
+    #+begin_src emacs-lisp
+    (defun l/mu4e-open-unread ()
+      "Open mu4e in unread messages."
+      (interactive)
+      (mu4e-headers-search "flag:unread AND NOT flag:trashed"))
+    #+end_src
+
+*** mu4e change split depending on window dimensions
+
+    #+begin_src emacs-lisp
+    (defun l/mu4e-view-change-split-advice ()
+      "Used to advice `mu4e-headers-view-message'.
+    Changes the way windows split when viewing a message depending on current window size.
+    If height is greater than width, split horizontally. Else, split vertically"
+      (if (> (window-pixel-height) (window-pixel-width))
+	  (setq mu4e-split-view 'horizontal)
+	(setq mu4e-split-view 'vertical)))
+
+    (advice-add 'mu4e-headers-view-message :before #'l/mu4e-view-change-split-advice)
+
     #+end_src
 
 *** mu4e external notifications (for i3blocks)
@@ -1616,6 +1857,8 @@ Manage contacts with org-contacts
 
 *** Start mu4e
 
+
+
 Auto start mu4e on emacs startup
 
     #+begin_src emacs-lisp
@@ -1624,6 +1867,7 @@ Auto start mu4e on emacs startup
     #+end_src
 
 ** EVIL COLLECTION
+   
    A bunch of evil bindings
 
    #+begin_src emacs-lisp
@@ -1632,13 +1876,15 @@ Auto start mu4e on emacs startup
      :ensure t
      :config
      (evil-collection-init 'mu4e)
+     (evil-collection-init 'image-dired)
      (evil-collection-init 'outline)
      (evil-collection-init 'help)
      (evil-collection-init 'man)
      (evil-collection-init 'package-menu)
      (evil-collection-init 'pdf)
      (evil-collection-init 'tetris)
-     (evil-collection-init '2048-game))
+     (evil-collection-init '2048-game)
+     (evil-collection-init 'info))
    #+end_src
 
 ** EVIL
@@ -1662,11 +1908,11 @@ Auto start mu4e on emacs startup
      (setq evil-find-skip-newlines t)
      :config
      (evil-mode 1)
-     (evil-set-initial-state 'Info-mode 'emacs)
+     ;; (evil-set-initial-state 'Info-mode 'emacs)
      (evil-set-initial-state 'org-capture-mode 'emacs)
      (evil-set-initial-state 'mu4e-compose-mode 'emacs)
      (evil-set-initial-state 'org-msg-mode 'emacs)
-     (evil-set-initial-state 'package-menu-mode 'emacs)
+     ;; (evil-set-initial-state 'package-menu-mode 'emacs)
      (evil-set-initial-state 'special-mode 'emacs)
      ;; Use emacs state instead of insert state
      (evil-define-state emacs
@@ -1687,39 +1933,66 @@ Auto start mu4e on emacs startup
 	   ([down] . 'evil-next-visual-line)
 	   ([up] . 'evil-previous-visual-line)
 	   ("C-S-o" . 'evil-jump-forward)
+	   ("*" . nil) ;;prefix
+	   ("*w" . 'evil-search-word-forward)
 	   :map evil-emacs-state-map
 	   ([escape] . 'evil-normal-state)))
 
     #+end_src
 
+** GENERAL KEY
+
+   My initial goal was to use this package to create a leader key for evil mode.
+
+   Maybe I will switch completely if this proves good.
+
+   #+begin_src emacs-lisp
+   (use-package general
+     :ensure t
+     :after evil
+     :bind
+     ("C-h G" . 'general-describe-keybindings)
+     :config
+     (general-create-definer evil-leader
+       :prefix "SPC")
+     (general-create-definer evil-leader-org
+       :prefix "SPC o")
+     (evil-leader 'normal
+       "m" 'l/mu4e-open-unread)
+     (evil-leader-org
+       :keymaps 'org-mode-map
+       :states 'normal
+       "p" 'org-set-property))
+   #+end_src
+
 ** CUSTOM FILE SHORTCUTS
 
    #+begin_src emacs-lisp
-   (defun goto-file-or-dir (f)
-     "Find the given file. If file is a directory, do helm-find-file there"
-     (if (file-directory-p f)
-	 (helm-find-files-1 f)
-       (if (file-exists-p f)
-	   (find-file f))))
+   ;; (defun goto-file-or-dir (f)
+     ;; "Find the given file. If file is a directory, run dired"
+     ;; (if (file-directory-p f)
+	 ;; (helm-find-files-1 f)
+       ;; (if (file-exists-p f)
+	   ;; (find-file f))))
 
    ;; create a prefix
    (define-prefix-command 'z-map)
    (global-set-key (kbd "C-x g") 'z-map)
 
-   (define-key z-map (kbd "E") (lambda () (interactive) (goto-file-or-dir "~/.emacs.d/init.el")))
-   (define-key z-map (kbd "e") (lambda () (interactive) (goto-file-or-dir "~/.emacs.d/my-config.org")))
-   (define-key z-map (kbd "i") (lambda () (interactive) (goto-file-or-dir "~/.config/i3/i3.conf")))
-   (define-key z-map (kbd "r") (lambda () (interactive) (goto-file-or-dir "~/.config/ranger/rc.conf")))
-   (define-key z-map (kbd "x") (lambda () (interactive) (goto-file-or-dir "~/.Xresources")))
-   (define-key z-map (kbd "z") (lambda () (interactive) (goto-file-or-dir "~/.zshrc")))
-   (define-key z-map (kbd "h") (lambda () (interactive) (goto-file-or-dir "~/")))
-   (define-key z-map (kbd "P") (lambda () (interactive) (goto-file-or-dir "~/Pictures/")))
-   (define-key z-map (kbd "p") (lambda () (interactive) (goto-file-or-dir "~/.personal/")))
-   (define-key z-map (kbd "C") (lambda () (interactive) (goto-file-or-dir "~/.config/")))
-   (define-key z-map (kbd "D") (lambda () (interactive) (goto-file-or-dir "~/Downloads/")))
-   (define-key z-map (kbd "d") (lambda () (interactive) (goto-file-or-dir "~/Documents/")))
-   (define-key z-map (kbd "c") (lambda () (interactive) (goto-file-or-dir "~/dotfiles/")))
-   (define-key z-map (kbd "S") (lambda () (interactive) (goto-file-or-dir "~/.config/scripts/")))
+   (define-key z-map (kbd "E") (lambda () (interactive) (find-file "~/.emacs.d/init.el")))
+   (define-key z-map (kbd "e") (lambda () (interactive) (find-file "~/.emacs.d/my-config.org")))
+   (define-key z-map (kbd "i") (lambda () (interactive) (find-file "~/.config/i3/i3.conf")))
+   (define-key z-map (kbd "r") (lambda () (interactive) (find-file "~/.config/ranger/rc.conf")))
+   (define-key z-map (kbd "x") (lambda () (interactive) (find-file "~/.Xresources")))
+   (define-key z-map (kbd "z") (lambda () (interactive) (find-file "~/.zshrc")))
+   (define-key z-map (kbd "h") (lambda () (interactive) (find-file "~/")))
+   (define-key z-map (kbd "P") (lambda () (interactive) (find-file "~/Pictures/")))
+   (define-key z-map (kbd "p") (lambda () (interactive) (find-file "~/.personal/")))
+   (define-key z-map (kbd "C") (lambda () (interactive) (find-file "~/.config/")))
+   (define-key z-map (kbd "D") (lambda () (interactive) (find-file "~/Downloads/")))
+   (define-key z-map (kbd "d") (lambda () (interactive) (find-file "~/Documents/")))
+   (define-key z-map (kbd "!") (lambda () (interactive) (find-file "~/.source/dotfiles/")))
+   (define-key z-map (kbd "S") (lambda () (interactive) (find-file "~/.local/bin/")))
    #+end_src
  
 ** GAMES
@@ -1744,3 +2017,5 @@ Auto start mu4e on emacs startup
     (use-package 2048-game
       :ensure t)
     #+end_src
+
+

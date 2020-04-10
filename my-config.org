@@ -1,9 +1,20 @@
-* MY EMACS CONFIGURATION
+#+TITLE: My Emacs configuration
+#+AUTHOR: dakodeon
+#+EMAIL: dakodeon@hotmail.com
+
+* INTRODUCTION
 
 Emacs configuration managed with org-mode and use-package.
 
 The code snippets are loaded by =init.el=, which also loads =use-package=.
 
+** TODO Attempting a more concise documentation
+  - Start by loading frameworks like evil and general (avoid writing eval-after-load all the time.)
+  - Use :general use-package delcaration to specify leader keys and the :general keyword in all other packages. (maybe)
+  - Generalise the use of use package, for consistency
+
+
+* CONFIURATION
 ** INTERFACE
 *** Try packages
 
@@ -34,7 +45,7 @@ The code snippets are loaded by =init.el=, which also loads =use-package=.
     (set-language-environment "UTF-8")     ;; always use UTF-8 encoding
     (set-default-coding-systems 'utf-8)
     (setq browse-url-browser-function 'browse-url-xdg-open) ;; open with default browser
-    (global-set-key (kbd "M-SPC") nil)
+    (global-set-key (kbd "M-SPC") nil)			;; temporary fix, I use this key combination to switch layouts stystem-wise, but emacs intercepts the key presses
     #+end_src
 
 *** Enable some disabled features
@@ -337,6 +348,8 @@ Restart emacs from within emacs (duh!)
       :ensure t
       :init
       (setq aw-keys '(?h ?j ?k ?l ?a ?s ?d ?f ?g))
+      :config
+      (ace-window-display-mode 1)
       :bind
       (("C-x o" . ace-window)
        ("C-x M-o" . ace-swap-window)))
@@ -1451,6 +1464,20 @@ Completion framework - switched from helm. It is way easier to customize.
     - Archive old entries, keep clean file (maybe)
     - Integration with org-agenda
 
+** VTERM
+
+   A new friend in the family! I am pretty excited about this,
+after testing it seems to be a viable option for a terminal emulator
+inside of emacs.
+
+#+begin_src emacs-lisp
+(use-package vterm
+  :load-path "~/.source/emacs-libvterm"
+  :init
+  (setq vterm-kill-buffer-on-exit t)
+  (setq vterm-clear-scrollback t))
+#+end_src
+
 ** ORG-MODE
 *** Ensure org-plus-contrib
 
@@ -1758,13 +1785,18 @@ Completion framework - switched from helm. It is way easier to customize.
 
     #+begin_src emacs-lisp
     ;; get only the last received message
-    (defvar l/mu4e-last-received-msg nil
-      "Stores the id of the last received message.")
+    (defun l/mu4e-fetch-last-received-msg ()
+      "Shows the last received message in mu4e"
+      (interactive)
+      (let* ((query (string-trim (format "%s" (mapcar (lambda (x) (concat "maildir:/" x "/Inbox OR ")) l/mu4e-context-names)) "(" " OR )")))
+	(mu4e-headers-search (concat "msgid:" (string-trim (shell-command-to-string (concat "mu find -n 1 --fields \"i\" --sortfield=date --reverse " query)) nil "\n")))))
 
-    (add-hook 'mu4e-index-updated-hook
-	      (defun l/mu4e-fetch-last-received-msg ()
-		(let* ((query (string-trim (format "%s" (mapcar (lambda (x) (concat "maildir:/" x "/Inbox OR ")) l/mu4e-context-names)) "(" " OR )")))
-		  (setq l/mu4e-last-received-msg (string-trim (shell-command-to-string (concat "mu find -n 1 --fields \"i\" --sortfield=date --reverse " query)) nil "\n")))))
+    (eval-after-load "evil"
+      '(progn
+	(evil-define-key 'normal mu4e-main-mode-map
+	  "gl" 'l/mu4e-fetch-last-received-msg)
+	(evil-define-key 'normal mu4e-headers-mode-map
+	  "gl" 'l/mu4e-fetch-last-received-msg)))
 
 
     ;; brazenly stolen from the manual, then changed to fit my contexts
@@ -1788,11 +1820,8 @@ Completion framework - switched from helm. It is way easier to customize.
 	     ,(make-mu4e-bookmark
 	       :name "Messages from last [x] days"
 	       :query (lambda () (call-interactively 'l/mu4e-bookmark-num-days-old-query))
-	       :key ?w)
-	     ,(make-mu4e-bookmark
-	       :name "Last received message"
-	       :query (concat "msgid:" l/mu4e-last-received-msg)
-	       :key ?l)))
+	       :key ?w)))			;; TODO: fetch messages of the last x minutes
+
     #+end_src
 
 *** mu4e open in headers of specific account

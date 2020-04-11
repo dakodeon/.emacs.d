@@ -6,12 +6,1155 @@
 
 Emacs configuration managed with org-mode and use-package.
 
-The code snippets are loaded by =init.el=, which also loads =use-package=.
+The code snippets below are loaded by =init.el=, which also loads
+=use-package=.
 
 ** TODO Attempting a more concise documentation
   - Start by loading frameworks like evil and general (avoid writing eval-after-load all the time.)
   - Use :general use-package delcaration to specify leader keys and the :general keyword in all other packages. (maybe)
   - Generalise the use of use package, for consistency
+
+
+* GENERAL
+
+  General provides a universal way of binding keys, which integrates
+  both define-key and evil-define-key. It also offers a way to
+  immitate vim's leader key functionality, both locally and globally.
+  This is great for someone who uses evil, as bindings can be a mess.
+
+  It is supposed to provide a key for use-package (:general), which
+  can be used for per-package configuration. That way I can define all
+  leaders in general's declaration and then assign key chords in a
+  per-package basis.
+
+  I haven't really played around with this package, so I am not sure
+  if I will keep it around.
+  
+   #+begin_src emacs-lisp
+   (use-package general
+     :ensure t
+     :after evil
+     :bind
+     ("C-h G" . 'general-describe-keybindings)
+     :config
+     (general-create-definer evil-leader
+       :prefix "SPC")
+     (general-create-definer evil-leader-org
+       :prefix "SPC o"))
+   #+end_src
+
+* EVIL
+
+  I tried evil-mode after being forced to stop using my arrow keys, as
+  they were broken. So I got used to 'h,j,k,l'. I ended up really
+  enjoying modal editing. Already using i3, it was a logical next
+  step.
+
+  So I decided to base my Emacs build on Evil mode.
+
+  The most imortant change that I made is the replacement of insert
+  state with normal emacs. That way I can have emacs bindings while
+  editing text.
+
+  I also use Evil collection. This is a package with preconfigured
+  evil-bindings for many emacs packages, like mu4e and org-mode. I
+  dont enable evil collection for all packages. For example, I define
+  custom bindings for dired, due to some buggy behaviour (for some
+  reason I was unable to rebind a key bound by evil collection).
+
+** Evil collection
+
+    #+begin_src emacs-lisp
+    (use-package evil-collection
+      :after evil
+      :ensure t
+      :config
+      (evil-collection-init 'mu4e)
+      (evil-collection-init 'image-dired)
+      (evil-collection-init 'outline)
+      (evil-collection-init 'help)
+      (evil-collection-init 'man)
+      (evil-collection-init 'package-menu)
+      (evil-collection-init 'pdf)
+      (evil-collection-init 'tetris)
+      (evil-collection-init '2048-game))
+    #+end_src
+
+** Evil mode
+
+    * Note: there's a bunch of bindings in normal-state beause of the
+    visual-line-mode that I use. I have to get rid of that at some
+    point.
+
+    #+begin_src emacs-lisp
+    (use-package evil
+      :ensure t
+      :init
+      (setq evil-move-cursor-back nil)
+      (setq evil-want-C-u-scroll t)
+      (setq evil-want-fine-undo t)
+      (setq evil-normal-state-cursor 'box)
+      (setq evil-emacs-state-cursor 'bar)
+      (setq evil-replace-state-cursor 'hbar)
+      (setq evil-want-integration t)
+      (setq evil-want-keybinding nil)
+      (setq evil-find-skip-newlines t)
+      :config
+      (evil-mode 1)
+      (evil-set-initial-state 'Info-mode 'emacs)
+      (evil-set-initial-state 'org-capture-mode 'emacs)
+      (evil-set-initial-state 'mu4e-compose-mode 'emacs)
+      (evil-set-initial-state 'org-msg-mode 'emacs)
+      ;; (evil-set-initial-state 'package-menu-mode 'emacs)
+      (evil-set-initial-state 'special-mode 'emacs)
+      ;; Use emacs state instead of insert state
+      (evil-define-state emacs
+	"Emacs used as insert state in evil."
+	:tag " <EE> "
+	:message "-- EMACS INSERT --"
+	:input-method t)
+      (defadvice evil-insert-state
+	  (around emacs-state-instead-of-insert-state activate)
+	"Emacs instead of Insert."
+	(evil-emacs-state))
+      :bind
+      (:map evil-normal-state-map
+	    ("j" . 'evil-next-visual-line)
+	    ("k" . 'evil-previous-visual-line)
+	    ("^" . 'evil-beginning-of-visual-line)
+	    ("g^" . 'evil-first-non-blank-of-visual-line)
+	    ("$" . 'evil-end-of-visual-line)
+	    ;; ("g ^" . 'evil-beginning-of-line)
+	    ("g$" . 'evil-end-of-line)
+	    ([down] . 'evil-next-visual-line)
+	    ([up] . 'evil-previous-visual-line)
+	    ("C-S-o" . 'evil-jump-forward)
+	    ("*" . nil) ;;prefix
+	    ("*w" . 'evil-search-word-forward)
+	    :map evil-emacs-state-map
+	    ([escape] . 'evil-normal-state)))
+     #+end_src
+
+* AUTOCOMPLETE
+
+  This is just a generic autocompletion framework. I haven't tweaked
+  it in any way and it only works most of the time. For example,
+  filename completion never worked as intended.
+
+  Anyhow, it is still useable, but I guess I will try something like
+  company soon.
+
+   #+begin_src emacs-lisp
+   (use-package auto-complete
+     :ensure t
+     :delight (auto-complete-mode " ⋯")
+     :init
+     (ac-config-default)
+     (global-auto-complete-mode t)
+     (setq ac-sources (append ac-sources '(ac-sources-filename)))
+     (setq ac-ignore-case nil))
+   #+end_src
+     
+* NAVIGATION WITH IVY
+*** Ivy-mode
+    
+    Ivy is a narrowing and completion fraqmework for emacs. I switched
+    to it from helm, because it was a lot easier to customize.
+
+    Together with counsel, ivy provides alternatives to emacs
+    commands, like switch-buffer, find-file, M-x etc. It also
+    interfaces with some external tools, like fzf, ripgrep and wmctrl,
+    which is great.
+
+    I wrote some custom functions for Ivy to improve upon the existing
+    functionality of inserting in the minibuffer text from the current
+    buffer. However, these were rendered obsolete by a somewhat hidden
+    feature of Ivy (ivy-next-history-element), which does exactly
+    that, but better. I keep those, because of the code I wrote.
+
+   #+begin_src emacs-lisp
+   (use-package ivy
+     :ensure t
+     :delight
+     :init
+     (setq ivy-use-virtual-buffers t)
+     (setq ivy-count-format "(%d/%d) ")
+     :config
+     ;; better word and symbol yanking in the minibuffer
+     ;; UPDATE: -- I just learned that M-n calls `ivy-next-history-element', which does exactly what I want,
+     ;; it yanks to the minibuffer the symbol or the word at point, or the active region, so...
+     (defun l/ivy-yank-word ()
+       "Pull word at point from buffer into search string."
+       (interactive)
+       (let (text)
+	 (with-ivy-window
+	   (setq text (thing-at-point 'word 'no-properties)))
+	 (when text
+	   (insert (replace-regexp-in-string
+		    "  +" " "
+		    (ivy--yank-handle-case-fold text)
+		    t t)))))
+
+     (defun l/ivy-yank-symbol ()
+       "Pull symbol at point from buffer into search string."
+       (interactive)
+       (let (text)
+	 (with-ivy-window
+	   (setq text (thing-at-point 'symbol 'no-properties)))
+	 (when text
+	   (insert (replace-regexp-in-string
+		    "  +" " "
+		    (ivy--yank-handle-case-fold text)
+		    t t)))))
+     :bind
+     (:map ivy-minibuffer-map
+     ("M-w" . l/ivy-yank-word)
+     ("M-s" . l/ivy-yank-symbol)))
+   #+end_src
+*** Counsel
+    
+    Counsel is essentially the frontend of ivy. It packs all the
+    useful ivy-enriched commands.
+
+    Some of the functionality I use:
+
+    - counsel-fzf: [[https://github.com/junegunn/fzf][Fzf]] is a fuzzy finder for files. Great tool! I
+      added functionality from [[https://protesilaos.com/dotemacs][prot's configuration]] that enables us to
+      switch root directory for a search (although I simplified it, as
+      I still don't use counsel-rg). I also wrote a wrapper around the
+      default function so that I can search for marked text if the
+      region is active.
+    - cousel-outline: Navigate an org file by searching it's headers.
+      Also great! Just for customization's sake, I wrote an action to
+      begin a fzf search with selected candidate, inspired by the way
+      Prot handles switching from fzf to rg and vice-versa.
+    - l/counsel-sufraw (to be renamed): [[https://gitlab.com/surfraw/Surfraw][Surfraw]] is a tool for
+      searching the web from the command line. It provides a set of
+      scripts (they are called elvi) which correspond each to a search
+      engine (eg. Google, DuckDuckGo etc). Although there is already a
+      package that integrates surfraw with ivy ([[https://github.com/jws85/counsel-surfraw/blob/master/counsel-surfraw.el][counsel-surfraw]]) I
+      wrote my own, just for practice and for the sake of it! I ended
+      up using some code from this package though. I also took an
+      extra step (just for the bling!) and took the elvi's
+      descriptions and passed them to ivy-rich (see next section).
+
+    
+   #+begin_src emacs-lisp
+   (use-package counsel
+     :ensure t
+     :delight
+     :config
+     (defun l/counsel-fzf ()
+       "Wraps around `counsel-fzf' to allow input from marked region."
+       (interactive)
+       (let (text)
+	 (if mark-active
+	     (setq text (buffer-substring-no-properties (region-beginning) (region-end))))
+	 (counsel-fzf text)))
+
+     ;; based on code by prot
+     (defun l/counsel-fzf-dir (arg)
+       "Specify root directory for `counsel-fzf'."
+       (counsel-fzf ivy-text
+		    (read-directory-name
+		     (concat (car (split-string counsel-fzf-cmd))
+			     " in directory: "))))
+
+     (ivy-add-actions 'counsel-fzf
+		      '(("r" l/counsel-fzf-dir "change root directory")))
+
+   ;; from counsel-outline to fzf -- I should split these.
+   (defun l/counsel-fzf-from-outline (arg)
+     "Search for outline header with fzf."
+     (counsel-fzf (car (last (split-string (substring-no-properties (ivy-state-current ivy-last)) "/")))))
+
+   (ivy-add-actions 'counsel-outline
+		    '(("f" l/counsel-fzf-from-outline "search with fzf")))
+
+     ;; surfraw frontend
+     (defvar l/surfraw-elvi-list
+       (mapcar (lambda (x) (split-string x "\t+-- "))
+	       (seq-remove
+		(lambda (str) (not (string-match-p "--" str)))
+		(split-string (shell-command-to-string "surfraw -elvi") "\n")))
+       "An association list of elvi. Used by `l/ivy-surfraw'")
+
+     (defun l/ivy-rich--ivy-surfraw-describe-elvi (elvi)
+       (car (cdr (assoc elvi l/surfraw-elvi-list))))
+
+     (defun l/ivy-surfraw ()
+       "Search the web with surfraw. If region is active, search for that."
+       (interactive)
+       (let (text)
+	 (if mark-active
+	     (setq text (buffer-substring-no-properties (mark) (point)))
+	   (setq text (read-string "What u wanna search? ")))
+	 (ivy-read "Select search engine: "
+		   (mapcar (lambda (entry) (car entry)) l/surfraw-elvi-list)
+		   :action (lambda (x)
+			     (let ((engine (replace-regexp-in-string " +.*$" "" x)))
+			       (shell-command (concat "surfraw " engine " " (shell-quote-argument text)))))
+		   :caller 'l/ivy-surfraw)))
+
+     (eval-after-load "evil"
+       '(progn
+	  (evil-define-key 'normal org-mode-map "**" 'counsel-outline)))
+     (ivy-mode 1)
+     :bind
+     (("M-x" . counsel-M-x)
+     ("C-h f" . counsel-describe-function)
+     ("C-h v" . counsel-describe-variable)
+     ("C-c f" . l/counsel-fzf)
+     ("C-c g" . counsel-rg)
+     ("C-c b" . l/ivy-surfraw)))
+   #+end_src
+   
+**** TODO Pack l/counsel-sufraw:
+     I should keep this in a separate file and load it as a package.
+
+*** TODO Swiper
+
+    I should add here the configuration about swiper.
+
+*** Other functionality
+ 
+    Here is some extra packages for ivy/counsel/swiper:
+
+**** AMX
+
+     AMX is a rating system for selection candidates. Most rated
+     candidates are more likely to appear fisrt when using ivy.
+    
+    #+begin_src emacs-lisp
+    (use-package amx
+      :ensure t
+      :after ivy
+      :custom
+      (amx-backend 'auto)
+      (amx-save-file "~/.emacs.d/amx-items")
+      :config
+      (amx-mode 1))
+    #+end_src
+
+**** Ivy-rich
+
+     Ivy-rich provides help strings to be displayed alongside ivy
+     candidates. Really useful for some quick reference.
+
+     I added functionality for my ivy-surfraw function.
+
+    #+begin_src emacs-lisp
+    (use-package ivy-rich
+      :ensure t
+      :config
+      (plist-put ivy-rich-display-transformers-list
+	       'l/ivy-surfraw '(:columns
+				((ivy-rich-candidate (:width 20))
+				 (l/ivy-rich--ivy-surfraw-describe-elvi)
+				 )))
+      (setcdr (assq t ivy-format-functions-alist) #'ivy-format-function-line)
+      (ivy-rich-mode 1))
+    #+end_src
+
+**** Ivy-posframe
+
+     Ivy-posframe provides custom positioning of the minibuffer
+     depending on which function is called.
+
+     The way I set it up is essentially copied from Prot's
+     configuration. The default is for the minibuffer to be displayed
+     as a box in the center of the frame, but for some functions, like
+     swiper for example, it is best to be kept in the traditional
+     position.
+
+#+begin_src emacs-lisp
+    (use-package ivy-posframe
+      :ensure t
+      :delight
+      :custom
+      (ivy-posframe-display-functions-alist
+       '((complete-symbol . ivy-posframe-display-at-point)
+	 (counsel-describe-function . nil)
+	 (counsel-describe-variable . nil)
+	 (swiper . nil)
+	 (swiper-isearch . nil)
+	 (t . ivy-posframe-display-at-frame-center)))
+      :config
+      (ivy-posframe-mode 1))
+    #+end_src
+
+* DIRED
+
+  Dired, the DIRectory EDitor, is the default file manager inside
+  emacs. It uses ls with ls switches to generate an editable buffer of
+  files lists, in which you can do whatever you would normally do in
+  any file manager, and maybe more.
+
+  I customized dired up to the point that I am very happy with the
+  workflow achieved. This is a really long config, so I guess it is
+  best to document it along the way.
+
+** Defaults
+
+   Here I define some defaults for dired. These include the default ls
+   switches that generate the dired buffer, the use of dwim (do what I
+   mean) while copying and moving (meaning that when performing a copy
+   or move action the default target is the dired buffer in the other
+   window, if existing), also adding hide-details-mode to the hook, as
+   well as fixing a bug caused by a package no longer existent
+   (something like a digital equivalent of a ghost limb).
+
+   One drastic change I made to the defaults is the way dired shows up
+   in the modeline. Delight does not work for dired, as its modeline
+   output changes every time the ls flags change. This clutters the
+   modeline as, for example, one flag that I use is
+   '--group-directories-first'... I discovered the culprit: it was the
+   function 'dired-sort-set-mode-line'. So, I completely redefined the
+   function to output my custom names instead (note -- I know I should
+   just advise the function, not completely redefine it, but at the
+   time I was not familiar enough with advising. I might look into it
+   soon).
+  
+  #+begin_src emacs-lisp
+  (use-package dired
+    :init
+    (setq dired-dwim-target t)
+    (setq dired-listing-switches "-Alh") ;; human-readable sizes, also omit . and ..
+    :config
+    ;; This hook seems to be added automatically to my 'custom.el' file
+    ;; and breaks dired. I have to find out where it comes from. It was
+    ;; a part of the `ranger' package, which I have deleted.
+    (remove-hook 'dired-mode-hook 'ranger-set-dired-key)
+
+    (add-hook 'dired-mode-hook 'dired-hide-details-mode) ;; list only filenames
+
+    ;; modeline hack -- should replace this with advice
+    (defun dired-sort-set-mode-line ()
+      ;; Set mode line display according to dired-actual-switches.
+      ;; Mode line display of "by name" or "by date" guarantees the user a
+      ;; match with the corresponding regexps.  Non-matching switches are
+      ;; shown literally.
+      (when (eq major-mode 'dired-mode)
+	(setq mode-name
+	      (let (case-fold-search)
+		(cond ((string-match-p
+			(concat (regexp-quote "-Alh") "\\(\\s-\\|$\\)")
+			dired-actual-switches)
+		       "")
+		      ((string-match-p
+			(concat (regexp-quote "-Alht") "\\(\\s-\\|$\\)")
+			dired-actual-switches)
+		       "⇓D")
+		      ((string-match-p
+			(concat (regexp-quote "-AlhS") "\\(\\s-\\|$\\)")
+			dired-actual-switches)
+		       "⇓S")
+		      ((string-match-p
+			(concat (regexp-quote "-AlhX") "\\(\\s-\\|$\\)")
+			dired-actual-switches)
+		       "⇓X")
+		      (t
+		       "⇓?"))))
+	(if (string-match-p
+	     (regexp-quote " --group-directories-first")
+	     dired-actual-switches)
+	    (setq mode-name (concat mode-name "⋮"))
+	  (setq mode-name (replace-regexp-in-string "⋮" "" mode-name)))
+	(force-mode-line-update))))
+  #+end_src
+
+** Some basic customization
+
+   Some tweaks of basic behaviour that I felt were missing:
+   
+   - The default behaviour when moving to the beginning / end of the
+     buffer is to treat it like a normal buffer, instead I wanted to
+     move to the first / last line in the file list. I found these
+     code snippets code snippets from a file called [[https://www.emacswiki.org/emacs/dired-extension.el][dired-extension]]
+     that was posted in emacswiki.
+   - The default behaviour when marking a file is to mark and move
+     forward. This makes it really easy to mark a bunch of consecutive
+     files. But what about in reverse? Let's define a function to do
+     exactly that!
+   - The ability to kill lines of a dired buffer so that you can
+     narrow down the files you're working on is very useful. More
+     useful is to be able to do it on a selection of files.
+   - After I started using emacs as my mail client, I thought it would
+     be great to use dired to attach files to an email. Apparently
+     someone else also thought about this in [[https://emacs.stackexchange.com/questions/14652/attach-multiple-files-from-the-same-directory-to-an-email-message][this]] question in
+     stackexchange. This is the provided function, with the ability to
+     attach all marked files. /NOTE: this does not always work as
+     intended, and anyways I don't use it as much. It is worth
+     checking out however./
+
+   #+begin_src emacs-lisp
+   (use-package emacs
+     :config
+     ;; go to first / last file line
+     (defun dired-goto-first-file ()
+	  "Move cursor to first file of dired."
+	  (interactive)
+	  (goto-char (point-min))
+	  (while (not (dired-move-to-filename))
+	    (call-interactively 'dired-next-line)))
+
+     (defun dired-goto-last-file ()
+       "Move cursor to last file of dired."
+       (interactive)
+       (goto-char (point-max))
+       (while (not (dired-move-to-filename))
+	 (call-interactively 'dired-previous-line)))
+
+     ;; mark and move backwards
+     (defun l/dired-mark-backwards ()
+       "Mark file at point and move backwards."
+       (interactive)
+       (if (dired-move-to-filename)
+	   (progn
+	     (dired-mark 1)
+	     (dired-previous-line 2))))
+
+     ;; narrow to marked files
+     (defun l/dired-narrow-to-marked-files ()
+       "Show only marked files in dired buffer."
+       (interactive)
+       (let ((files (dired-get-marked-files)))
+	 (unless (eq (length files) 1)
+	   (dired-toggle-marks)
+	   (dired-do-kill-lines))))
+
+     ;; attach marked files to email
+     (defun compose-attach-marked-files ()
+       "Compose mail and attach all the marked files from a dired
+   buffer."
+       (interactive)
+       (let ((files (dired-get-marked-files)))
+	 (compose-mail nil nil nil t)
+	 (dolist (file files)
+	   (if (file-regular-p file)
+	       (mml-attach-file file
+				(mm-default-file-encoding file)
+				nil "attachment")
+	     (message "skipping non-regular file %s" file))))))
+   #+end_src
+
+** Sorting functions
+
+   Although the use of ls switches can be very useful for diferent
+   sorting options, dired by default does not provide this kind of
+   functionality. Here I define some functions to switch between
+   sorting by name, by date, by size, by extension, and grouping of
+   directories first as a toggle on top of the other switches.
+
+   #+begin_src emacs-lisp
+   (use-package dired
+     :config
+     ;; sort by
+     (defun l/dired-sort-by (sw)
+       "Sort dired buffer by given switches and go to first line. If
+   the switches provided are the same with the current switches, do
+   nothing"
+       (let ((switches dired-actual-switches))
+	 (unless (string= sw switches)
+	   (dired-sort-other sw)
+	   (dired-goto-first-file))))
+  
+     ;; callable functions
+     ;; by name
+     (defun l/dired-sort-by-name ()
+       "Sort by name. Calls `l/dired-sort-by'."
+       (interactive)
+       (l/dired-sort-by "-Alh"))
+  
+     ;; by date
+     (defun l/dired-sort-by-date ()
+       "Sort by date. Calls `l/dired-sort-by'."
+       (interactive)
+       (l/dired-sort-by "-Alht"))
+  
+     ;; by size
+     (defun l/dired-sort-by-size ()
+       "Sort by size. Calls `l/dired-sort-by'."
+       (interactive)
+       (l/dired-sort-by "-AlhS"))
+  
+     ;; by extension
+     (defun l/dired-sort-by-ext ()
+       "Sort by extension. Calls `l/dired-sort-by'."
+       (interactive)
+       (l/dired-sort-by "-AlhX"))
+  
+     ;; toggle directories first
+     (defun l/dired-sort-dirs-first ()
+       "Toggles grouping directories first."
+       (interactive)
+       (let ((switches dired-actual-switches))
+	 (if (string-match-p (regexp-quote " --group-directories-first") switches)
+	     (setq switches (replace-regexp-in-string " --group-directories-first" "" switches))
+	   (setq switches (concat switches " --group-directories-first")))
+	 (dired-sort-other switches))
+       (dired-goto-first-file)))
+   #+end_src
+
+** External programs
+
+  Definitions of some "external" functions. These are functions that
+  act on files or lists of files using some external tool. Those
+  include:
+
+  - dired-get-size: calls du and outputs the size on the minibuffer. I
+    got this from [[https://www.emacswiki.org/emacs/dired-extension.el][this]] post on emacswiki, from the same package called
+    dired-extension mentioned previously. I also left the chinese text
+    inside!
+  - l/unmount-drive: if called on a mountpoint, it unmounts the drive
+    mounted there. Really simple function, as I rarely use it, and
+    only for this, quickly unmount a drive if I am already there.
+  - l/atool-pack and unpack: atool is a script for managing file
+    archives. I tried the existing [[https://github.com/HKey/dired-atool][dired-atool]] package from github,
+    but I didn't like it, so I wrote my own functions with modified
+    code from this project. I prefered something simpler and with nice
+    output.
+  - l/get-subtitles: uses sublime, a command-line tool to download
+    subtitles written in python. Although the implementation is mine,
+    I got some basic ideas from [[http://ergoemacs.org/emacs/elisp_call_shell_command.html][this post about 'start-process']] on
+    ergoemacs and [[https://stackoverflow.com/questions/17075920/passing-list-to-rest-args?rq=1][this one about 'apply']] on stackoverflow.
+  - l/change-desktop-background: uses feh, a minimal image viewer, to
+    set the desktop background with the file at point. Provides a menu
+    with different fits.
+    
+  #+begin_src emacs-lisp
+  (use-package dired
+    :config
+    ;; get filesize
+    (defun dired-get-size ()
+      "Get total size of marked files with `du' command.
+       If not marked any files, default is current file or directory."
+      (interactive)
+      (let ((files (dired-get-marked-files)))
+	(with-temp-buffer
+	  (apply 'call-process "/usr/bin/du" nil t nil "-sch" files)
+	  (message "%s"
+		   (progn
+		     (re-search-backward "\\(^[0-9.,]+[A-Za-z]+\\).*\\(total\\|总用量\\)$")
+		     (match-string 1))))))
+
+    ;; unmount drive from mountpoint
+    (defun l/unmount-drive ()
+      "Unmount selected directories, if they correspond to mountpoints."
+      (interactive)
+      (let ((dirs (dired-get-marked-files)))
+	(dired-do-shell-command "mountpoint -q ? && sudo umount ? && sudo rmdir ?" nil dirs)
+	(revert-buffer)))
+
+    ;; pack and unpack
+    (defun l/atool-pack ()
+      "Use the `atool' program to pack some files."
+      (interactive)
+      (when (eq major-mode 'dired-mode)
+	(let ((files (dired-get-marked-files t))
+	      (archive (expand-file-name
+			(read-file-name "Pack files as:" nil nil nil)))
+	      (process-connection-type nil))
+	  (if (get-buffer "*atool-pack*")
+	      (kill-buffer "*atool-pack*"))
+	  (apply 'start-process
+		 (append (list "atool-pack" "*atool-pack*" "atool" "--explain" archive "-a") files))
+	  (switch-to-buffer-other-window "*atool-pack*")
+	  (special-mode))))
+  
+    (defun l/atool-unpack ()
+      "Use the `atool' program to unpack some archives."
+      (interactive)
+      (when (eq major-mode 'dired-mode)
+	(let ((files (dired-get-marked-files t))
+	      (dest (expand-file-name
+		     (read-directory-name "Unpack files to:"
+					  (dired-dwim-target-directory) nil nil)))
+	      (process-connection-type nil))
+	  (if (get-buffer "*atool-unpack*")
+	      (kill-buffer "*atool-unpack*"))
+	  (if (not (file-directory-p dest))
+	      (make-directory dest))
+	  (apply 'start-process
+		 (append (list "atool-unpack" "*atool-unpack*" "atool" "--explain" "-X" dest) files))
+	  (switch-to-buffer-other-window "*atool-unpack*")
+	  (special-mode))))
+
+    ;; get subtitles
+    (defun l/get-subtitles ()
+      "Get subtitles for marked files while in a dired buffer. Depends on subliminal, so it has to be on your system."
+      (interactive)
+      (when (eq major-mode 'dired-mode)
+	(let* ((lang-list '("en" "gr"))
+	       (lang (completing-read "Select language: " lang-list nil t))
+	       (files (dired-get-marked-files))
+	       (process-connection-type nil))
+	  (if (get-buffer "*get-subtitles*")
+	      (kill-buffer "*get-subtitles*"))
+	  (apply 'start-process
+		 (append (list "get-subtitles" "*get-subtitles*" "subliminal" "download" "-l" lang) files))
+	  (switch-to-buffer-other-window "*get-subtitles*")
+	  (special-mode))))
+
+    ;; change desktop background
+    (defun l/change-desktop-background ()
+      "Change the desktop background using feh."
+      (interactive)
+      (let ((fit-type (completing-read "Select fit: " '("scale" "center" "fill" "max") nil t))
+	    (entry (shell-quote-argument (expand-file-name (dired-file-name-at-point))))
+	    (targetfile (shell-quote-argument (expand-file-name "~/.config/.wallpaper.jpg"))))
+	(setq cpcmd (concat "cp " entry " " targetfile))
+	(setq fehcmd (concat "feh --bg-" fit-type " " targetfile))
+	(setq cmd (concat cpcmd " && " fehcmd))
+	(shell-command cmd))))
+  #+end_src
+
+  I also defined a custom keymap with shortcuts to most used
+  directories, similar to the navigation system in ranger (gh -- go to
+  home, gD -- go to Downloads etc)
+
+
+  Another part of dired's configuration is the evil bindings. I did
+  not use the pre-existing bindings from evil-collection, due to some
+  buggy behavior that wouldn't let me rebind a key. Maybe I will
+  revisit this possibility as my config tidies up, it could be some
+  weird conflict that would resolve itself with a tidier config.
+
+** Custom maps
+
+   Here are declared two prefix commands with their bindings:
+
+   - l/dired-nav-map offers ranger-like shortcuts to directories.
+   - l/dired-my-ext-cmds includes keybindings for the functions that
+     call external programs.
+
+   #+begin_src emacs-lisp
+   (use-package dired
+     :config
+     ;; navigation map
+     (define-prefix-command 'l/dired-nav-map)
+
+     (general-def l/dired-nav-map
+       "h" (lambda () (interactive) (dired "~/"))
+       "D" (lambda () (interactive) (dired "~/Downloads/"))
+       "d" (lambda () (interactive) (dired "~/Documents/"))
+       "p" (lambda () (interactive) (dired "~/Pictures/")) 
+       "M" (lambda () (interactive) (dired "~/Music/"))  
+       "v" (lambda () (interactive) (dired "~/Videos/"))   
+       "m" (lambda () (interactive) (dired "/media"))    
+       "C" (lambda () (interactive) (dired "~/.config/"))  
+       "E" (lambda () (interactive) (dired "~/.emacs.d/")) 
+       "!" (lambda () (interactive) (dired "~/dotfiles/"))
+       "g" 'dired-goto-first-file)
+
+     ;; my external commands
+     (define-prefix-command 'l/dired-my-ext-cmds)
+
+     (general-def l/dired-my-ext-cmds
+       "s" 'l/get-subtitles
+       "?" 'dired-get-size
+       "B" 'l/change-desktop-background
+       "u" 'l/unmount-drive
+       "zz" 'l/atool-pack
+       "zx" 'l/atool-unpack)
+   #+end_src
+
+** Keybindings
+
+   In this section I define all the keybindings for dired. The list is
+   long...
+
+   #+begin_src emacs-lisp
+   (use-package dired
+     :config
+     (general-def 'dired-mode-map
+       "G" 'revert-buffer
+       "g" 'l/dired-nav-map
+       "C-x M-." 'compose-attach-marked-files
+       "M-<" 'dired-goto-first-file
+       "M->" 'dired-goto-last-file)
+
+     (general-def 'normal dired-mode-map
+       "q" 'quit-window
+       ;; basic movement
+       "j" 'dired-next-line
+       "k" 'dired-previous-line
+       "h" 'dired-up-directory
+       "l" 'dired-find-file
+       ">" 'dired-next-dirline
+       "<" 'dired-prev-dirline
+       ;; here should be "gg" 'dired-goto-first-file, but it is in the
+       ;; nav-map
+       "G" 'dired-goto-last-file
+       ;; basic functions
+       "A" 'dired-do-find-regexp
+       "B" 'dired-do-byte-compile
+       "C" 'dired-do-copy
+       "D" 'dired-do-delete
+       ;; dired-do-chgrp
+       "H" 'dired-do-hardlink
+       "L" 'dired-do-load
+       "M" 'dired-do-chmod
+       "O" 'dired-do-chown
+       "P" 'dired-do-print
+       "Q" 'dired-do-find-regexp-and-replace
+       "R" 'dired-do-rename
+       "S" 'dired-do-symlink
+       "T" 'dired-do-touch
+       "Z" 'dired-do-compress
+       "c" 'dired-do-compress-to
+       "!" 'dired-do-shell-command
+       "&" 'dired-do-async-shell-command
+       "=" 'dired-diff
+       ;; regexp operations
+       "%" nil ;; prefix
+       "%u" 'dired-upcase
+       "%l" 'dired-downcase
+       "%d" 'dired-flag-files-regexp
+       "%g" 'dired-mark-files-containing-regexp
+       "%m" 'dired-mark-files-regexp
+       "%C" 'dired-do-copy-regexp
+       "%H" 'dired-do-hardlink-regexp
+       "%R" 'dired-do-rename-regexp
+       "%S" 'dired-do-symlink-regexp
+       "%&" 'dired-flag-garbage-files
+       ;; marks & flags
+       "U" 'dired-unmark-all-marks
+       "u" 'dired-unmark
+       "m" 'dired-mark
+       (kbd "<SPC>") 'dired-mark
+       (kbd "C-<SPC>") 'l/dired-mark-backwards
+       "t" 'dired-toggle-marks
+       "d" 'dired-flag-file-deletion
+       "x" 'dired-do-flagged-delete
+       (kbd "* <delete>") 'dired-unmark-backward
+       (kbd "<delete>") 'dired-unmark-backward
+       "*" nil ;; prefix
+       "**" 'dired-mark-executables
+       "*/" 'dired-mark-directories
+       "*@" 'dired-mark-symlinks
+       "*%" 'dired-mark-files-regexp
+       "*(" 'dired-mark-sexp
+       "*." 'dired-mark-extension
+       "*O" 'dired-mark-omitted
+       "*c" 'dired-change-marks
+       "*s" 'dired-mark-subdir-files
+       "*?" 'dired-unmark-all-files
+       "*!" 'dired-unmark-all-marks
+       "*f" 'l/dired-narrow-to-marked-files
+       ;; encryption-decryption (epa-dired)
+       ";d" 'epa-dired-do-decrypt
+       ";v" 'epa-dired-do-verify
+       ";s" 'epa-dired-do-sign
+       ";e" 'epa-dired-do-encrypt
+       ;; unsorted
+       "X" 'l/dired-my-ext-cmds
+       "z" 'dired-omit-mode
+       "g" 'l/dired-nav-map
+       "gr" 'revert-buffer
+       "gR" 'dired-do-redisplay
+       "I" 'dired-maybe-insert-subdir
+       "i" 'dired-toggle-read-only
+       "J" 'dired-goto-file
+       "K" 'dired-do-kill-lines
+       "a" 'dired-find-alternate-file
+       "gy" 'dired-show-file-type
+       "Y" 'dired-copy-filename-as-kill
+       "+" 'dired-create-directory
+       (kbd "S-<return>") 'dired-find-file-other-window
+       (kbd "RET") 'dired-find-file
+       (kbd "M-<return>") 'browse-url-of-dired-file
+       ;; sorting
+       "o" nil ;; prefix -- was dired-sort-toggle-or-edit
+       "oo" 'l/dired-sort-by-name
+       "od" 'l/dired-sort-by-date
+       "os" 'l/dired-sort-by-size
+       "ox" 'l/dired-sort-by-ext
+       "o=" 'l/dired-sort-dirs-first
+       "(" 'dired-hide-details-mode
+       "?" 'dired-summary))
+
+   (add-hook 'dired-mode-hook 'evil-normalize-keymaps))
+
+   #+end_src
+
+** Dired-x
+
+   Dired-X provides some extra functionality for dired.
+
+   For now, I use it only for the omit-mode that it offers, which
+   hides non-interesting files by regexp or by extension.
+
+   However, there are other useful features which I should check, like
+   shell command guessing.
+
+   #+begin_src emacs-lisp
+   (use-package dired-x
+     :delight dired-omit-mode
+     :after dired
+     :bind
+     (:map dired-mode-map
+	   ("z" . 'dired-omit-mode))
+     :init
+     (setq dired-omit-verbose nil)
+     :config
+     ;; files to be ommited: beginning with one or more dots, beginning with $ (some files that come from Windows), ending with xmp (eg darktable data files), ending with srt, sub (I don't want to see subtitle files)
+     (setq dired-omit-files (concat dired-omit-files "\\|^\\..+$\\|^\\$"))
+     (setq dired-omit-extensions
+	   (append dired-omit-extensions '("xmp" "srt" "sub")))
+
+     (add-hook 'dired-mode-hook 'dired-omit-mode))
+   #+end_src
+
+** Wdired
+
+   Wdired (Writable dired) is a way to manipulate the file listing
+   like a text file. This means super-easy renaming.
+
+   #+begin_src emacs-lisp
+   (use-package wdired
+     :after dired)
+   #+end_src
+
+** Image dired
+
+   Image dired provides functionality to view images in emacs. Nothing too fancy, just some sane defaults.
+
+   #+begin_src emacs-lisp
+   (use-package image-dired
+     :after dired
+     :init
+     (setq image-dired-thumb-width 250)
+     (setq image-dired-thumbs-per-row 4)
+     (setq image-dired-external-viewer "sxiv"))
+   #+end_src
+
+** Peep dired
+
+   Peep dired is a minor mode for dired which offers a preview of the file at point on another window. Very useful. It provides an experience similar to file managers like Ranger.
+
+   However, some features where missing imho, also some functions
+   caused abnormal behaviour. So, I cloned the project from the
+   [[https://github.com/asok/peep-dired][original repo]], tweaked it, added some extra functions and run it...
+   It still needs maintenance, some stuff should be reimplemented, but
+   it will do for now. My fork can be found [[https://github.com/dakodeon/peep-dired][here]].
+
+   #+begin_src emacs-lisp
+   (use-package peep-dired
+     :load-path "~/.source/peep-dired"
+     :delight (peep-dired " ")
+     :after dired
+     :init
+     (setq peep-dired-cleanup-eagerly t)
+     (setq peep-dired-ignored-extensions '("mkv" "mp4" "avi" "mov" "mp3" "wav" "iso"))
+     :config
+     ;; custom dired functions customized further for peep. Maybe use advice?
+     (defun l/peep-dired-goto-first-file ()
+       "Go to first file line and peep there. Uses `dired-goto-first-file'"
+       (interactive)
+       (dired-goto-first-file)
+       (peep-dired-display-file-other-window))
+  
+     (defun l/peep-dired-goto-last-file ()
+       "Go to last file line and peep there. Uses `dired-goto-last-file'"
+       (interactive)
+       (dired-goto-last-file)
+       (peep-dired-display-file-other-window))
+  
+     (defun l/peep-dired-mark-backwards ()
+       "Mark and peep backwards."
+       (interactive)
+       (l/dired-mark-backwards)
+       (peep-dired-display-file-other-window))
+  
+     ;; evil bindings
+     (general-def 'normal peep-dired-mode-map
+       "C-j" 'peep-dired-scroll-page-down
+       "C-k" 'peep-dired-scroll-page-up
+       "j" 'peep-dired-next-file
+       "<down>" 'peep-dired-next-file
+       "k" 'peep-dired-prev-file
+       "<up>" 'peep-dired-prev-file
+       "h" 'peep-dired-up-directory
+       "<left>" 'peep-dired-up-directory
+       "l" 'peep-dired-find-file
+       "<right>" 'peep-dired-find-file
+       ">" 'peep-dired-next-dirline
+       "<" 'peep-dired-prev-dirline
+       "g g" 'l/peep-dired-goto-first-file
+       "G" 'l/peep-dired-goto-last-file
+       "C-SPC" 'l/peep-dired-mark-backwards)
+     (general-def 'normal dired-mode-map
+       "p" 'peep-dired)
+
+     (add-hook 'peep-dired-hook 'evil-normalize-keymaps)
+     :bind
+     (:map dired-mode-map
+	   ("p" . 'peep-dired)))
+
+   #+end_src
+
+** Some extra pieces of functionality
+
+   Here are some packages that offer a little bit of extra
+   functionality. Small things really, but they make a better
+   experience.
+
+*** Dired subtree
+
+    This package makes directories open in the same buffer like
+    subtrees.
+
+    #+begin_src emacs-lisp
+    (use-package dired-subtree
+      :ensure t
+      :after dired
+      :config
+      (general-def 'normal dired-mode-map
+	"TAB" 'dired-subtree-toggle))
+    #+end_src
+
+*** Dired narrow
+
+    Narrows down what is shown in the dired buffer by filtering
+    filenames. Really useful for quickly finding something.
+
+    #+begin_src emacs-lisp
+    (use-package dired-narrow
+      :ensure t
+      :delight (dired-narrow-mode " >⋅<")
+      :after dired
+      :init
+      (setq dired-narrow-exit-when-one-left t)
+      :config
+      (general-def 'normal dired-mode-map
+	"f" 'dired-narrow)
+      :bind
+      (:map dired-mode-map
+	    ("f" . 'dired-narrow)))
+    #+end_src
+
+*** Dired ranger
+
+    Dired-ranger ports some of the functionality from the ranger file
+    manager. Specifically it implements the copying/moving mechanism
+    and the bookmark mechanism.
+
+    The way it handles copying and moving can be useful from time to
+    time. Instead of knowing beforehand where you want to put the
+    file, you can perform the 'yank' and then paste it in whichever
+    directory you want.
+
+    Bookmarks is also a useful feature for quick navigation. You can
+    quickly set and visit a bookmark, while a custom function that I
+    wrote, handles moving to the last visited place. Note that these
+    bookmarks are not persistent, they will be lost upon exiting
+    emacs.
+
+    #+begin_src emacs-lisp
+    (use-package dired-ranger
+      :ensure t
+      :after dired
+      :init
+      (setq dired-ranger-bookmark-reopen 'always)
+      :config
+      ;; function to visit previous directory
+      (defun l/dired-ranger-bookmark-visit-LRU ()
+	"Go to last visited directory."
+	(interactive)
+	(dired-ranger-bookmark-visit dired-ranger-bookmark-LRU))
+
+      ;; evil keybindings
+      (general-def 'normal dired-mode-map
+	"y" nil ;; prefix
+	"yy" 'dired-ranger-copy
+	"yP" 'dired-ranger-move
+	"yp" 'dired-ranger-paste
+	"`" nil ;; prefix
+	"``" 'l/dired-ranger-bookmark-visit-LRU
+	"`v" 'dired-ranger-bookmark-visit
+	"`m" 'dired-ranger-bookmark))
+    #+end_src
+
+*** Dired rsync
+    
+    Rsync functionality for dired. Really useful for BIG files, as it does not freeze emacs while busy. Progress is also shown in the modeline.
+
+One note though, while trying to copy to a FAT32 device, I discovered that there is some problem concerning the permissions. This has nothing to do with dired or emacs, it is a rsync thing. The workaround is to choose different flags for the rsync command, so I wrote a function to do this.
+
+    #+begin_src emacs-lisp
+    (use-package dired-rsync
+      :ensure t
+      :after dired
+      :init
+      (setq dired-rsync-unmark-on-completion nil)
+      :config
+      ;; workaround to rsync into FAT32
+      (defun l/dired-rsync-to-FAT32 ()
+	"Change `dired-rsync-options' temporarily to rsync to FAT32 driver."
+	(interactive)
+	(let ((dired-rsync-options "-rDz --info=progress2")
+	      (dest (read-file-name "rsync to: " (dired-dwim-target-directory)
+			      nil nil nil 'file-directory-p)))
+	  (dired-rsync dest)))
+
+      ;; evil keybindings
+      (general-def 'normal dired-mode-map
+	"rr" 'dired-rsync
+	"rf" 'l/dired-rsync-to-FAT32))
+    #+end_src
+
+** Some bling!
+
+   This section is all about the looks!
+
+*** Dired rainbow
+
+    Colors the output of dired. Haven't tweaked anything, this is just
+    the defaults from the github page.
+
+    #+begin_src emacs-lisp
+    (use-package dired-rainbow
+      :ensure t
+      :after dired
+      :config
+      (progn
+	(dired-rainbow-define-chmod directory "#6cb2eb" "d.*")
+	(dired-rainbow-define html "#eb5286" ("css" "less" "sass" "scss" "htm" "html" "jhtm" "mht" "eml" "mustache" "xhtml"))
+	(dired-rainbow-define xml "#f2d024" ("xml" "xsd" "xsl" "xslt" "wsdl" "bib" "json" "msg" "pgn" "rss" "yaml" "yml" "rdata"))
+	(dired-rainbow-define document "#9561e2" ("docm" "doc" "docx" "odb" "odt" "pdb" "pdf" "ps" "rtf" "djvu" "epub" "odp" "ppt" "pptx"))
+	(dired-rainbow-define markdown "#ffed4a" ("org" "etx" "info" "markdown" "md" "mkd" "nfo" "pod" "rst" "tex" "textfile" "txt"))
+	(dired-rainbow-define database "#6574cd" ("xlsx" "xls" "csv" "accdb" "db" "mdb" "sqlite" "nc"))
+	(dired-rainbow-define media "#de751f" ("mp3" "mp4" "MP3" "MP4" "avi" "mpeg" "mpg" "flv" "ogg" "mov" "mid" "midi" "wav" "aiff" "flac"))
+	(dired-rainbow-define image "#f66d9b" ("tiff" "tif" "cdr" "gif" "ico" "jpeg" "jpg" "png" "psd" "eps" "svg"))
+	(dired-rainbow-define log "#c17d11" ("log"))
+	(dired-rainbow-define shell "#f6993f" ("awk" "bash" "bat" "sed" "sh" "zsh" "vim"))
+	(dired-rainbow-define interpreted "#38c172" ("py" "ipynb" "rb" "pl" "t" "msql" "mysql" "pgsql" "sql" "r" "clj" "cljs" "scala" "js"))
+	(dired-rainbow-define compiled "#4dc0b5" ("asm" "cl" "lisp" "el" "c" "h" "c++" "h++" "hpp" "hxx" "m" "cc" "cs" "cp" "cpp" "go" "f" "for" "ftn" "f90" "f95" "f03" "f08" "s" "rs" "hi" "hs" "pyc" ".java"))
+	(dired-rainbow-define executable "#8cc4ff" ("exe" "msi"))
+	(dired-rainbow-define compressed "#51d88a" ("7z" "zip" "bz2" "tgz" "txz" "gz" "xz" "z" "Z" "jar" "war" "ear" "rar" "sar" "xpi" "apk" "xz" "tar"))
+	(dired-rainbow-define packaged "#faad63" ("deb" "rpm" "apk" "jad" "jar" "cab" "pak" "pk3" "vdf" "vpk" "bsp"))
+	(dired-rainbow-define encrypted "#ffed4a" ("gpg" "pgp" "asc" "bfe" "enc" "signature" "sig" "p12" "pem"))
+	(dired-rainbow-define fonts "#6cb2eb" ("afm" "fon" "fnt" "pfb" "pfm" "ttf" "otf"))
+	(dired-rainbow-define partition "#e3342f" ("dmg" "iso" "bin" "nrg" "qcow" "toast" "vcd" "vmdk" "bak"))
+	(dired-rainbow-define vc "#0074d9" ("git" "gitignore" "gitattributes" "gitmodules"))
+	(dired-rainbow-define-chmod executable-unix "#38c172" "-.*x.*")
+	))
+    #+end_src
+
+*** Dired icons
+
+    Adds icons in front of file names. Always good to have! Depends on
+    the all-the-icons package, which is loaded later in the config.
+
+    #+begin_src emacs-lisp
+    (use-package all-the-icons-dired
+      :ensure t
+      :delight
+      :after dired all-the-icons
+      :config
+      (add-hook 'dired-mode-hook 'all-the-icons-dired-mode))
+    #+end_src
 
 
 * CONFIURATION
@@ -45,6 +1188,7 @@ The code snippets are loaded by =init.el=, which also loads =use-package=.
     (set-language-environment "UTF-8")     ;; always use UTF-8 encoding
     (set-default-coding-systems 'utf-8)
     (setq browse-url-browser-function 'browse-url-xdg-open) ;; open with default browser
+    (setq vc-follow-symlinks t) ;; don't ask when visiting symlinks
     (global-set-key (kbd "M-SPC") nil)			;; temporary fix, I use this key combination to switch layouts stystem-wise, but emacs intercepts the key presses
     #+end_src
 
@@ -468,217 +1612,58 @@ Restart emacs from within emacs (duh!)
     #+end_src
 
 ** HELM
+
+   Helm was my previous selection for navigation. I dropped it in
+   favour of ivy. It is very powerful, but for me, really hard to
+   customize.
+
+   I will keep my configuration here, disabled, in case I ever need it
+   again.
+
 *** Basics
    #+begin_src emacs-lisp
-   ;; (use-package helm-config
-   ;;   :ensure helm
-   ;;   :delight helm-mode
-   ;;   :defer 1
-   ;;   :init
-   ;;   (setq helm-follow-mode-persistent t)
-   ;;   (setq  helm-split-window-inside-p t)
-   ;;   :config
-   ;;   (helm-mode 1)
-   ;;   :bind
-   ;;   ("M-x" . helm-M-x)
-   ;;   ("C-x C-f" . helm-find-files)
-   ;;   ("M-y" . helm-show-kill-ring)
-   ;;   ([remap switch-to-buffer] . helm-buffers-list))
+   (use-package helm-config
+     :disabled
+     :ensure helm
+     :delight helm-mode
+     :defer 1
+     :init
+     (setq helm-follow-mode-persistent t)
+     (setq  helm-split-window-inside-p t)
+     :config
+     (helm-mode 1)
+     :bind
+     ("M-x" . helm-M-x)
+     ("C-x C-f" . helm-find-files)
+     ("M-y" . helm-show-kill-ring)
+     ([remap switch-to-buffer] . helm-buffers-list))
    #+end_src
 
 *** Helm-swoop
     #+begin_src emacs-lisp
-    ;; (use-package helm-swoop
-    ;;   :ensure t
-    ;;   :after helm evil
-    ;;   :init
-    ;;   (setq helm-swoop-speed-or-color t)
-    ;;   ;; pre-input disabled or marked word
-    ;;   (setq helm-swoop-pre-input-function
-    ;;       (lambda ()
-    ;; 	(if mark-active
-    ;; 	    (buffer-substring-no-properties (mark) (point)) "")))
-    ;;   :bind
-    ;;   ("M-i" . 'helm-swoop)
-    ;;   ("C-M-i" . 'helm-multi-swoop)
-    ;;   ("M-I" . 'helm-swoop-back-to-last-point)
-    ;;   (:map helm-swoop-map
-    ;; 	("M-i" . 'helm-multi-swoop-all-from-helm-swoop))
-    ;;   (:map isearch-mode-map
-    ;; 	("M-i" . 'helm-swoop-from-isearch))
-    ;;   (:map evil-motion-state-map
-    ;; 	("M-i" . 'helm-swoop-from-evil-search)))
+    (use-package helm-swoop
+      :disabled
+      :ensure t
+      :after helm evil
+      :init
+      (setq helm-swoop-speed-or-color t)
+      ;; pre-input disabled or marked word
+      (setq helm-swoop-pre-input-function
+	  (lambda ()
+	    (if mark-active
+		(buffer-substring-no-properties (mark) (point)) "")))
+      :bind
+      ("M-i" . 'helm-swoop)
+      ("C-M-i" . 'helm-multi-swoop)
+      ("M-I" . 'helm-swoop-back-to-last-point)
+      (:map helm-swoop-map
+	    ("M-i" . 'helm-multi-swoop-all-from-helm-swoop))
+      (:map isearch-mode-map
+	    ("M-i" . 'helm-swoop-from-isearch))
+      (:map evil-motion-state-map
+	    ("M-i" . 'helm-swoop-from-evil-search)))
 
     #+end_src
-** IVY-COUNSEL-SWIPER
-
-Completion framework - switched from helm. It is way easier to customize.
-
-*** IVY
-    
-   #+begin_src emacs-lisp
-   (use-package ivy
-     :ensure t
-     :delight
-     :init
-     (setq ivy-use-virtual-buffers t)
-     :config
-     ;; better word and symbol yanking in the minibuffer
-     ;; UPDATE: -- I just learned that M-n calls `ivy-next-history-element', which does exactly what I want,
-     ;; it yanks to the minibuffer the symbol or the word at point, or the active region, so...
-     (defun l/ivy-yank-word ()
-       "Pull word at point from buffer into search string."
-       (interactive)
-       (let (text)
-	 (with-ivy-window
-	   (setq text (thing-at-point 'word 'no-properties)))
-	 (when text
-	   (insert (replace-regexp-in-string
-		    "  +" " "
-		    (ivy--yank-handle-case-fold text)
-		    t t)))))
-
-     (defun l/ivy-yank-symbol ()
-       "Pull symbol at point from buffer into search string."
-       (interactive)
-       (let (text)
-	 (with-ivy-window
-	   (setq text (thing-at-point 'symbol 'no-properties)))
-	 (when text
-	   (insert (replace-regexp-in-string
-		    "  +" " "
-		    (ivy--yank-handle-case-fold text)
-		    t t)))))
-     :bind
-     (:map ivy-minibuffer-map
-     ("M-w" . l/ivy-yank-word)
-     ("M-s" . l/ivy-yank-symbol)))
-   #+end_src
-   
-*** COUNSEL   
-    
-   #+begin_src emacs-lisp
-   (use-package counsel
-     :ensure t
-     :delight
-     :config
-     (defun l/counsel-fzf ()
-       "Wraps around `counsel-fzf' to allow input from marked region."
-       (interactive)
-       (let (text)
-	 (if mark-active
-	     (setq text (buffer-substring-no-properties (region-beginning) (region-end))))
-	 (counsel-fzf text)))
-
-     ;; based on code by prot
-     (defun l/counsel-fzf-dir (arg)
-       "Specify root directory for `counsel-fzf'."
-       (counsel-fzf ivy-text
-		    (read-directory-name
-		     (concat (car (split-string counsel-fzf-cmd))
-			     " in directory: "))))
-
-     (ivy-add-actions 'counsel-fzf
-		      '(("r" l/counsel-fzf-dir "change root directory")))
-
-   ;; from counsel-outline to fzf
-   (defun l/counsel-fzf-from-outline (arg)
-     "Search for outline header with fzf."
-     (counsel-fzf (car (last (split-string (substring-no-properties (ivy-state-current ivy-last)) "/")))))
-
-   (ivy-add-actions 'counsel-outline
-		    '(("f" l/counsel-fzf-from-outline "search with fzf")))
-
-     ;; surfraw frontend
-     (defvar l/surfraw-elvi-list
-       (mapcar (lambda (x) (split-string x "\t+-- "))
-	       (seq-remove
-		(lambda (str) (not (string-match-p "--" str)))
-		(split-string (shell-command-to-string "surfraw -elvi") "\n")))
-       "An association list of elvi. Used by `l/ivy-surfraw'")
-
-     (defun l/ivy-rich--ivy-surfraw-describe-elvi (elvi)
-       (car (cdr (assoc elvi l/surfraw-elvi-list))))
-
-     (defun l/ivy-surfraw ()
-       "Search the web with surfraw. If region is active, search for that."
-       (interactive)
-       (let (text)
-	 (if mark-active
-	     (setq text (buffer-substring-no-properties (mark) (point)))
-	   (setq text (read-string "What u wanna search? ")))
-	 (ivy-read "Select search engine: "
-		   (mapcar (lambda (entry) (car entry)) l/surfraw-elvi-list)
-		   :action (lambda (x)
-			     (let ((engine (replace-regexp-in-string " +.*$" "" x)))
-			       (shell-command (concat "surfraw " engine " " (shell-quote-argument text)))))
-		   :caller 'l/ivy-surfraw)))
-
-     (eval-after-load "evil"
-       '(progn
-	  (evil-define-key 'normal org-mode-map "**" 'counsel-outline)))
-     (ivy-mode 1)
-     :bind
-     (("M-x" . counsel-M-x)
-     ("C-h f" . counsel-describe-function)
-     ("C-h v" . counsel-describe-variable)
-     ("C-c f" . l/counsel-fzf)
-     ("C-c g" . counsel-rg)
-     ("C-c b" . l/ivy-surfraw)))
-   #+end_src
-   
-*** OTHER FUNCTIONALITY
-    
-   #+begin_src emacs-lisp
-   (use-package amx
-     :ensure t
-     :after ivy
-     :custom
-     (amx-backend 'auto)
-     (amx-save-file "~/.emacs.d/amx-items")
-     :config
-     (amx-mode 1))
-
-   (use-package ivy-rich
-     :ensure t
-     :config
-     (plist-put ivy-rich-display-transformers-list
-	      'l/ivy-surfraw '(:columns
-			       ((ivy-rich-candidate (:width 20))
-				(l/ivy-rich--ivy-surfraw-describe-elvi)
-				)))
-     (setcdr (assq t ivy-format-functions-alist) #'ivy-format-function-line)
-     (ivy-rich-mode 1))
-
-   (use-package ivy-posframe
-     :ensure t
-     :delight
-     :custom
-     (ivy-posframe-display-functions-alist
-      '((complete-symbol . ivy-posframe-display-at-point)
-	(counsel-describe-function . nil)
-	(counsel-describe-variable . nil)
-	(swiper . nil)
-	(swiper-isearch . nil)
-	(t . ivy-posframe-display-at-frame-center)))
-     :config
-     (ivy-posframe-mode 1))
-   #+end_src
-** AUTOCOMPLETE
-
-   Maybe use another option, like company. I have to check it out.
-
-   #+begin_src emacs-lisp
-   (use-package auto-complete
-     :ensure t
-     :delight (auto-complete-mode " ⋯")
-     :init
-     (ac-config-default)
-     (global-auto-complete-mode t)
-     (setq ac-sources (append ac-sources '(ac-sources-filename)))
-     (setq ac-ignore-case nil))
-   #+end_src
-
 ** MULTIPLE CURSORS
 
    It seems that the mc package is not really needed. Maybe everything it does can be achieved by using replacement methods and/or macros. Not to mention vim's =:g= command, or helm-swoop.
@@ -706,219 +1691,182 @@ Completion framework - switched from helm. It is way easier to customize.
      ("C-M-)" . ace-mc-add-single-cursor))
    #+end_src
 
-** DIRED
+** DONE DIRED [15/15]
+   CLOSED: [2020-04-11 Sat 04:56]
 
    This *IS* my new file manager!
    
-*** Dired-x
+*** DONE Dired-x
+    CLOSED: [2020-04-11 Sat 03:33]
 
     #+begin_src emacs-lisp
-    (use-package dired-x
-      :ensure nil
-      :delight dired-omit-mode
-      :after dired
-      :init
-      (setq dired-omit-verbose nil)
-      :config
+    ;; (use-package dired-x
+      ;; :ensure nil
+      ;; :delight dired-omit-mode
+      ;; :after dired
+      ;; :init
+      ;; (setq dired-omit-verbose nil)
+      ;; :config
       ;; files to be ommited: beginning with one or more dots, beginning with $ (some files that come from Windows), ending with xmp (eg darktable data files), ending with srt, sub (I don't want to see subtitle files)
-      (setq dired-omit-files (concat dired-omit-files "\\|^\\..+$\\|^\\$\\|xmp$\\|srt$\\|sub$")))
+      ;; (setq dired-omit-files (concat dired-omit-files "\\|^\\..+$\\|^\\$\\|xmp$\\|srt$\\|sub$")))
     #+end_src
 
-*** Some useful functions
-
-**** Attatch marked files to email:
+*** DONE Some useful functions [5/5]
+    CLOSED: [2020-04-11 Sat 02:23]
+    
+**** DONE Attatch marked files to email:
+     CLOSED: [2020-04-11 Sat 01:00]
 
      Found [[https://emacs.stackexchange.com/questions/14652/attach-multiple-files-from-the-same-directory-to-an-email-message][here]].
 
      Open a dired buffer, mark some files and run the command. If there's an open message buffer use it, else create new message
 
      #+begin_src emacs-lisp
-     (defun compose-attach-marked-files ()
-       "Compose mail and attach all the marked files from a dired buffer. Uses `compose-mail', (or `org-msg-attach-attach' if org-msg is enabled -- this is not true yet)."
-       (interactive)
-       (let ((files (dired-get-marked-files)))
-	 (compose-mail nil nil nil t)
-	 (dolist (file files)
-	   (if (file-regular-p file)
-	       (mml-attach-file file
-				(mm-default-file-encoding file)
-				nil "attachment")
-	     (message "skipping non-regular file %s" file)))))
+     ;; (defun compose-attach-marked-files ()
+       ;; "Compose mail and attach all the marked files from a dired buffer. Uses `compose-mail', (or `org-msg-attach-attach' if org-msg is enabled -- this is not true yet)."
+       ;; (interactive)
+       ;; (let ((files (dired-get-marked-files)))
+	 ;; (compose-mail nil nil nil t)
+	 ;; (dolist (file files)
+	   ;; (if (file-regular-p file)
+	       ;; (mml-attach-file file
+				;; (mm-default-file-encoding file)
+				;; nil "attachment")
+	     ;; (message "skipping non-regular file %s" file)))))
      #+end_src
 
-**** Go to first/last directory:
+**** DONE Go to first/last directory:
+     CLOSED: [2020-04-11 Sat 00:51]
 
      Instead of going to the beginning or end of the buffer, go to the first or last directory line
      
      Source: https://www.emacswiki.org/emacs/dired-extension.el
 
      #+begin_src emacs-lisp
-     (defun dired-goto-first-file ()
-       "Move cursor to first file of dired."
-       (interactive)
-       (goto-char (point-min))
-       (while (not (dired-move-to-filename))
-	 (call-interactively 'dired-next-line)))
+     ;; (defun dired-goto-first-file ()
+       ;; "Move cursor to first file of dired."
+       ;; (interactive)
+       ;; (goto-char (point-min))
+       ;; (while (not (dired-move-to-filename))
+	 ;; (call-interactively 'dired-next-line)))
 
-     (defun dired-goto-last-file ()
-       "Move cursor to last file of dired."
-       (interactive)
-       (goto-char (point-max))
-       (while (not (dired-move-to-filename))
-	 (call-interactively 'dired-previous-line)))
+     ;; (defun dired-goto-last-file ()
+       ;; "Move cursor to last file of dired."
+       ;; (interactive)
+       ;; (goto-char (point-max))
+       ;; (while (not (dired-move-to-filename))
+	 ;; (call-interactively 'dired-previous-line)))
      #+end_src
 
-**** Sorting functions:
+**** DONE Sorting functions:
+     CLOSED: [2020-04-11 Sat 00:31]
 
-     Change the ls flags that dired uses for different sorting options
-
-     #+begin_src emacs-lisp
-     ;; sort by
-     (defun l/dired-sort-by (sw)
-       "Sort dired buffer by given switches and go to first line. If the switches provided are the same with the current switches, do nothing"
-       (let ((switches dired-actual-switches))
-	 (unless (string= sw switches)
-	   (dired-sort-other sw)
-	   (dired-goto-first-file))))
-
-     ;; callable functions
-     ;; by name
-     (defun l/dired-sort-by-name ()
-       "Sort by name. Calls `l/dired-sort-by'."
-       (interactive)
-       (l/dired-sort-by "-alh"))
-
-     ;; by date
-     (defun l/dired-sort-by-date ()
-       "Sort by date. Calls `l/dired-sort-by'."
-       (interactive)
-       (l/dired-sort-by "-alht"))
-
-     ;; by size
-     (defun l/dired-sort-by-size ()
-       "Sort by size. Calls `l/dired-sort-by'."
-       (interactive)
-       (l/dired-sort-by "-alhS"))
-
-     ;; by extension
-     (defun l/dired-sort-by-ext ()
-       "Sort by extension. Calls `l/dired-sort-by'."
-       (interactive)
-       (l/dired-sort-by "-alhX"))
-
-     ;; toggle directories first
-     (defun l/dired-sort-dirs-first ()
-       "Toggles grouping directories first."
-       (interactive)
-       (let ((switches dired-actual-switches))
-	 (if (string-match-p (regexp-quote " --group-directories-first") switches)
-	     (setq switches (replace-regexp-in-string " --group-directories-first" "" switches))
-	   (setq switches (concat switches " --group-directories-first")))
-	 (dired-sort-other switches))
-       (dired-goto-first-file))
-     #+end_src
-
-**** Mark and move backwards:
+**** DONE Mark and move backwards:
+     CLOSED: [2020-04-11 Sat 00:53]
 
      This was always a missing feature imho.
 
      #+begin_src emacs-lisp
-	  (defun l/dired-mark-backwards ()
-	    "Mark file at point and move backwards."
-	    (interactive)
-	    (if (dired-move-to-filename)
-	      (progn
-		(dired-mark 1)
-		(dired-previous-line 2))))
+     ;; (defun l/dired-mark-backwards ()
+       ;; "Mark file at point and move backwards."
+       ;; (interactive)
+       ;; (if (dired-move-to-filename)
+	 ;; (progn
+	   ;; (dired-mark 1)
+	   ;; (dired-previous-line 2))))
 
      #+end_src
 
-**** Narrow to marked files:
+**** DONE Narrow to marked files:
+     CLOSED: [2020-04-11 Sat 00:53]
 
      #+begin_src emacs-lisp
-     (defun l/dired-narrow-to-marked-files ()
-       "Show only marked files in dired buffer."
-       (interactive)
-       (let ((files (dired-get-marked-files)))
-	 (unless (eq (length files) 1)
-	   (dired-toggle-marks)
-	   (dired-do-kill-lines))))
+     ;; (defun l/dired-narrow-to-marked-files ()
+       ;; "Show only marked files in dired buffer."
+       ;; (interactive)
+       ;; (let ((files (dired-get-marked-files)))
+	 ;; (unless (eq (length files) 1)
+	   ;; (dired-toggle-marks)
+	   ;; (dired-do-kill-lines))))
      #+end_src
 
-*** Some useful (external) functions
+*** DONE Some useful (external) functions [5/5]
+    CLOSED: [2020-04-11 Sat 02:23]
     
     Useful functions that use external programs.
 
-    - Mount / unmount (and maybe format) functionality using udiskie (temporarily, till new/better script is written)
-
-**** Get subtitles:
+**** DONE Get subtitles:
+     CLOSED: [2020-04-11 Sat 01:11]
 
      Use [[https://github.com/Diaoul/subliminal][subliminal]] to find subtitles online. The gist of using 'start-process' comes from [[http://ergoemacs.org/emacs/elisp_call_shell_command.html][here]], and the idea of using 'apply' from [[https://stackoverflow.com/questions/17075920/passing-list-to-rest-args?rq=1][here]].
 
      #+begin_src emacs-lisp
-     (defun l/get-subtitles ()
-       "Get subtitles for marked files while in a dired buffer. Depends on subliminal, so it has to be on your system."
-       (interactive)
-       (when (eq major-mode 'dired-mode)
-	 (let* ((lang-list '("en" "gr"))
-		(lang (completing-read "Select language: " lang-list nil t))
-		(files (dired-get-marked-files))
-		(process-connection-type nil))
-	   (if (get-buffer "*get-subtitles*")
-	       (kill-buffer "*get-subtitles*"))
-	   (apply 'start-process
-		  (append (list "get-subtitles" "*get-subtitles*" "subliminal" "download" "-l" lang) files))
-	 (switch-to-buffer-other-window "*get-subtitles*")
-	 (special-mode))))
+     ;; (defun l/get-subtitles ()
+       ;; "Get subtitles for marked files while in a dired buffer. Depends on subliminal, so it has to be on your system."
+       ;; (interactive)
+       ;; (when (eq major-mode 'dired-mode)
+	 ;; (let* ((lang-list '("en" "gr"))
+		;; (lang (completing-read "Select language: " lang-list nil t))
+		;; (files (dired-get-marked-files))
+		;; (process-connection-type nil))
+	   ;; (if (get-buffer "*get-subtitles*")
+	       ;; (kill-buffer "*get-subtitles*"))
+	   ;; (apply 'start-process
+		  ;; (append (list "get-subtitles" "*get-subtitles*" "subliminal" "download" "-l" lang) files))
+	 ;; (switch-to-buffer-other-window "*get-subtitles*")
+	 ;; (special-mode))))
      #+end_src
 
-**** Get files size:
+**** DONE Get files size:
+     CLOSED: [2020-04-11 Sat 01:07]
 
-     Source: https://www.emacswiki.org/emacs/dired-extension.el
+     Source: 
+     #+begin_src emacs-lisp
+     ;; (defun dired-get-size ()
+       ;; "Get total size of marked files with `du' command.
+     ;; If not marked any files, default is current file or directory."
+       ;; (interactive)
+       ;; (let ((files (dired-get-marked-files)))
+	 ;; (with-temp-buffer
+	   ;; (apply 'call-process "/usr/bin/du" nil t nil "-sch" files)
+	   ;; (message "%s"
+		    ;; (progn
+		      ;; (re-search-backward "\\(^[0-9.,]+[A-Za-z]+\\).*\\(total\\|总用量\\)$")
+		      ;; (match-string 1))))))
+     #+end_src
+
+**** DONE Change desktop background:
+     CLOSED: [2020-04-11 Sat 01:12]
 
      #+begin_src emacs-lisp
-     (defun dired-get-size ()
-       "Get total size of marked files with `du' command.
-     If not marked any files, default is current file or directory."
-       (interactive)
-       (let ((files (dired-get-marked-files)))
-	 (with-temp-buffer
-	   (apply 'call-process "/usr/bin/du" nil t nil "-sch" files)
-	   (message "%s"
-		    (progn
-		      (re-search-backward "\\(^[0-9.,]+[A-Za-z]+\\).*\\(total\\|总用量\\)$")
-		      (match-string 1))))))
+     ;; (defun l/change-desktop-background ()
+       ;; "Change the desktop background using feh."
+       ;; (interactive)
+       ;; (let ((fit-type (completing-read "Select fit: " '("scale" "center" "fill" "max") nil t))
+	     ;; (entry (shell-quote-argument (expand-file-name (dired-file-name-at-point))))
+	     ;; (targetfile (shell-quote-argument (expand-file-name "~/.config/.wallpaper.jpg"))))
+	 ;; (setq cpcmd (concat "cp " entry " " targetfile))
+	 ;; (setq fehcmd (concat "feh --bg-" fit-type " " targetfile))
+	 ;; (setq cmd (concat cpcmd " && " fehcmd))
+	 ;; (shell-command cmd))) 
      #+end_src
 
-**** Change desktop background:
-
-     #+begin_src emacs-lisp
-     (defun l/change-desktop-background ()
-       "Change the desktop background using feh."
-       (interactive)
-       (let ((fit-type (completing-read "Select fit: " '("scale" "center" "fill" "max") nil t))
-	     (entry (shell-quote-argument (expand-file-name (dired-file-name-at-point))))
-	     (targetfile (shell-quote-argument (expand-file-name "~/.config/.wallpaper.jpg"))))
-	 (setq cpcmd (concat "cp " entry " " targetfile))
-	 (setq fehcmd (concat "feh --bg-" fit-type " " targetfile))
-	 (setq cmd (concat cpcmd " && " fehcmd))
-	 (shell-command cmd))) 
-     #+end_src
-
-**** Unmount drives:
+**** DONE Unmount drives:
+     CLOSED: [2020-04-11 Sat 01:10]
 
      Simple script to unmount drive. Uses 'mountpoint' and 'umount'. If unmounting fails, give some options (todo).
 
      #+begin_src emacs-lisp
-     (defun l/unmount-drive ()
-       "Unmount selected directories, if they correspond to mountpoints."
-       (interactive)
-       (let ((dirs (dired-get-marked-files)))
-	 (dired-do-shell-command "mountpoint -q ? && sudo umount ? && sudo rmdir ?" nil dirs)
-	 (revert-buffer)))
+     ;; (defun l/unmount-drive ()
+       ;; "Unmount selected directories, if they correspond to mountpoints."
+       ;; (interactive)
+       ;; (let ((dirs (dired-get-marked-files)))
+	 ;; (dired-do-shell-command "mountpoint -q ? && sudo umount ? && sudo rmdir ?" nil dirs)
+	 ;; (revert-buffer)))
      #+end_src
 
-**** Pack/Unpack:
+**** DONE COMMENT Pack/Unpack:
+     CLOSED: [2020-04-11 Sat 01:10]
 
      I tried the dired-atool package but I didn't like it. I needed something simpler, also I didn't like the output display.
 
@@ -926,232 +1874,238 @@ Completion framework - switched from helm. It is way easier to customize.
 
      #+begin_src emacs-lisp
      ;; pack
-     (defun l/atool-pack ()
-       "Use the `atool' program to pack some files."
-       (interactive)
-       (when (eq major-mode 'dired-mode)
-	 (let ((files (dired-get-marked-files t))
-	       (archive (expand-file-name
-			 (read-file-name "Pack files as:" nil nil nil)))
-	       (process-connection-type nil))
-	   (if (get-buffer "*atool-pack*")
-	       (kill-buffer "*atool-pack*"))
-	   (apply 'start-process
-		  (append (list "atool-pack" "*atool-pack*" "atool" "--explain" archive "-a") files))
-	   (switch-to-buffer-other-window "*atool-pack*")
-	   (special-mode))))
+     ;; (defun l/atool-pack ()
+       ;; "Use the `atool' program to pack some files."
+       ;; (interactive)
+       ;; (when (eq major-mode 'dired-mode)
+	 ;; (let ((files (dired-get-marked-files t))
+	       ;; (archive (expand-file-name
+			 ;; (read-file-name "Pack files as:" nil nil nil)))
+	       ;; (process-connection-type nil))
+	   ;; (if (get-buffer "*atool-pack*")
+	       ;; (kill-buffer "*atool-pack*"))
+	   ;; (apply 'start-process
+		  ;; (append (list "atool-pack" "*atool-pack*" "atool" "--explain" archive "-a") files))
+	   ;; (switch-to-buffer-other-window "*atool-pack*")
+	   ;; (special-mode))))
 
      ;; unpack
-     (defun l/atool-unpack ()
-       "Use the `atool' program to unpack some archives."
-       (interactive)
-       (when (eq major-mode 'dired-mode)
-	 (let ((files (dired-get-marked-files t))
-	       (dest (expand-file-name
-		      (read-directory-name "Unpack files to:"
-					   (dired-dwim-target-directory) nil nil)))
-	       (process-connection-type nil))
-	   (if (get-buffer "*atool-unpack*")
-	       (kill-buffer "*atool-unpack*"))
-	   (if (not (file-directory-p dest))
-	       (make-directory dest))
-	   (apply 'start-process
-		  (append (list "atool-unpack" "*atool-unpack*" "atool" "--explain" "-X" dest) files))
-	   (switch-to-buffer-other-window "*atool-unpack*")
-	   (special-mode))))
+     ;; (defun l/atool-unpack ()
+       ;; "Use the `atool' program to unpack some archives."
+       ;; (interactive)
+       ;; (when (eq major-mode 'dired-mode)
+	 ;; (let ((files (dired-get-marked-files t))
+	       ;; (dest (expand-file-name
+		      ;; (read-directory-name "Unpack files to:"
+					   ;; (dired-dwim-target-directory) nil nil)))
+	       ;; (process-connection-type nil))
+	   ;; (if (get-buffer "*atool-unpack*")
+	       ;; (kill-buffer "*atool-unpack*"))
+	   ;; (if (not (file-directory-p dest))
+	       ;; (make-directory dest))
+	   ;; (apply 'start-process
+		  ;; (append (list "atool-unpack" "*atool-unpack*" "atool" "--explain" "-X" dest) files))
+	   ;; (switch-to-buffer-other-window "*atool-unpack*")
+	   ;; (special-mode))))
      #+end_src
-
-*** Dired custom maps
+     
+*** DONE Dired custom maps
+    CLOSED: [2020-04-11 Sat 02:23]
 
     #+begin_src emacs-lisp
     ;; navigation map
-    (define-prefix-command 'l/dired-nav-map)
+    ;; (define-prefix-command 'l/dired-nav-map)
 
-    (define-key l/dired-nav-map "h" (lambda () (interactive) (dired "~/")))
-    (define-key l/dired-nav-map "D" (lambda () (interactive) (dired "~/Downloads/")))
-    (define-key l/dired-nav-map "d" (lambda () (interactive) (dired "~/Documents/")))
-    (define-key l/dired-nav-map "p" (lambda () (interactive) (dired "~/Pictures/")))
-    (define-key l/dired-nav-map "M" (lambda () (interactive) (dired "~/Music/")))
-    (define-key l/dired-nav-map "v" (lambda () (interactive) (dired "~/Videos/")))
-    (define-key l/dired-nav-map "m" (lambda () (interactive) (dired "/media")))
-    (define-key l/dired-nav-map "C" (lambda () (interactive) (dired "~/.config/")))
-    (define-key l/dired-nav-map "E" (lambda () (interactive) (dired "~/.emacs.d/")))
-    (define-key l/dired-nav-map "!" (lambda () (interactive) (dired "~/dotfiles/")))
+    ;; (define-key l/dired-nav-map "h" (lambda () (interactive) (dired "~/")))
+    ;; (define-key l/dired-nav-map "D" (lambda () (interactive) (dired "~/Downloads/")))
+    ;; (define-key l/dired-nav-map "d" (lambda () (interactive) (dired "~/Documents/")))
+    ;; (define-key l/dired-nav-map "p" (lambda () (interactive) (dired "~/Pictures/")))
+    ;; (define-key l/dired-nav-map "M" (lambda () (interactive) (dired "~/Music/")))
+    ;; (define-key l/dired-nav-map "v" (lambda () (interactive) (dired "~/Videos/")))
+    ;; (define-key l/dired-nav-map "m" (lambda () (interactive) (dired "/media")))
+    ;; (define-key l/dired-nav-map "C" (lambda () (interactive) (dired "~/.config/")))
+    ;; (define-key l/dired-nav-map "E" (lambda () (interactive) (dired "~/.emacs.d/")))
+    ;; (define-key l/dired-nav-map "!" (lambda () (interactive) (dired "~/dotfiles/")))
 
     ;; external scripts map -- Note: after using those, I think it's better to write full shell scripts and run those in emacs -- Sidenote: use dmenu for selection if those are run externally, but in emacs use the default completing mechanisms.
-    (define-prefix-command 'l/dired-my-ext-cmds)
+    ;; (define-prefix-command 'l/dired-my-ext-cmds)
 
-    (define-key l/dired-my-ext-cmds "s" 'l/get-subtitles)
-    (define-key l/dired-my-ext-cmds "?" 'dired-get-size)
-    (define-key l/dired-my-ext-cmds "B" 'l/change-desktop-background)
-    (define-key l/dired-my-ext-cmds "u" 'l/unmount-drive)
-    (define-key l/dired-my-ext-cmds "zz" 'l/atool-pack)
-    (define-key l/dired-my-ext-cmds "zx" 'l/atool-unpack)
+    ;; (define-key l/dired-my-ext-cmds "s" 'l/get-subtitles)
+    ;; (define-key l/dired-my-ext-cmds "?" 'dired-get-size)
+    ;; (define-key l/dired-my-ext-cmds "B" 'l/change-desktop-background)
+    ;; (define-key l/dired-my-ext-cmds "u" 'l/unmount-drive)
+    ;; (define-key l/dired-my-ext-cmds "zz" 'l/atool-pack)
+    ;; (define-key l/dired-my-ext-cmds "zx" 'l/atool-unpack)
     #+end_src
 
-*** Dired defaults
+*** DONE Dired defaults
+    CLOSED: [2020-04-11 Sat 03:37]
 
     #+begin_src emacs-lisp
-    (setq dired-dwim-target t)
-    (setq dired-listing-switches "-alh") ;; add human-readable sizes
+    ;; (setq dired-dwim-target t)
+    ;; (setq dired-listing-switches "-alh") ;; add human-readable sizes
 
-    (setq vc-follow-symlinks t) ;; don't ask when visiting symlinks
 
-    (add-hook 'dired-mode-hook
-	      (lambda ()
-		(dired-hide-details-mode)
-		(dired-omit-mode)))
+    ;; (add-hook 'dired-mode-hook
+	      ;; (lambda ()
+		;; (dired-hide-details-mode)
+		;; (dired-omit-mode)))
 
     ;; This hook seems to be added automatically to my 'custom.el' file and breaks dired. I have to find out where it comes from. It was a part of the `ranger' package, which I have deleted.
-    (remove-hook 'dired-mode-hook 'ranger-set-dired-key)
+    ;; (remove-hook 'dired-mode-hook 'ranger-set-dired-key)
     #+end_src
 
-*** Image dired
+*** DONE Image dired
+    CLOSED: [2020-04-11 Sat 03:37]
 
     #+begin_src emacs-lisp
-      (setq image-dired-thumb-width 250)
-      (setq image-dired-thumbs-per-row 4)
-      (setq image-dired-external-viewer "sxiv")
+    ;; (setq image-dired-thumb-width 250)
+    ;; (setq image-dired-thumbs-per-row 4)
+    ;; (setq image-dired-external-viewer "sxiv")
     #+end_src
 
-*** Dired keybindings
+*** DONE Dired keybindings
+    CLOSED: [2020-04-11 Sat 03:37]
 
     Changing some default keybindings
 
     #+begin_src emacs-lisp
-      (eval-after-load "dired"
-	'(progn
-	   (define-key dired-mode-map "G" 'revert-buffer)
-	   (define-key dired-mode-map "g" 'l/dired-nav-map)
-	   (define-key dired-mode-map "z" 'dired-omit-mode)
-	   (define-key dired-mode-map (kbd "C-x M-.") 'compose-attach-marked-files)
-	   (define-key dired-mode-map (kbd "M-<") 'dired-goto-first-file)
-	   (define-key dired-mode-map (kbd "M->") 'dired-goto-last-file)))
+    ;; (eval-after-load "dired"
+      ;; '(progn
+	 ;; (define-key dired-mode-map "G" 'revert-buffer)
+	 ;; (define-key dired-mode-map "g" 'l/dired-nav-map)
+	 ;; (define-key dired-mode-map "z" 'dired-omit-mode)
+	 ;; (define-key dired-mode-map (kbd "C-x M-.") 'compose-attach-marked-files)
+	 ;; (define-key dired-mode-map (kbd "M-<") 'dired-goto-first-file)
+	 ;; (define-key dired-mode-map (kbd "M->") 'dired-goto-last-file)))
     #+end_src
 
-*** Evil dired bindings
+*** DONE Evil dired bindings
+    CLOSED: [2020-04-11 Sat 02:49]
 
    Loading the whole evil-collection proved cumbersome for me, there was some trouble with my custom keybindings (eg. I couldn't use 'r' as a prefix key, even when binding it to nil after loading evil-collection). Might be sth that I did wrong, but anyhow...
 
    #+begin_src emacs-lisp
-   ;; this is from evil-collection with some changes
-   (eval-after-load "evil"
-     '(progn
-	(evil-define-key 'normal dired-mode-map
-	  ;; basics
-	  "q" 'quit-window
-	  ;; basic movement
-	  "j" 'dired-next-line
-	  "k" 'dired-previous-line
-	  "h" 'dired-up-directory
-	  "l" 'dired-find-file
-	  ">" 'dired-next-dirline
-	  "<" 'dired-prev-dirline
-	  "gg" 'dired-goto-first-file
-	  "G" 'dired-goto-last-file
-	  ;; basic functions
-	  "A" 'dired-do-find-regexp
-	  "B" 'dired-do-byte-compile
-	  "C" 'dired-do-copy
-	  "D" 'dired-do-delete
-	  ;; dired-do-chgrp
-	  "H" 'dired-do-hardlink
-	  "L" 'dired-do-load
-	  "M" 'dired-do-chmod
-	  "O" 'dired-do-chown
-	  "P" 'dired-do-print
-	  "Q" 'dired-do-find-regexp-and-replace
-	  "R" 'dired-do-rename
-	  "S" 'dired-do-symlink
-	  "T" 'dired-do-touch
-	  "Z" 'dired-do-compress
-	  "c" 'dired-do-compress-to
-	  "!" 'dired-do-shell-command
-	  "&" 'dired-do-async-shell-command
-	  "=" 'dired-diff
-	  ;; regexp operations
-	  "%" nil ;; prefix
-	  "%u" 'dired-upcase
-	  "%l" 'dired-downcase
-	  "%d" 'dired-flag-files-regexp
-	  "%g" 'dired-mark-files-containing-regexp
-	  "%m" 'dired-mark-files-regexp
-	  "%C" 'dired-do-copy-regexp
-	  "%H" 'dired-do-hardlink-regexp
-	  "%R" 'dired-do-rename-regexp
-	  "%S" 'dired-do-symlink-regexp
-	  "%&" 'dired-flag-garbage-files
-	  ;; marks & flags
-	  "U" 'dired-unmark-all-marks
-	  "u" 'dired-unmark
-	  "m" 'dired-mark
-	  (kbd "<SPC>") 'dired-mark
-	  (kbd "C-<SPC>") 'l/dired-mark-backwards
-	  "t" 'dired-toggle-marks
-	  "d" 'dired-flag-file-deletion
-	  "x" 'dired-do-flagged-delete
-	  (kbd "* <delete>") 'dired-unmark-backward
-	  (kbd "<delete>") 'dired-unmark-backward
-	  "*" nil ;; prefix
-	  "**" 'dired-mark-executables
-	  "*/" 'dired-mark-directories
-	  "*@" 'dired-mark-symlinks
-	  "*%" 'dired-mark-files-regexp
-	  "*(" 'dired-mark-sexp
-	  "*." 'dired-mark-extension
-	  "*O" 'dired-mark-omitted
-	  "*c" 'dired-change-marks
-	  "*s" 'dired-mark-subdir-files
-	  "*?" 'dired-unmark-all-files
-	  "*!" 'dired-unmark-all-marks
-	  "*f" 'l/dired-narrow-to-marked-files
-	  ;; encryption-decryption (epa-dired)
-	  ";d" 'epa-dired-do-decrypt
-	  ";v" 'epa-dired-do-verify
-	  ";s" 'epa-dired-do-sign
-	  ";e" 'epa-dired-do-encrypt
-	  ;; unsorted
-	  "X" 'l/dired-my-ext-cmds
-	  "z" 'dired-omit-mode
-	  "g" 'l/dired-nav-map
-	  "gr" 'revert-buffer
-	  "gR" 'dired-do-redisplay
-	  "I" 'dired-maybe-insert-subdir
-	  "i" 'dired-toggle-read-only
-	  "J" 'dired-goto-file
-	  "K" 'dired-do-kill-lines
-	  "a" 'dired-find-alternate-file
-	  "gy" 'dired-show-file-type
-	  "Y" 'dired-copy-filename-as-kill
-	  "+" 'dired-create-directory
-	  (kbd "S-<return>") 'dired-find-file-other-window
-	  (kbd "RET") 'dired-find-file
-	  (kbd "M-<return>") 'browse-url-of-dired-file
-	  ;; sorting
-	  "o" nil ;; prefix -- was dired-sort-toggle-or-edit
-	  "oo" 'l/dired-sort-by-name
-	  "od" 'l/dired-sort-by-date
-	  "os" 'l/dired-sort-by-size
-	  "ox" 'l/dired-sort-by-ext
-	  "o=" 'l/dired-sort-dirs-first
-	  "(" 'dired-hide-details-mode
-	  "g?" 'dired-summary
-	  "?" 'dired-get-size)
+   ;; ;; this is from evil-collection with some changes
+   ;; (eval-after-load "evil"
+   ;;   '(progn
+   ;;      (evil-define-key 'normal dired-mode-map
+   ;;        ;; basics
+   ;;        "q" 'quit-window
+   ;;        ;; basic movement
+   ;;        "j" 'dired-next-line
+   ;;        "k" 'dired-previous-line
+   ;;        "h" 'dired-up-directory
+   ;;        "l" 'dired-find-file
+   ;;        ">" 'dired-next-dirline
+   ;;        "<" 'dired-prev-dirline
+   ;;        "gg" 'dired-goto-first-file
+   ;;        "G" 'dired-goto-last-file
+   ;;        ;; basic functions
+   ;;        "A" 'dired-do-find-regexp
+   ;;        "B" 'dired-do-byte-compile
+   ;;        "C" 'dired-do-copy
+   ;;        "D" 'dired-do-delete
+   ;;        ;; dired-do-chgrp
+   ;;        "H" 'dired-do-hardlink
+   ;;        "L" 'dired-do-load
+   ;;        "M" 'dired-do-chmod
+   ;;        "O" 'dired-do-chown
+   ;;        "P" 'dired-do-print
+   ;;        "Q" 'dired-do-find-regexp-and-replace
+   ;;        "R" 'dired-do-rename
+   ;;        "S" 'dired-do-symlink
+   ;;        "T" 'dired-do-touch
+   ;;        "Z" 'dired-do-compress
+   ;;        "c" 'dired-do-compress-to
+   ;;        "!" 'dired-do-shell-command
+   ;;        "&" 'dired-do-async-shell-command
+   ;;        "=" 'dired-diff
+   ;;        ;; regexp operations
+   ;;        "%" nil ;; prefix
+   ;;        "%u" 'dired-upcase
+   ;;        "%l" 'dired-downcase
+   ;;        "%d" 'dired-flag-files-regexp
+   ;;        "%g" 'dired-mark-files-containing-regexp
+   ;;        "%m" 'dired-mark-files-regexp
+   ;;        "%C" 'dired-do-copy-regexp
+   ;;        "%H" 'dired-do-hardlink-regexp
+   ;;        "%R" 'dired-do-rename-regexp
+   ;;        "%S" 'dired-do-symlink-regexp
+   ;;        "%&" 'dired-flag-garbage-files
+   ;;        ;; marks & flags
+   ;;        "U" 'dired-unmark-all-marks
+   ;;        "u" 'dired-unmark
+   ;;        "m" 'dired-mark
+   ;;        (kbd "<SPC>") 'dired-mark
+   ;;        (kbd "C-<SPC>") 'l/dired-mark-backwards
+   ;;        "t" 'dired-toggle-marks
+   ;;        "d" 'dired-flag-file-deletion
+   ;;        "x" 'dired-do-flagged-delete
+   ;;        (kbd "* <delete>") 'dired-unmark-backward
+   ;;        (kbd "<delete>") 'dired-unmark-backward
+   ;;        "*" nil ;; prefix
+   ;;        "**" 'dired-mark-executables
+   ;;        "*/" 'dired-mark-directories
+   ;;        "*@" 'dired-mark-symlinks
+   ;;        "*%" 'dired-mark-files-regexp
+   ;;        "*(" 'dired-mark-sexp
+   ;;        "*." 'dired-mark-extension
+   ;;        "*O" 'dired-mark-omitted
+   ;;        "*c" 'dired-change-marks
+   ;;        "*s" 'dired-mark-subdir-files
+   ;;        "*?" 'dired-unmark-all-files
+   ;;        "*!" 'dired-unmark-all-marks
+   ;;        "*f" 'l/dired-narrow-to-marked-files
+   ;;        ;; encryption-decryption (epa-dired)
+   ;;        ";d" 'epa-dired-do-decrypt
+   ;;        ";v" 'epa-dired-do-verify
+   ;;        ";s" 'epa-dired-do-sign
+   ;;        ";e" 'epa-dired-do-encrypt
+   ;;        ;; unsorted
+   ;;        "X" 'l/dired-my-ext-cmds
+   ;;        "z" 'dired-omit-mode
+   ;;        "g" 'l/dired-nav-map
+   ;;        "gr" 'revert-buffer
+   ;;        "gR" 'dired-do-redisplay
+   ;;        "I" 'dired-maybe-insert-subdir
+   ;;        "i" 'dired-toggle-read-only
+   ;;        "J" 'dired-goto-file
+   ;;        "K" 'dired-do-kill-lines
+   ;;        "a" 'dired-find-alternate-file
+   ;;        "gy" 'dired-show-file-type
+   ;;        "Y" 'dired-copy-filename-as-kill
+   ;;        "+" 'dired-create-directory
+   ;;        (kbd "S-<return>") 'dired-find-file-other-window
+   ;;        (kbd "RET") 'dired-find-file
+   ;;        (kbd "M-<return>") 'browse-url-of-dired-file
+   ;;        ;; sorting
+   ;;        "o" nil ;; prefix -- was dired-sort-toggle-or-edit
+   ;;        "oo" 'l/dired-sort-by-name
+   ;;        "od" 'l/dired-sort-by-date
+   ;;        "os" 'l/dired-sort-by-size
+   ;;        "ox" 'l/dired-sort-by-ext
+   ;;        "o=" 'l/dired-sort-dirs-first
+   ;;        "(" 'dired-hide-details-mode
+   ;;        "g?" 'dired-summary
+   ;;        "?" 'dired-get-size)
 
-	(add-hook 'dired-mode-hook 'evil-normalize-keymaps)))
+   ;;      (add-hook 'dired-mode-hook 'evil-normalize-keymaps)))
    #+end_src
 
-*** Dired subtree
+*** DONE Dired subtree
+    CLOSED: [2020-04-11 Sat 04:28]
 
     #+begin_src emacs-lisp
-    (use-package dired-subtree
-      :ensure t
-      :after dired evil
-      :config
-      (evil-define-key 'normal dired-mode-map (kbd "TAB") 'dired-subtree-toggle))
+    ;; (use-package dired-subtree
+      ;; :ensure t
+      ;; :after dired evil
+      ;; :config
+      ;; (evil-define-key 'normal dired-mode-map (kbd "TAB") 'dired-subtree-toggle))
     #+end_src
 
-*** Peep dired
+*** DONE Peep dired
+    CLOSED: [2020-04-11 Sat 04:23]
 
     Peep dired is loaded from [[https://github.com/dakodeon/peep-dired][my fork]].
 
@@ -1162,23 +2116,23 @@ Completion framework - switched from helm. It is way easier to customize.
      Note: these were left out of my peep-dired fork because they are not part of dired
 
      #+begin_src emacs-lisp
-     (defun l/peep-dired-goto-first-file ()
-       "Go to first file line and peep there. Uses `dired-goto-first-file'"
-       (interactive)
-       (dired-goto-first-file)
-       (peep-dired-display-file-other-window))
+     ;; (defun l/peep-dired-goto-first-file ()
+       ;; "Go to first file line and peep there. Uses `dired-goto-first-file'"
+       ;; (interactive)
+       ;; (dired-goto-first-file)
+       ;; (peep-dired-display-file-other-window))
 
-     (defun l/peep-dired-goto-last-file ()
-       "Go to last file line and peep there. Uses `dired-goto-last-file'"
-       (interactive)
-       (dired-goto-last-file)
-       (peep-dired-display-file-other-window))
+     ;; (defun l/peep-dired-goto-last-file ()
+       ;; "Go to last file line and peep there. Uses `dired-goto-last-file'"
+       ;; (interactive)
+       ;; (dired-goto-last-file)
+       ;; (peep-dired-display-file-other-window))
 
-     (defun l/peep-dired-mark-backwards ()
-       "Mark and peep backwards."
-       (interactive)
-       (l/dired-mark-backwards)
-       (peep-dired-display-file-other-window))
+     ;; (defun l/peep-dired-mark-backwards ()
+       ;; "Mark and peep backwards."
+       ;; (interactive)
+       ;; (l/dired-mark-backwards)
+       ;; (peep-dired-display-file-other-window))
      #+end_src
 
 **** Load Peep
@@ -1186,61 +2140,63 @@ Completion framework - switched from helm. It is way easier to customize.
      This is my fork of peep-dired. clone it from [[https://github.com/dakodeon/peep-dired/tree/luc][github]] and set =:load-path= to point to the correct path.
 
     #+begin_src emacs-lisp
-    (use-package peep-dired
-      :load-path "~/.source/peep-dired"
-      :delight (peep-dired " ")
-      :after dired-x
-      :init
+    ;; (use-package peep-dired
+      ;; :load-path "~/.source/peep-dired"
+      ;; :delight (peep-dired " ")
+      ;; :after dired-x
+      ;; :init
       ;; is this that creates an error? -- Yes, do not use it, or fix it
-      (setq peep-dired-cleanup-eagerly t)
-      (setq peep-dired-ignored-extensions '("mkv" "mp4" "avi" "mov" "mp3" "wav" "iso"))
-      :config
+      ;; (setq peep-dired-cleanup-eagerly t)
+      ;; (setq peep-dired-ignored-extensions '("mkv" "mp4" "avi" "mov" "mp3" "wav" "iso"))
+      ;; :config
       ;; evil integration
-      (eval-after-load "evil"
-	'(progn
-	   (evil-define-key 'normal peep-dired-mode-map
-	     (kbd "C-j") 'peep-dired-scroll-page-down
-	     (kbd "C-k") 'peep-dired-scroll-page-up
-	     (kbd "j") 'peep-dired-next-file
-	     (kbd "<down>") 'peep-dired-next-file
-	     (kbd "k") 'peep-dired-prev-file
-	     (kbd "<up>") 'peep-dired-prev-file
-	     (kbd "h") 'peep-dired-up-directory
-	     (kbd "<left>") 'peep-dired-up-directory
-	     (kbd "l") 'peep-dired-find-file
-	     (kbd "<right>") 'peep-dired-find-file
-	     (kbd ">") 'peep-dired-next-dirline
-	     (kbd "<") 'peep-dired-prev-dirline
-	     (kbd "g g") 'l/peep-dired-goto-first-file
-	     (kbd "G") 'l/peep-dired-goto-last-file
-	     (kbd "C-SPC") 'l/peep-dired-mark-backwards)
-	   (evil-define-key 'normal dired-mode-map (kbd "p") 'peep-dired)
-	   (add-hook 'peep-dired-hook 'evil-normalize-keymaps)))
-      :bind
-      (:map dired-mode-map
-	    ("p" . 'peep-dired)))
+      ;; (eval-after-load "evil"
+	;; '(progn
+	   ;; (evil-define-key 'normal peep-dired-mode-map
+	     ;; (kbd "C-j") 'peep-dired-scroll-page-down
+	     ;; (kbd "C-k") 'peep-dired-scroll-page-up
+	     ;; (kbd "j") 'peep-dired-next-file
+	     ;; (kbd "<down>") 'peep-dired-next-file
+	     ;; (kbd "k") 'peep-dired-prev-file
+	     ;; (kbd "<up>") 'peep-dired-prev-file
+	     ;; (kbd "h") 'peep-dired-up-directory
+	     ;; (kbd "<left>") 'peep-dired-up-directory
+	     ;; (kbd "l") 'peep-dired-find-file
+	     ;; (kbd "<right>") 'peep-dired-find-file
+	     ;; (kbd ">") 'peep-dired-next-dirline
+	     ;; (kbd "<") 'peep-dired-prev-dirline
+	     ;; (kbd "g g") 'l/peep-dired-goto-first-file
+	     ;; (kbd "G") 'l/peep-dired-goto-last-file
+	     ;; (kbd "C-SPC") 'l/peep-dired-mark-backwards)
+	   ;; (evil-define-key 'normal dired-mode-map (kbd "p") 'peep-dired)
+	   ;; (add-hook 'peep-dired-hook 'evil-normalize-keymaps)))
+      ;; :bind
+      ;; (:map dired-mode-map
+	    ;; ("p" . 'peep-dired)))
     #+end_src
 
-*** Dired narrow
+*** DONE Dired narrow
+    CLOSED: [2020-04-11 Sat 04:30]
 
     Narrow down what is shown in dired by filtering filenames.
 
     #+begin_src emacs-lisp
-    (use-package dired-narrow
-      :ensure t
-      :delight (dired-narrow-mode " >⋅<")
-      :after dired evil
-      :init
-      (setq dired-narrow-exit-when-one-left t)
-      :config
-      (evil-define-key 'normal dired-mode-map (kbd "f") 'dired-narrow)
-      :bind
-      (:map dired-mode-map
-	    ("f" . 'dired-narrow)))
+    ;; (use-package dired-narrow
+      ;; :ensure t
+      ;; :delight (dired-narrow-mode " >⋅<")
+      ;; :after dired evil
+      ;; :init
+      ;; (setq dired-narrow-exit-when-one-left t)
+      ;; :config
+      ;; (evil-define-key 'normal dired-mode-map (kbd "f") 'dired-narrow)
+      ;; :bind
+      ;; (:map dired-mode-map
+	    ;; ("f" . 'dired-narrow)))
 
     #+end_src
 
-*** Copying and pasting (and bookmarks)
+*** DONE Copying and pasting (and bookmarks)
+    CLOSED: [2020-04-11 Sat 04:50]
 
     Three methods of copying and pasting:
     1. Normal: The default dired way, copy and select destination on execution. Works neatly with the =dired-target-dwim= option, but sometimes you want to mark some files to copy and then paste them after some navigation.
@@ -1248,175 +2204,150 @@ Completion framework - switched from helm. It is way easier to customize.
     2. Dired-ranger: Ranger-like copying and pasting (also bookmarks, but I have to check those out)
 
     #+begin_src emacs-lisp
-    (use-package dired-ranger
-      :ensure t
-      :after dired
-      :init
-      (setq dired-ranger-bookmark-reopen 'always)
-      :config
+    ;; (use-package dired-ranger
+      ;; :ensure t
+      ;; :after dired
+      ;; :init
+      ;; (setq dired-ranger-bookmark-reopen 'always)
+      ;; :config
       ;; function to visit previous directory
-      (defun l/dired-ranger-bookmark-visit-LRU ()
-	"Go to last visited directory."
-	(interactive)
-	(dired-ranger-bookmark-visit dired-ranger-bookmark-LRU))
+      ;; (defun l/dired-ranger-bookmark-visit-LRU ()
+	;; "Go to last visited directory."
+	;; (interactive)
+	;; (dired-ranger-bookmark-visit dired-ranger-bookmark-LRU))
 
       ;; evil integration
-      (eval-after-load "evil"
-	'(progn
-	   (evil-define-key 'normal dired-mode-map
-	     "y" nil ;; prefix
-	     "yy" 'dired-ranger-copy
-	     "yP" 'dired-ranger-move
-	     "yp" 'dired-ranger-paste
-	     "`" nil ;; prefix
-	     "``" 'l/dired-ranger-bookmark-visit-LRU
-	     "`v" 'dired-ranger-bookmark-visit
-	     "`m" 'dired-ranger-bookmark))))
+      ;; (eval-after-load "evil"
+	;; '(progn
+	   ;; (evil-define-key 'normal dired-mode-map
+	     ;; "y" nil ;; prefix
+	     ;; "yy" 'dired-ranger-copy
+	     ;; "yP" 'dired-ranger-move
+	     ;; "yp" 'dired-ranger-paste
+	     ;; "`" nil ;; prefix
+	     ;; "``" 'l/dired-ranger-bookmark-visit-LRU
+	     ;; "`v" 'dired-ranger-bookmark-visit
+	     ;; "`m" 'dired-ranger-bookmark))))
     #+end_src
 
     3. Dired-rsync: Really useful for BIG files, as it does not freeze emacs. Also, progress is shown in the modeline! Some other benefits, like copy-pasting from remote, are not yet explored. Works like normal copying.
 
     #+begin_src emacs-lisp
-    (use-package dired-rsync
-      :ensure t
-      :after dired
-      :init
-      (setq dired-rsync-unmark-on-completion nil)
-      :config
-      (defun l/dired-rsync-to-FAT32 ()
-	"Change `dired-rsync-options' temporarily to rsync to FAT32 driver."
-	(interactive)
-	(let ((dired-rsync-options "-rDz --info=progress2")
-	      (dest (read-file-name "rsync to: " (dired-dwim-target-directory)
-			      nil nil nil 'file-directory-p)))
-	      (dired-rsync dest)))
-      (eval-after-load "evil"
-	'(progn
-	   (evil-define-key 'normal dired-mode-map "rr" 'dired-rsync)
-	   (evil-define-key 'normal dired-mode-map "rf" 'l/dired-rsync-to-FAT32))))
+    ;; (use-package dired-rsync
+      ;; :ensure t
+      ;; :after dired
+      ;; :init
+      ;; (setq dired-rsync-unmark-on-completion nil)
+      ;; :config
+      ;; (defun l/dired-rsync-to-FAT32 ()
+	;; "Change `dired-rsync-options' temporarily to rsync to FAT32 driver."
+	;; (interactive)
+	;; (let ((dired-rsync-options "-rDz --info=progress2")
+	      ;; (dest (read-file-name "rsync to: " (dired-dwim-target-directory)
+			      ;; nil nil nil 'file-directory-p)))
+	      ;; (dired-rsync dest)))
+      ;; (eval-after-load "evil"
+	;; '(progn
+	   ;; (evil-define-key 'normal dired-mode-map "rr" 'dired-rsync)
+	   ;; (evil-define-key 'normal dired-mode-map "rf" 'l/dired-rsync-to-FAT32))))
     #+end_src
 
 **** TODO Simplify keystrokes:
      All this is really nice, but now I have three different keys related to copy-pasting (C, y, r). Maybe I should fix this somehow? I guess I will decide as I use it.
 
-*** Wdired
+*** DONE Wdired [2/2]
+    CLOSED: [2020-04-11 Sat 04:43]
 
-**** Renaming functions
+**** DONE Renaming functions
+     CLOSED: [2020-04-11 Sat 03:59]
      #+begin_src emacs-lisp
-     (defun l/evil-wdired-append-to-filename ()
-       "Renaming helper for `wdired'. Append to filename before the extension."
-       (interactive)
-       (move-end-of-line nil)
-       (search-backward ".")
-       (evil-insert 1))
+     ;; (defun l/evil-wdired-append-to-filename ()
+       ;; "Renaming helper for `wdired'. Append to filename before the extension."
+       ;; (interactive)
+       ;; (move-end-of-line nil)
+       ;; (search-backward ".")
+       ;; (evil-insert 1))
 
-     (defun l/evil-wdired-change-filename ()
-       "Renaming helper for `wdired'. Change the filename but keep the extension."
-       (interactive)
-       (move-end-of-line nil)
-       (search-backward ".")
-       (kill-region 1 (point))
-       (evil-insert 1))
+     ;; (defun l/evil-wdired-change-filename ()
+       ;; "Renaming helper for `wdired'. Change the filename but keep the extension."
+       ;; (interactive)
+       ;; (move-end-of-line nil)
+       ;; (search-backward ".")
+       ;; (kill-region 1 (point))
+       ;; (evil-insert 1))
 
-     (defun l/evil-wdired-change-extension ()
-       "Renaming helper for `wdired'. Change file's extension."
-       (interactive)
-       (move-end-of-line nil)
-       (set-mark-command nil)
-       (search-backward ".")
-       (forward-char)
-       (kill-region (point) (mark))
-       (evil-insert 1))
+     ;; (defun l/evil-wdired-change-extension ()
+       ;; "Renaming helper for `wdired'. Change file's extension."
+       ;; (interactive)
+       ;; (move-end-of-line nil)
+       ;; (set-mark-command nil)
+       ;; (search-backward ".")
+       ;; (forward-char)
+       ;; (kill-region (point) (mark))
+       ;; (evil-insert 1))
      #+end_src
 
-**** Wdired hook
+**** DONE Wdired hook
+     CLOSED: [2020-04-11 Sat 03:59]
 
      Just display a message when entering wdired!
 
      #+begin_src emacs-lisp
-     (eval-after-load "evil"
-       '(progn
-	  (evil-define-key 'normal wdired-mode-map
-	    (kbd "C-r w") 'l/evil-wdired-change-filename
-	    (kbd "C-r a") 'l/evil-wdired-append-to-filename
-	    (kbd "C-r x") 'l/evil-wdired-change-extension)))
+     ;; (eval-after-load "evil"
+       ;; '(progn
+	  ;; (evil-define-key 'normal wdired-mode-map
+	    ;; (kbd "C-r w") 'l/evil-wdired-change-filename
+	    ;; (kbd "C-r a") 'l/evil-wdired-append-to-filename
+	    ;; (kbd "C-r x") 'l/evil-wdired-change-extension)))
      #+end_src
 
-*** Dired rainbow
+*** DONE Dired rainbow
+    CLOSED: [2020-04-11 Sat 04:53]
 
     Prettier dired. I haven't really tweaked anything, it's just some defaults from their github page.
 
     #+begin_src emacs-lisp
-    (use-package dired-rainbow
-      :ensure t
-      :config
-      (progn
-	(dired-rainbow-define-chmod directory "#6cb2eb" "d.*")
-	(dired-rainbow-define html "#eb5286" ("css" "less" "sass" "scss" "htm" "html" "jhtm" "mht" "eml" "mustache" "xhtml"))
-	(dired-rainbow-define xml "#f2d024" ("xml" "xsd" "xsl" "xslt" "wsdl" "bib" "json" "msg" "pgn" "rss" "yaml" "yml" "rdata"))
-	(dired-rainbow-define document "#9561e2" ("docm" "doc" "docx" "odb" "odt" "pdb" "pdf" "ps" "rtf" "djvu" "epub" "odp" "ppt" "pptx"))
-	(dired-rainbow-define markdown "#ffed4a" ("org" "etx" "info" "markdown" "md" "mkd" "nfo" "pod" "rst" "tex" "textfile" "txt"))
-	(dired-rainbow-define database "#6574cd" ("xlsx" "xls" "csv" "accdb" "db" "mdb" "sqlite" "nc"))
-	(dired-rainbow-define media "#de751f" ("mp3" "mp4" "MP3" "MP4" "avi" "mpeg" "mpg" "flv" "ogg" "mov" "mid" "midi" "wav" "aiff" "flac"))
-	(dired-rainbow-define image "#f66d9b" ("tiff" "tif" "cdr" "gif" "ico" "jpeg" "jpg" "png" "psd" "eps" "svg"))
-	(dired-rainbow-define log "#c17d11" ("log"))
-	(dired-rainbow-define shell "#f6993f" ("awk" "bash" "bat" "sed" "sh" "zsh" "vim"))
-	(dired-rainbow-define interpreted "#38c172" ("py" "ipynb" "rb" "pl" "t" "msql" "mysql" "pgsql" "sql" "r" "clj" "cljs" "scala" "js"))
-	(dired-rainbow-define compiled "#4dc0b5" ("asm" "cl" "lisp" "el" "c" "h" "c++" "h++" "hpp" "hxx" "m" "cc" "cs" "cp" "cpp" "go" "f" "for" "ftn" "f90" "f95" "f03" "f08" "s" "rs" "hi" "hs" "pyc" ".java"))
-	(dired-rainbow-define executable "#8cc4ff" ("exe" "msi"))
-	(dired-rainbow-define compressed "#51d88a" ("7z" "zip" "bz2" "tgz" "txz" "gz" "xz" "z" "Z" "jar" "war" "ear" "rar" "sar" "xpi" "apk" "xz" "tar"))
-	(dired-rainbow-define packaged "#faad63" ("deb" "rpm" "apk" "jad" "jar" "cab" "pak" "pk3" "vdf" "vpk" "bsp"))
-	(dired-rainbow-define encrypted "#ffed4a" ("gpg" "pgp" "asc" "bfe" "enc" "signature" "sig" "p12" "pem"))
-	(dired-rainbow-define fonts "#6cb2eb" ("afm" "fon" "fnt" "pfb" "pfm" "ttf" "otf"))
-	(dired-rainbow-define partition "#e3342f" ("dmg" "iso" "bin" "nrg" "qcow" "toast" "vcd" "vmdk" "bak"))
-	(dired-rainbow-define vc "#0074d9" ("git" "gitignore" "gitattributes" "gitmodules"))
-	(dired-rainbow-define-chmod executable-unix "#38c172" "-.*x.*")
-	))
+    ;; (use-package dired-rainbow
+      ;; :ensure t
+      ;; :config
+      ;; (progn
+	;; (dired-rainbow-define-chmod directory "#6cb2eb" "d.*")
+	;; (dired-rainbow-define html "#eb5286" ("css" "less" "sass" "scss" "htm" "html" "jhtm" "mht" "eml" "mustache" "xhtml"))
+	;; (dired-rainbow-define xml "#f2d024" ("xml" "xsd" "xsl" "xslt" "wsdl" "bib" "json" "msg" "pgn" "rss" "yaml" "yml" "rdata"))
+	;; (dired-rainbow-define document "#9561e2" ("docm" "doc" "docx" "odb" "odt" "pdb" "pdf" "ps" "rtf" "djvu" "epub" "odp" "ppt" "pptx"))
+	;; (dired-rainbow-define markdown "#ffed4a" ("org" "etx" "info" "markdown" "md" "mkd" "nfo" "pod" "rst" "tex" "textfile" "txt"))
+	;; (dired-rainbow-define database "#6574cd" ("xlsx" "xls" "csv" "accdb" "db" "mdb" "sqlite" "nc"))
+	;; (dired-rainbow-define media "#de751f" ("mp3" "mp4" "MP3" "MP4" "avi" "mpeg" "mpg" "flv" "ogg" "mov" "mid" "midi" "wav" "aiff" "flac"))
+	;; (dired-rainbow-define image "#f66d9b" ("tiff" "tif" "cdr" "gif" "ico" "jpeg" "jpg" "png" "psd" "eps" "svg"))
+	;; (dired-rainbow-define log "#c17d11" ("log"))
+	;; (dired-rainbow-define shell "#f6993f" ("awk" "bash" "bat" "sed" "sh" "zsh" "vim"))
+	;; (dired-rainbow-define interpreted "#38c172" ("py" "ipynb" "rb" "pl" "t" "msql" "mysql" "pgsql" "sql" "r" "clj" "cljs" "scala" "js"))
+	;; (dired-rainbow-define compiled "#4dc0b5" ("asm" "cl" "lisp" "el" "c" "h" "c++" "h++" "hpp" "hxx" "m" "cc" "cs" "cp" "cpp" "go" "f" "for" "ftn" "f90" "f95" "f03" "f08" "s" "rs" "hi" "hs" "pyc" ".java"))
+	;; (dired-rainbow-define executable "#8cc4ff" ("exe" "msi"))
+	;; (dired-rainbow-define compressed "#51d88a" ("7z" "zip" "bz2" "tgz" "txz" "gz" "xz" "z" "Z" "jar" "war" "ear" "rar" "sar" "xpi" "apk" "xz" "tar"))
+	;; (dired-rainbow-define packaged "#faad63" ("deb" "rpm" "apk" "jad" "jar" "cab" "pak" "pk3" "vdf" "vpk" "bsp"))
+	;; (dired-rainbow-define encrypted "#ffed4a" ("gpg" "pgp" "asc" "bfe" "enc" "signature" "sig" "p12" "pem"))
+	;; (dired-rainbow-define fonts "#6cb2eb" ("afm" "fon" "fnt" "pfb" "pfm" "ttf" "otf"))
+	;; (dired-rainbow-define partition "#e3342f" ("dmg" "iso" "bin" "nrg" "qcow" "toast" "vcd" "vmdk" "bak"))
+	;; (dired-rainbow-define vc "#0074d9" ("git" "gitignore" "gitattributes" "gitmodules"))
+	;; (dired-rainbow-define-chmod executable-unix "#38c172" "-.*x.*")
+	;; ))
     #+end_src
 
-*** Dired icons
+*** DONE Dired icons
+    CLOSED: [2020-04-11 Sat 04:56]
 
     Pretty icons for Dired!
 
     #+begin_src emacs-lisp
-    (use-package all-the-icons-dired
-      :ensure t
-      :delight
-      :after dired all-the-icons
-      :config
-      (add-hook 'dired-mode-hook 'all-the-icons-dired-mode))
+    ;; (use-package all-the-icons-dired
+      ;; :ensure t
+      ;; :delight
+      ;; :after dired all-the-icons
+      ;; :config
+      ;; (add-hook 'dired-mode-hook 'all-the-icons-dired-mode))
     #+end_src
 
-*** Modeline style
-
-    I override the default behaviour of [[file:/usr/share/emacs/26.3/lisp/dired.el.gz::(defun dired-sort-set-mode-line ()][dired-sort-set-mode-line]], as it was not appealing to me. Needs more tweaking for sure, but it works for now.
-
-    #+begin_src emacs-lisp
-    (eval-after-load "dired"
-      (defun dired-sort-set-mode-line ()
-	;; Set mode line display according to dired-actual-switches.
-	;; Mode line display of "by name" or "by date" guarantees the user a
-	;; match with the corresponding regexps.  Non-matching switches are
-	;; shown literally.
-	(when (eq major-mode 'dired-mode)
-	  (setq mode-name
-		(let (case-fold-search)
-		  (cond ((string-match-p (concat (regexp-quote "-alh") "\\(\\s-\\|$\\)") dired-actual-switches)
-			 "")
-			((string-match-p (concat (regexp-quote "-alht") "\\(\\s-\\|$\\)") dired-actual-switches)
-			 "⇓D")
-			((string-match-p (concat (regexp-quote "-alhS") "\\(\\s-\\|$\\)") dired-actual-switches)
-			 "⇓S")
-			((string-match-p (concat (regexp-quote "-alhX") "\\(\\s-\\|$\\)") dired-actual-switches)
-			 "⇓X")
-			(t
-			 "⇓?"))))
-	  (if (string-match-p (regexp-quote " --group-directories-first") dired-actual-switches)
-	      (setq mode-name (concat mode-name "⋮"))
-	    (setq mode-name (replace-regexp-in-string "⋮" "" mode-name)))
-	  (force-mode-line-update))))
-
-    #+end_src
 ** PDF TOOLS
 
    Pdf-tools cannot handle an update.
@@ -1606,6 +2537,17 @@ inside of emacs.
       :after org mu4e
       :bind
       (:map mu4e-compose-mode-map ("M-c" . 'org-msg-edit-mode)))
+    #+end_src
+
+*** org-general
+
+    Temporary fix. Later to be declared in use-package.
+
+    #+begin_src emacs-lisp
+    (evil-leader-org
+       :keymaps 'org-mode-map
+       :states 'normal
+       "p" 'org-set-property)
     #+end_src
 
 ** LATEX
@@ -1886,114 +2828,20 @@ Manage contacts with org-contacts
 
 *** Start mu4e
 
-
-
 Auto start mu4e on emacs startup
 
     #+begin_src emacs-lisp
     (mu4e~start)
     (mu4e-update-mail-and-index t)
     #+end_src
+*** mu4e general
 
-** EVIL COLLECTION
-   
-   A bunch of evil bindings
+    Temporary fix. Later to be declared in use-package
 
-   #+begin_src emacs-lisp
-   (use-package evil-collection
-     :after evil
-     :ensure t
-     :config
-     (evil-collection-init 'mu4e)
-     (evil-collection-init 'image-dired)
-     (evil-collection-init 'outline)
-     (evil-collection-init 'help)
-     (evil-collection-init 'man)
-     (evil-collection-init 'package-menu)
-     (evil-collection-init 'pdf)
-     (evil-collection-init 'tetris)
-     (evil-collection-init '2048-game)
-     (evil-collection-init 'info))
-   #+end_src
-
-** EVIL
-
-   It's good to have vim's normal-state to move around, change words, search etc, but for a true combination of emacs and vim, I replaced insert-state with emacs-state. The best of two worlds!
-
-   -- Note: there's a bunch of bindings in normal-state beause of the visual-line-mode that I use. I have to get rid of that at some point.
-
-   #+begin_src emacs-lisp
-   (use-package evil
-     :ensure t
-     :init
-     (setq evil-move-cursor-back nil)
-     (setq evil-want-C-u-scroll t)
-     (setq evil-want-fine-undo t)
-     (setq evil-normal-state-cursor 'box)
-     (setq evil-emacs-state-cursor 'bar)
-     (setq evil-replace-state-cursor 'hbar)
-     (setq evil-want-integration t)
-     (setq evil-want-keybinding nil)
-     (setq evil-find-skip-newlines t)
-     :config
-     (evil-mode 1)
-     ;; (evil-set-initial-state 'Info-mode 'emacs)
-     (evil-set-initial-state 'org-capture-mode 'emacs)
-     (evil-set-initial-state 'mu4e-compose-mode 'emacs)
-     (evil-set-initial-state 'org-msg-mode 'emacs)
-     ;; (evil-set-initial-state 'package-menu-mode 'emacs)
-     (evil-set-initial-state 'special-mode 'emacs)
-     ;; Use emacs state instead of insert state
-     (evil-define-state emacs
-       "Emacs used as insert state in evil."
-       :tag " <EE> "
-       :message "-- EMACS INSERT --"
-       :input-method t)
-     (defadvice evil-insert-state (around emacs-state-instead-of-insert-state activate) "Emacs instead of Insert." (evil-emacs-state))
-     :bind
-     (:map evil-normal-state-map
-	   ("j" . 'evil-next-visual-line)
-	   ("k" . 'evil-previous-visual-line)
-	   ("^" . 'evil-beginning-of-visual-line)
-	   ("g^" . 'evil-first-non-blank-of-visual-line)
-	   ("$" . 'evil-end-of-visual-line)
-	   ;; ("g ^" . 'evil-beginning-of-line)
-	   ("g$" . 'evil-end-of-line)
-	   ([down] . 'evil-next-visual-line)
-	   ([up] . 'evil-previous-visual-line)
-	   ("C-S-o" . 'evil-jump-forward)
-	   ("*" . nil) ;;prefix
-	   ("*w" . 'evil-search-word-forward)
-	   :map evil-emacs-state-map
-	   ([escape] . 'evil-normal-state)))
-
+    #+begin_src emacs-lisp
+    (evil-leader 'normal
+      "m" 'l/mu4e-open-unread)
     #+end_src
-
-** GENERAL KEY
-
-   My initial goal was to use this package to create a leader key for evil mode.
-
-   Maybe I will switch completely if this proves good.
-
-   #+begin_src emacs-lisp
-   (use-package general
-     :ensure t
-     :after evil
-     :bind
-     ("C-h G" . 'general-describe-keybindings)
-     :config
-     (general-create-definer evil-leader
-       :prefix "SPC")
-     (general-create-definer evil-leader-org
-       :prefix "SPC o")
-     (evil-leader 'normal
-       "m" 'l/mu4e-open-unread)
-     (evil-leader-org
-       :keymaps 'org-mode-map
-       :states 'normal
-       "p" 'org-set-property))
-   #+end_src
-
 ** CUSTOM FILE SHORTCUTS
 
    #+begin_src emacs-lisp

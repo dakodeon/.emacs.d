@@ -2,6 +2,8 @@
 #+AUTHOR: dakodeon
 #+EMAIL: dakodeon@hotmail.com
 
+#+TODO: TODO WORKING | DONE REJECTED
+
 * INTRODUCTION
 
 Emacs configuration managed with org-mode and use-package.
@@ -400,9 +402,10 @@ The code snippets below are loaded by =init.el=, which also loads
    switches that generate the dired buffer, the use of dwim (do what I
    mean) while copying and moving (meaning that when performing a copy
    or move action the default target is the dired buffer in the other
-   window, if existing), also adding hide-details-mode to the hook, as
-   well as fixing a bug caused by a package no longer existent
-   (something like a digital equivalent of a ghost limb).
+   window, if existing), also adding hide-details-mode to the hook, to
+   omit displaying all the info that the '-l' flag produces, as well
+   as fixing a bug caused by a package no longer existent (something
+   like the digital equivalent of a ghost limb).
 
    One drastic change I made to the defaults is the way dired shows up
    in the modeline. Delight does not work for dired, as its modeline
@@ -1156,9 +1159,308 @@ One note though, while trying to copy to a FAT32 device, I discovered that there
       (add-hook 'dired-mode-hook 'all-the-icons-dired-mode))
     #+end_src
 
+* EMAIL CLIENT
 
-* CONFIURATION
-** INTERFACE
+  I use mu4e to manage my emails. mu4e is the emacs front-end for the
+  program 'mu' so installing mu on your system brings also mu4e.
+  Depending on your system, you might have to build it yourself, e.g
+  from git. Then, find the path of mu4e and add it to load-path (in my
+  case it was =/usr/local/share/emacs/site-lisp/mu4e=).
+
+** The layout
+*** Parts and components
+
+    Mu4e only manages your emails. You actually need to install a
+    different program to download them and store them to your
+    computer. The most popular alternatives are [[https://www.offlineimap.org/][offlineimap]] and [[http://isync.sourceforge.net/][isync]]
+    (which provides the executable mbsync). I use the latter. Sending
+    email is also provided by a different package: the smtp and
+    message packages that are bult-in within emacs.
+  
+    So: the steps to manage and send emails through emacs are:
+
+    1. mbsync downloads the emails
+    2. mu updates the maildirs
+    3. smtp establishes connection with your email provider
+    4. message composes and sends the actual email
+    5. mu4e is used as a platform integrating all of the above
+
+    _Discalimer:_ I do not understand fully all the mechanics involved
+    here, so the above explanation might be from over-simplified to
+    dead-wrong. However, it works, thanks to all the resources existing
+    on the Internet.
+
+    There is separate configuration required for mbsync. It is out of
+    the scope of this description, so I will not go into it. There are a
+    lot of sample configurations and instructions on the web, as well as
+    a well-documented [[https://wiki.archlinux.org/index.php/Isync][archwiki article]]. However, configuring mbsync can
+    be a headache. Best of luck!
+
+*** Some info about my config
+
+    Mu4e gives the ability to set an interval on which it's database
+    updates. I set this to nil, as I prefer to have a cronjob taking
+    care of that. I have set the interval to be 5 minutes. Updating
+    while on mu4e happens only manually.
+
+    Another thing to note is that I don't keep all my email info in
+    this file. I use a separate file, which is required in the
+    configuration, which provides a variable storing a list of all the
+    accounts' information that mu4e needs to build te contexts,
+    maildir structure etc. This is not about security, I wouldn't
+    store passwords and stuff even to this file, it just seems more
+    appropriate not to share all my email addresses in a public file.
+    It also makes the config more portable, as you can easily
+    implement the same file, a sample of which can be seen below:
+
+    #+begin_example emacs-lisp
+    (defvar l/accounts-info-list
+      '(("account-name-1" . ((mail-addr . "my-name@my-provider.com")
+			     (smtp-serv-def . "mail.my-provider.com")
+			     (smtp-serv . "mail.my-provider.com")
+			     (full-name . "my name")
+			     (inbox-dir . ("/account-name-1/Inbox" . ?1))
+			     (sent-dir . "/account-name-1/Sent")
+			     (drafts-dir . "/account-name-1/Drafts")
+			     (trash-dir . "/account-name-1/Trash")))
+	("account-name-2" . ((mail-addr . "my-other-name@my-other-provider.com")
+			     (smtp-serv-def . "smtp.my-other-provider.com")
+			     (smtp-serv . "smtp.my-other-provider.com")
+			     (full-name . "my other name")
+			     (inbox-dir . ("/account-name-2/Inbox" . ?2))
+			     (sent-dir . "/account-name-2/Sent")
+			     (drafts-dir . "/account-name-2/Drafts")
+			     (trash-dir . "/account-name-2/Trash")))))
+
+    ;; don't forget to provide the code in the end of the file!
+    (provide 'mu4e-sensitive)
+    #+end_example
+
+    Then, the location of this file should be added to load-path.
+
+** The actual config
+*** SMTP configuration
+
+    SMTP handles the connection with your email provider. It also sets some values for the default email account.
+
+    #+begin_src emacs-lisp
+    (use-package smtpmail
+      :config
+      ;; since smtpmail is loaded first we will require here the sensitive file
+      (add-to-list 'load-path "~/.personal/personal-scripts")
+      (require 'mu4e-sensitive)
+      ;; the default value is considered to be the first account on the list
+      (let ((first-account (cdr (nth 0 l/accounts-info-list))))
+	(setq smtpmail-smtp-user (cdr (assq 'mail-addr first-account))
+	      smtpmail-default-smtp-server (cdr (assq 'smtp-serv-def first-account))
+	      smtpmail-smtp-server (cdr (assq 'smtp-serv first-account))))
+
+      ;; these seem to be default everywhere
+      (setq smtpmail-stream-type 'starttls
+	    smtpmail-smtp-service 587
+	    smtpmail-debug-info t))
+    #+end_src
+
+*** Message configuration
+
+    Message is the package that does the actual editing of an email
+    message. It is configured to use smtpmail to actually send it.
+
+    #+begin_src emacs-lisp
+    (use-package message
+      :after smtpmail
+      :config
+      (setq message-send-mail-function 'smtpmail-send-it)
+      (setq message-kill-buffer-on-exit t))
+    #+end_src
+    
+*** Mu4e -- base settings
+
+    The 'main course'. If it goes all together it will be a very big
+    code block, so I will brake it into several categories.
+
+    Here are the basic settings.
+
+    #+begin_src emacs-lisp
+    (use-package mu4e
+      :load-path "/usr/local/share/emacs/site-lisp/mu4e"
+      :after message
+      :init
+      (setq mu4e-get-mail-command "mbsync -c ~/.config/mbsyncrc -a" ;; mbsync with custom config location
+	    mu4e-maildir (expand-file-name "~/.personal/Mail")
+	    mu4e-update-interval nil ;; cronjob takes care of this
+	    mu4e-confirm-quit nil
+	    mu4e-index-update-in-background t
+	    mu4e-hide-index-messages t
+	    mu4e-sent-messages-behavior 'sent
+	    mu4e-change-filenames-when-moving t
+	    mu4e-attachment-dir "~/Downloads"
+	    mu4e-html2text-command "w3m -T text/html"
+	    mu4e-headers-auto-update t
+	    mu4e-headers-include-related nil
+	    mu4e-headers-visible-columns 60
+	    mu4e-split-view 'vertical
+	    mu4e-view-show-addresses t
+	    mu4e-compose-dont-reply-to-self nil
+	    mu4e-compose-signature-auto-include nil
+	    mu4e-context-policy 'pick-first)
+
+      ;; this one does not work out of the box. Emacs needs to be compiled with imagemagick support. Will look into this
+      (setq mu4e-show-images t)
+      (when (fboundp 'imagemagick-register-types)
+	(imagemagick-register-types))
+
+      :config
+      (setq mail-user-agent 'mu4e-user-agent))
+    #+end_src
+
+*** Mu4e -- accounts, maildirs and contexts
+
+    In this section, the multiple account structure is established, by
+    using the sensitive info file defined earlier. First, the users
+    personal email list is built, then the shortcuts for the various
+    Inboxes and finally the contexts' definitions.
+
+    Note how portable this is: you can have 2 or 12 email accounts and
+    this code will not change. However, also note that only shortcuts
+    for the Inboxes are provided. This is to minimize the information
+    stored in the info list. Maybe in the future I will come up with a
+    better implementation.
+
+    The code is kinda convoluted though... Defining contexts that way
+    was a headache, so I am very happy to have figured it out.
+
+    #+begin_src emacs-lisp
+    (use-package mu4e
+      :config
+      ;; building the user's mail address list
+      (setq mu4e-user-mail-address-list
+	    (mapcar (lambda (entry) (cdr (assq 'mail-addr (cdr entry))))
+		    l/accounts-info-list))
+
+      ;; setting up default directories to the first account's directories
+      ;; -- just a failsafe, this is normally handled by contexts
+      (let ((first-account (cdr (nth 0 l/accounts-info-list))))
+	(setq mu4e-drafts-folder (cdr (assq 'drafts-dir first-account))
+	      mu4e-sent-folder (cdr (assq 'sent-dir first-account))
+	      mu4e-trash-folder (cdr (assq 'trash-dir first-account))))
+
+      ;; setting up shortcuts for the Inboxes
+      (setq mu4e-maildir-shortcuts
+	    (mapcar (lambda (entry) (cdr (assq 'inbox-dir (cdr entry))))
+		    l/accounts-info-list))
+
+      ;; build contexts
+      (cl-loop for entry in l/accounts-info-list do
+	       (let* ((name (car entry))
+		      (info (cdr entry))
+		      (mymail (cdr (assq 'mail-addr info)))
+		      (fullname (cdr (assq 'full-name info)))
+		      (smtpdef (cdr (assq 'smtp-serv-def info)))
+		      (smtpserv (cdr (assq 'smtp-serv info)))
+		      (mysent (cdr (assq 'sent-dir info)))
+		      (mydrafts (cdr (assq 'drafts-dir info)))
+		      (mytrash (cdr (assq 'trash-dir info)))
+		      (matchfunc `(lambda (msg)
+				    (when msg
+				      (mu4e-message-contact-field-matches msg :to ,mymail))))
+		      (myvars `((smtpmail-smtp-user . ,mymail)
+				(smtpmail-default-smtp-server . ,smtpdef)
+				(smtpmail-smtp-server . ,smtpserv)
+				(user-mail-address . ,mymail)
+				(user-full-name . ,fullname)
+				(mu4e-sent-folder . ,mysent)
+				(mu4e-drafts-folder . ,mydrafts)
+				(mu4e-trash-folder . ,mytrash))))
+		 (add-to-list 'mu4e-contexts (make-mu4e-context
+					      :name name
+					      :match-func matchfunc
+					      :vars myvars) t))))
+    #+end_src
+
+*** Mu4e -- bookmarks and queries
+
+    In mu4e, when you want to find an email, you perform a search
+    query. You rarely go in your inbox folder and start scrolling
+    around. As for the queries that you run most of the time, you can
+    define them as bookmarks. Bookmarks in mu4e are pre-defined
+    queries, callable with a keybinding.
+
+   Mu4e provides some default bookmarks, the most common one to be
+   unread messages, but they are not all useful. So I defined my own
+   list:
+
+   1. Unread messages -- by default
+   2. Today's messages -- by default
+   3. Messages from the last x days, where x is set interactively --
+      this one is based on an example in the manual. I changed some
+      things to integrate it with my various contexts.
+
+   There was another query that I wanted to have as a bookmark, but I
+   could not, due to some internals of the bookmarks' definition
+   process. This is the ability to re-visit the last received message.
+   So, the function that perform this specific query is callable from
+   outside the bookmarks' scope.
+
+   Another useful feature is to be able to perform a query for unread
+   messages globally, meaning outside of mu4e. That way we can quickly
+   jump to unread messages directly upon receiving an email. This is
+   useful to be implemented system-wise.
+
+   To facilitate definitions of queries that span through all
+   different contexts, a variable holding a list of inboxes is also
+   defined here.
+
+   #+begin_src emacs-lisp
+   (use-package mu4e
+     :config
+     ;; TODO - rewrite this variable using my custom list. In the end it will contain inboxes
+     (defvar l/mu4e-context-names
+       (mapcar (lambda (x) (car x))
+	       (cl-map 'list (lambda (context)
+			       (cons (mu4e-context-name context) context))
+		       mu4e-contexts)))
+
+     ;; get only the last received message
+     (defun l/mu4e-fetch-last-received-msg ()
+       "Shows the last received message in mu4e"
+       (interactive)
+       (let* ((query (string-trim (format "%s" (mapcar (lambda (x) (concat "maildir:/" x "/Inbox OR ")) l/mu4e-context-names)) "(" " OR )")))
+	 (mu4e-headers-search (concat "msgid:" (string-trim (shell-command-to-string (concat "mu find -n 1 --fields \"i\" --sortfield=date --reverse " query)) nil "\n")))))
+
+     ;; Asks for how many days' messages to show -- from the manual, edited
+     (defun l/mu4e-bookmark-num-days-old-query (days-old)
+       (interactive (list (read-number "How many days? " 2)))
+       (let ((start-date (subtract-time (current-time) (days-to-time days-old)))
+	     (maildirquery (string-trim (format "%s" (mapcar (lambda (x) (concat "maildir:/" x "/Inbox OR ")) l/mu4e-context-names)) "(" " OR )")))
+	 (concat "(" maildirquery ") AND date:"
+		 (format-time-string "%Y%m%d" start-date))))
+
+     ;; open unread from wherever
+     (defun l/mu4e-open-unread ()
+       "Open mu4e in unread messages."
+       (interactive)
+       (mu4e-headers-search "flag:unread AND NOT flag:trashed"))
+
+     ;; bookmarks list
+     (setq mu4e-bookmarks
+	   `( ,(make-mu4e-bookmark
+		:name "Unread messages"
+		:query "flag:unread AND NOT flag:trashed"
+		:key ?u)
+	      ,(make-mu4e-bookmark
+		:name "Today's messages"
+		:query "date:today..now"
+		:key ?t)
+	      ,(make-mu4e-bookmark
+		:name "Messages from last [x] days"
+		:query (lambda () (call-interactively 'l/mu4e-bookmark-num-days-old-query))
+		:key ?w))))    ;; TODO: fetch messages of the last x minutes
+   #+end_src
+   
+
+* TODO CONFIURATION [2/14]
+** TODO INTERFACE
 *** Try packages
 
     #+begin_src emacs-lisp
@@ -1332,7 +1634,7 @@ This seems a reasonable way to change modeline info for major modes. Why use del
     ;; (set-frame-parameter (selected-frame) 'alpha '(90 80))
     #+end_src
 
-** FUNCTIONALITY
+** TODO FUNCTIONALITY
 *** Whole buffer evaluation
 
     #+begin_src emacs-lisp
@@ -1470,7 +1772,7 @@ Restart emacs from within emacs (duh!)
     (add-to-list 'auto-mode-alist '("\\.*rc$" . conf-mode))
     #+end_src
 
-** WINDOW MANAGEMENT
+** TODO WINDOW MANAGEMENT
 *** Windows movement and resizing
 
     #+begin_src emacs-lisp
@@ -1611,1288 +1913,1296 @@ Restart emacs from within emacs (duh!)
 
     #+end_src
 
-** HELM
+** REJECTED HELM
+   CLOSED: [2020-04-12 Sun 05:52]
 
-   Helm was my previous selection for navigation. I dropped it in
-   favour of ivy. It is very powerful, but for me, really hard to
-   customize.
+     Helm was my previous selection for navigation. I dropped it in
+     favour of ivy. It is very powerful, but for me, really hard to
+     customize.
 
-   I will keep my configuration here, disabled, in case I ever need it
-   again.
+     I will keep my configuration here, disabled, in case I ever need it
+     again.
 
-*** Basics
-   #+begin_src emacs-lisp
-   (use-package helm-config
-     :disabled
-     :ensure helm
-     :delight helm-mode
-     :defer 1
-     :init
-     (setq helm-follow-mode-persistent t)
-     (setq  helm-split-window-inside-p t)
-     :config
-     (helm-mode 1)
-     :bind
-     ("M-x" . helm-M-x)
-     ("C-x C-f" . helm-find-files)
-     ("M-y" . helm-show-kill-ring)
-     ([remap switch-to-buffer] . helm-buffers-list))
-   #+end_src
+***** Basics
+     #+begin_src emacs-lisp
+     (use-package helm-config
+       :disabled
+       :ensure helm
+       :delight helm-mode
+       :defer 1
+       :init
+       (setq helm-follow-mode-persistent t)
+       (setq  helm-split-window-inside-p t)
+       :config
+       (helm-mode 1)
+       :bind
+       ("M-x" . helm-M-x)
+       ("C-x C-f" . helm-find-files)
+       ("M-y" . helm-show-kill-ring)
+       ([remap switch-to-buffer] . helm-buffers-list))
+     #+end_src
 
-*** Helm-swoop
-    #+begin_src emacs-lisp
-    (use-package helm-swoop
-      :disabled
-      :ensure t
-      :after helm evil
-      :init
-      (setq helm-swoop-speed-or-color t)
-      ;; pre-input disabled or marked word
-      (setq helm-swoop-pre-input-function
-	  (lambda ()
-	    (if mark-active
-		(buffer-substring-no-properties (mark) (point)) "")))
-      :bind
-      ("M-i" . 'helm-swoop)
-      ("C-M-i" . 'helm-multi-swoop)
-      ("M-I" . 'helm-swoop-back-to-last-point)
-      (:map helm-swoop-map
-	    ("M-i" . 'helm-multi-swoop-all-from-helm-swoop))
-      (:map isearch-mode-map
-	    ("M-i" . 'helm-swoop-from-isearch))
-      (:map evil-motion-state-map
-	    ("M-i" . 'helm-swoop-from-evil-search)))
+***** Helm-swoop
+      #+begin_src emacs-lisp
+      (use-package helm-swoop
+	:disabled
+	:ensure t
+	:after helm evil
+	:init
+	(setq helm-swoop-speed-or-color t)
+	;; pre-input disabled or marked word
+	(setq helm-swoop-pre-input-function
+	    (lambda ()
+	      (if mark-active
+		  (buffer-substring-no-properties (mark) (point)) "")))
+	:bind
+	("M-i" . 'helm-swoop)
+	("C-M-i" . 'helm-multi-swoop)
+	("M-I" . 'helm-swoop-back-to-last-point)
+	(:map helm-swoop-map
+	      ("M-i" . 'helm-multi-swoop-all-from-helm-swoop))
+	(:map isearch-mode-map
+	      ("M-i" . 'helm-swoop-from-isearch))
+	(:map evil-motion-state-map
+	      ("M-i" . 'helm-swoop-from-evil-search)))
 
-    #+end_src
-** MULTIPLE CURSORS
+      #+end_src
+** TODO MULTIPLE CURSORS
 
-   It seems that the mc package is not really needed. Maybe everything it does can be achieved by using replacement methods and/or macros. Not to mention vim's =:g= command, or helm-swoop.
+     It seems that the mc package is not really needed. Maybe everything it does can be achieved by using replacement methods and/or macros. Not to mention vim's =:g= command, or helm-swoop.
 
-   #+begin_src emacs-lisp
-   (use-package multiple-cursors
-     :ensure t
-     :bind
-     ("C-s-c C-s-c" . mc/edit-lines)
-     ("C->" . mc/mark-next-like-this)
-     ("C-<" . mc/mark-previous-like-this)
-     ("C-c C-<" . mc/mark-all-like-this)
-     ("C-<down-mouse-1>" . mc/add-cursor-on-click)
-     ("C-!" . mc/insert-numbers))
+     #+begin_src emacs-lisp
+     (use-package multiple-cursors
+       :ensure t
+       :bind
+       ("C-s-c C-s-c" . mc/edit-lines)
+       ("C->" . mc/mark-next-like-this)
+       ("C-<" . mc/mark-previous-like-this)
+       ("C-c C-<" . mc/mark-all-like-this)
+       ("C-<down-mouse-1>" . mc/add-cursor-on-click)
+       ("C-!" . mc/insert-numbers))
 
-   (use-package mc-extras
-     :ensure t
-     :after multiple-cursors)
+     (use-package mc-extras
+       :ensure t
+       :after multiple-cursors)
 
-   (use-package ace-mc
-     :ensure t
-     :after mc-extras
-     :bind
-     ("C-c )" . ace-mc-add-multiple-cursors)
-     ("C-M-)" . ace-mc-add-single-cursor))
-   #+end_src
+     (use-package ace-mc
+       :ensure t
+       :after mc-extras
+       :bind
+       ("C-c )" . ace-mc-add-multiple-cursors)
+       ("C-M-)" . ace-mc-add-single-cursor))
+     #+end_src
 
 ** DONE DIRED [15/15]
-   CLOSED: [2020-04-11 Sat 04:56]
+     CLOSED: [2020-04-11 Sat 04:56]
 
-   This *IS* my new file manager!
+     This *IS* my new file manager!
    
-*** DONE Dired-x
-    CLOSED: [2020-04-11 Sat 03:33]
+***** DONE Dired-x
+      CLOSED: [2020-04-11 Sat 03:33]
 
-    #+begin_src emacs-lisp
-    ;; (use-package dired-x
-      ;; :ensure nil
-      ;; :delight dired-omit-mode
-      ;; :after dired
-      ;; :init
-      ;; (setq dired-omit-verbose nil)
-      ;; :config
-      ;; files to be ommited: beginning with one or more dots, beginning with $ (some files that come from Windows), ending with xmp (eg darktable data files), ending with srt, sub (I don't want to see subtitle files)
-      ;; (setq dired-omit-files (concat dired-omit-files "\\|^\\..+$\\|^\\$\\|xmp$\\|srt$\\|sub$")))
-    #+end_src
+      #+begin_src emacs-lisp
+      ;; (use-package dired-x
+	;; :ensure nil
+	;; :delight dired-omit-mode
+	;; :after dired
+	;; :init
+	;; (setq dired-omit-verbose nil)
+	;; :config
+	;; files to be ommited: beginning with one or more dots, beginning with $ (some files that come from Windows), ending with xmp (eg darktable data files), ending with srt, sub (I don't want to see subtitle files)
+	;; (setq dired-omit-files (concat dired-omit-files "\\|^\\..+$\\|^\\$\\|xmp$\\|srt$\\|sub$")))
+      #+end_src
 
-*** DONE Some useful functions [5/5]
-    CLOSED: [2020-04-11 Sat 02:23]
+***** DONE Some useful functions [5/5]
+      CLOSED: [2020-04-11 Sat 02:23]
     
-**** DONE Attatch marked files to email:
-     CLOSED: [2020-04-11 Sat 01:00]
+****** DONE Attatch marked files to email:
+       CLOSED: [2020-04-11 Sat 01:00]
 
-     Found [[https://emacs.stackexchange.com/questions/14652/attach-multiple-files-from-the-same-directory-to-an-email-message][here]].
+       Found [[https://emacs.stackexchange.com/questions/14652/attach-multiple-files-from-the-same-directory-to-an-email-message][here]].
 
-     Open a dired buffer, mark some files and run the command. If there's an open message buffer use it, else create new message
+       Open a dired buffer, mark some files and run the command. If there's an open message buffer use it, else create new message
 
-     #+begin_src emacs-lisp
-     ;; (defun compose-attach-marked-files ()
-       ;; "Compose mail and attach all the marked files from a dired buffer. Uses `compose-mail', (or `org-msg-attach-attach' if org-msg is enabled -- this is not true yet)."
-       ;; (interactive)
-       ;; (let ((files (dired-get-marked-files)))
-	 ;; (compose-mail nil nil nil t)
-	 ;; (dolist (file files)
-	   ;; (if (file-regular-p file)
-	       ;; (mml-attach-file file
-				;; (mm-default-file-encoding file)
-				;; nil "attachment")
-	     ;; (message "skipping non-regular file %s" file)))))
-     #+end_src
+       #+begin_src emacs-lisp
+       ;; (defun compose-attach-marked-files ()
+	 ;; "Compose mail and attach all the marked files from a dired buffer. Uses `compose-mail', (or `org-msg-attach-attach' if org-msg is enabled -- this is not true yet)."
+	 ;; (interactive)
+	 ;; (let ((files (dired-get-marked-files)))
+	   ;; (compose-mail nil nil nil t)
+	   ;; (dolist (file files)
+	     ;; (if (file-regular-p file)
+		 ;; (mml-attach-file file
+				  ;; (mm-default-file-encoding file)
+				  ;; nil "attachment")
+	       ;; (message "skipping non-regular file %s" file)))))
+       #+end_src
 
-**** DONE Go to first/last directory:
-     CLOSED: [2020-04-11 Sat 00:51]
+****** DONE Go to first/last directory:
+       CLOSED: [2020-04-11 Sat 00:51]
 
-     Instead of going to the beginning or end of the buffer, go to the first or last directory line
+       Instead of going to the beginning or end of the buffer, go to the first or last directory line
      
-     Source: https://www.emacswiki.org/emacs/dired-extension.el
+       Source: https://www.emacswiki.org/emacs/dired-extension.el
 
-     #+begin_src emacs-lisp
-     ;; (defun dired-goto-first-file ()
-       ;; "Move cursor to first file of dired."
-       ;; (interactive)
-       ;; (goto-char (point-min))
-       ;; (while (not (dired-move-to-filename))
-	 ;; (call-interactively 'dired-next-line)))
+       #+begin_src emacs-lisp
+       ;; (defun dired-goto-first-file ()
+	 ;; "Move cursor to first file of dired."
+	 ;; (interactive)
+	 ;; (goto-char (point-min))
+	 ;; (while (not (dired-move-to-filename))
+	   ;; (call-interactively 'dired-next-line)))
 
-     ;; (defun dired-goto-last-file ()
-       ;; "Move cursor to last file of dired."
-       ;; (interactive)
-       ;; (goto-char (point-max))
-       ;; (while (not (dired-move-to-filename))
-	 ;; (call-interactively 'dired-previous-line)))
-     #+end_src
+       ;; (defun dired-goto-last-file ()
+	 ;; "Move cursor to last file of dired."
+	 ;; (interactive)
+	 ;; (goto-char (point-max))
+	 ;; (while (not (dired-move-to-filename))
+	   ;; (call-interactively 'dired-previous-line)))
+       #+end_src
 
-**** DONE Sorting functions:
-     CLOSED: [2020-04-11 Sat 00:31]
+****** DONE Sorting functions:
+       CLOSED: [2020-04-11 Sat 00:31]
 
-**** DONE Mark and move backwards:
-     CLOSED: [2020-04-11 Sat 00:53]
+****** DONE Mark and move backwards:
+       CLOSED: [2020-04-11 Sat 00:53]
 
-     This was always a missing feature imho.
+       This was always a missing feature imho.
 
-     #+begin_src emacs-lisp
-     ;; (defun l/dired-mark-backwards ()
-       ;; "Mark file at point and move backwards."
-       ;; (interactive)
-       ;; (if (dired-move-to-filename)
-	 ;; (progn
-	   ;; (dired-mark 1)
-	   ;; (dired-previous-line 2))))
+       #+begin_src emacs-lisp
+       ;; (defun l/dired-mark-backwards ()
+	 ;; "Mark file at point and move backwards."
+	 ;; (interactive)
+	 ;; (if (dired-move-to-filename)
+	   ;; (progn
+	     ;; (dired-mark 1)
+	     ;; (dired-previous-line 2))))
 
-     #+end_src
+       #+end_src
 
-**** DONE Narrow to marked files:
-     CLOSED: [2020-04-11 Sat 00:53]
+****** DONE Narrow to marked files:
+       CLOSED: [2020-04-11 Sat 00:53]
 
-     #+begin_src emacs-lisp
-     ;; (defun l/dired-narrow-to-marked-files ()
-       ;; "Show only marked files in dired buffer."
-       ;; (interactive)
-       ;; (let ((files (dired-get-marked-files)))
-	 ;; (unless (eq (length files) 1)
-	   ;; (dired-toggle-marks)
-	   ;; (dired-do-kill-lines))))
-     #+end_src
+       #+begin_src emacs-lisp
+       ;; (defun l/dired-narrow-to-marked-files ()
+	 ;; "Show only marked files in dired buffer."
+	 ;; (interactive)
+	 ;; (let ((files (dired-get-marked-files)))
+	   ;; (unless (eq (length files) 1)
+	     ;; (dired-toggle-marks)
+	     ;; (dired-do-kill-lines))))
+       #+end_src
 
-*** DONE Some useful (external) functions [5/5]
-    CLOSED: [2020-04-11 Sat 02:23]
+***** DONE Some useful (external) functions [5/5]
+      CLOSED: [2020-04-11 Sat 02:23]
     
-    Useful functions that use external programs.
+      Useful functions that use external programs.
 
-**** DONE Get subtitles:
-     CLOSED: [2020-04-11 Sat 01:11]
+****** DONE Get subtitles:
+       CLOSED: [2020-04-11 Sat 01:11]
 
-     Use [[https://github.com/Diaoul/subliminal][subliminal]] to find subtitles online. The gist of using 'start-process' comes from [[http://ergoemacs.org/emacs/elisp_call_shell_command.html][here]], and the idea of using 'apply' from [[https://stackoverflow.com/questions/17075920/passing-list-to-rest-args?rq=1][here]].
+       Use [[https://github.com/Diaoul/subliminal][subliminal]] to find subtitles online. The gist of using 'start-process' comes from [[http://ergoemacs.org/emacs/elisp_call_shell_command.html][here]], and the idea of using 'apply' from [[https://stackoverflow.com/questions/17075920/passing-list-to-rest-args?rq=1][here]].
 
-     #+begin_src emacs-lisp
-     ;; (defun l/get-subtitles ()
-       ;; "Get subtitles for marked files while in a dired buffer. Depends on subliminal, so it has to be on your system."
-       ;; (interactive)
-       ;; (when (eq major-mode 'dired-mode)
-	 ;; (let* ((lang-list '("en" "gr"))
-		;; (lang (completing-read "Select language: " lang-list nil t))
-		;; (files (dired-get-marked-files))
-		;; (process-connection-type nil))
-	   ;; (if (get-buffer "*get-subtitles*")
-	       ;; (kill-buffer "*get-subtitles*"))
-	   ;; (apply 'start-process
-		  ;; (append (list "get-subtitles" "*get-subtitles*" "subliminal" "download" "-l" lang) files))
-	 ;; (switch-to-buffer-other-window "*get-subtitles*")
-	 ;; (special-mode))))
-     #+end_src
-
-**** DONE Get files size:
-     CLOSED: [2020-04-11 Sat 01:07]
-
-     Source: 
-     #+begin_src emacs-lisp
-     ;; (defun dired-get-size ()
-       ;; "Get total size of marked files with `du' command.
-     ;; If not marked any files, default is current file or directory."
-       ;; (interactive)
-       ;; (let ((files (dired-get-marked-files)))
-	 ;; (with-temp-buffer
-	   ;; (apply 'call-process "/usr/bin/du" nil t nil "-sch" files)
-	   ;; (message "%s"
-		    ;; (progn
-		      ;; (re-search-backward "\\(^[0-9.,]+[A-Za-z]+\\).*\\(total\\|总用量\\)$")
-		      ;; (match-string 1))))))
-     #+end_src
-
-**** DONE Change desktop background:
-     CLOSED: [2020-04-11 Sat 01:12]
-
-     #+begin_src emacs-lisp
-     ;; (defun l/change-desktop-background ()
-       ;; "Change the desktop background using feh."
-       ;; (interactive)
-       ;; (let ((fit-type (completing-read "Select fit: " '("scale" "center" "fill" "max") nil t))
-	     ;; (entry (shell-quote-argument (expand-file-name (dired-file-name-at-point))))
-	     ;; (targetfile (shell-quote-argument (expand-file-name "~/.config/.wallpaper.jpg"))))
-	 ;; (setq cpcmd (concat "cp " entry " " targetfile))
-	 ;; (setq fehcmd (concat "feh --bg-" fit-type " " targetfile))
-	 ;; (setq cmd (concat cpcmd " && " fehcmd))
-	 ;; (shell-command cmd))) 
-     #+end_src
-
-**** DONE Unmount drives:
-     CLOSED: [2020-04-11 Sat 01:10]
-
-     Simple script to unmount drive. Uses 'mountpoint' and 'umount'. If unmounting fails, give some options (todo).
-
-     #+begin_src emacs-lisp
-     ;; (defun l/unmount-drive ()
-       ;; "Unmount selected directories, if they correspond to mountpoints."
-       ;; (interactive)
-       ;; (let ((dirs (dired-get-marked-files)))
-	 ;; (dired-do-shell-command "mountpoint -q ? && sudo umount ? && sudo rmdir ?" nil dirs)
-	 ;; (revert-buffer)))
-     #+end_src
-
-**** DONE COMMENT Pack/Unpack:
-     CLOSED: [2020-04-11 Sat 01:10]
-
-     I tried the dired-atool package but I didn't like it. I needed something simpler, also I didn't like the output display.
-
-     So I checked out the pack/unpack functions in the source and made mine, but simpler.
-
-     #+begin_src emacs-lisp
-     ;; pack
-     ;; (defun l/atool-pack ()
-       ;; "Use the `atool' program to pack some files."
-       ;; (interactive)
-       ;; (when (eq major-mode 'dired-mode)
-	 ;; (let ((files (dired-get-marked-files t))
-	       ;; (archive (expand-file-name
-			 ;; (read-file-name "Pack files as:" nil nil nil)))
-	       ;; (process-connection-type nil))
-	   ;; (if (get-buffer "*atool-pack*")
-	       ;; (kill-buffer "*atool-pack*"))
-	   ;; (apply 'start-process
-		  ;; (append (list "atool-pack" "*atool-pack*" "atool" "--explain" archive "-a") files))
-	   ;; (switch-to-buffer-other-window "*atool-pack*")
+       #+begin_src emacs-lisp
+       ;; (defun l/get-subtitles ()
+	 ;; "Get subtitles for marked files while in a dired buffer. Depends on subliminal, so it has to be on your system."
+	 ;; (interactive)
+	 ;; (when (eq major-mode 'dired-mode)
+	   ;; (let* ((lang-list '("en" "gr"))
+		  ;; (lang (completing-read "Select language: " lang-list nil t))
+		  ;; (files (dired-get-marked-files))
+		  ;; (process-connection-type nil))
+	     ;; (if (get-buffer "*get-subtitles*")
+		 ;; (kill-buffer "*get-subtitles*"))
+	     ;; (apply 'start-process
+		    ;; (append (list "get-subtitles" "*get-subtitles*" "subliminal" "download" "-l" lang) files))
+	   ;; (switch-to-buffer-other-window "*get-subtitles*")
 	   ;; (special-mode))))
+       #+end_src
 
-     ;; unpack
-     ;; (defun l/atool-unpack ()
-       ;; "Use the `atool' program to unpack some archives."
-       ;; (interactive)
-       ;; (when (eq major-mode 'dired-mode)
-	 ;; (let ((files (dired-get-marked-files t))
-	       ;; (dest (expand-file-name
-		      ;; (read-directory-name "Unpack files to:"
-					   ;; (dired-dwim-target-directory) nil nil)))
-	       ;; (process-connection-type nil))
-	   ;; (if (get-buffer "*atool-unpack*")
-	       ;; (kill-buffer "*atool-unpack*"))
-	   ;; (if (not (file-directory-p dest))
-	       ;; (make-directory dest))
-	   ;; (apply 'start-process
-		  ;; (append (list "atool-unpack" "*atool-unpack*" "atool" "--explain" "-X" dest) files))
-	   ;; (switch-to-buffer-other-window "*atool-unpack*")
-	   ;; (special-mode))))
-     #+end_src
+****** DONE Get files size:
+       CLOSED: [2020-04-11 Sat 01:07]
+
+       Source: 
+       #+begin_src emacs-lisp
+       ;; (defun dired-get-size ()
+	 ;; "Get total size of marked files with `du' command.
+       ;; If not marked any files, default is current file or directory."
+	 ;; (interactive)
+	 ;; (let ((files (dired-get-marked-files)))
+	   ;; (with-temp-buffer
+	     ;; (apply 'call-process "/usr/bin/du" nil t nil "-sch" files)
+	     ;; (message "%s"
+		      ;; (progn
+			;; (re-search-backward "\\(^[0-9.,]+[A-Za-z]+\\).*\\(total\\|总用量\\)$")
+			;; (match-string 1))))))
+       #+end_src
+
+****** DONE Change desktop background:
+       CLOSED: [2020-04-11 Sat 01:12]
+
+       #+begin_src emacs-lisp
+       ;; (defun l/change-desktop-background ()
+	 ;; "Change the desktop background using feh."
+	 ;; (interactive)
+	 ;; (let ((fit-type (completing-read "Select fit: " '("scale" "center" "fill" "max") nil t))
+	       ;; (entry (shell-quote-argument (expand-file-name (dired-file-name-at-point))))
+	       ;; (targetfile (shell-quote-argument (expand-file-name "~/.config/.wallpaper.jpg"))))
+	   ;; (setq cpcmd (concat "cp " entry " " targetfile))
+	   ;; (setq fehcmd (concat "feh --bg-" fit-type " " targetfile))
+	   ;; (setq cmd (concat cpcmd " && " fehcmd))
+	   ;; (shell-command cmd))) 
+       #+end_src
+
+****** DONE Unmount drives:
+       CLOSED: [2020-04-11 Sat 01:10]
+
+       Simple script to unmount drive. Uses 'mountpoint' and 'umount'. If unmounting fails, give some options (todo).
+
+       #+begin_src emacs-lisp
+       ;; (defun l/unmount-drive ()
+	 ;; "Unmount selected directories, if they correspond to mountpoints."
+	 ;; (interactive)
+	 ;; (let ((dirs (dired-get-marked-files)))
+	   ;; (dired-do-shell-command "mountpoint -q ? && sudo umount ? && sudo rmdir ?" nil dirs)
+	   ;; (revert-buffer)))
+       #+end_src
+
+****** DONE COMMENT Pack/Unpack:
+       CLOSED: [2020-04-11 Sat 01:10]
+
+       I tried the dired-atool package but I didn't like it. I needed something simpler, also I didn't like the output display.
+
+       So I checked out the pack/unpack functions in the source and made mine, but simpler.
+
+       #+begin_src emacs-lisp
+       ;; pack
+       ;; (defun l/atool-pack ()
+	 ;; "Use the `atool' program to pack some files."
+	 ;; (interactive)
+	 ;; (when (eq major-mode 'dired-mode)
+	   ;; (let ((files (dired-get-marked-files t))
+		 ;; (archive (expand-file-name
+			   ;; (read-file-name "Pack files as:" nil nil nil)))
+		 ;; (process-connection-type nil))
+	     ;; (if (get-buffer "*atool-pack*")
+		 ;; (kill-buffer "*atool-pack*"))
+	     ;; (apply 'start-process
+		    ;; (append (list "atool-pack" "*atool-pack*" "atool" "--explain" archive "-a") files))
+	     ;; (switch-to-buffer-other-window "*atool-pack*")
+	     ;; (special-mode))))
+
+       ;; unpack
+       ;; (defun l/atool-unpack ()
+	 ;; "Use the `atool' program to unpack some archives."
+	 ;; (interactive)
+	 ;; (when (eq major-mode 'dired-mode)
+	   ;; (let ((files (dired-get-marked-files t))
+		 ;; (dest (expand-file-name
+			;; (read-directory-name "Unpack files to:"
+					     ;; (dired-dwim-target-directory) nil nil)))
+		 ;; (process-connection-type nil))
+	     ;; (if (get-buffer "*atool-unpack*")
+		 ;; (kill-buffer "*atool-unpack*"))
+	     ;; (if (not (file-directory-p dest))
+		 ;; (make-directory dest))
+	     ;; (apply 'start-process
+		    ;; (append (list "atool-unpack" "*atool-unpack*" "atool" "--explain" "-X" dest) files))
+	     ;; (switch-to-buffer-other-window "*atool-unpack*")
+	     ;; (special-mode))))
+       #+end_src
      
-*** DONE Dired custom maps
-    CLOSED: [2020-04-11 Sat 02:23]
+***** DONE Dired custom maps
+      CLOSED: [2020-04-11 Sat 02:23]
 
-    #+begin_src emacs-lisp
-    ;; navigation map
-    ;; (define-prefix-command 'l/dired-nav-map)
+      #+begin_src emacs-lisp
+      ;; navigation map
+      ;; (define-prefix-command 'l/dired-nav-map)
 
-    ;; (define-key l/dired-nav-map "h" (lambda () (interactive) (dired "~/")))
-    ;; (define-key l/dired-nav-map "D" (lambda () (interactive) (dired "~/Downloads/")))
-    ;; (define-key l/dired-nav-map "d" (lambda () (interactive) (dired "~/Documents/")))
-    ;; (define-key l/dired-nav-map "p" (lambda () (interactive) (dired "~/Pictures/")))
-    ;; (define-key l/dired-nav-map "M" (lambda () (interactive) (dired "~/Music/")))
-    ;; (define-key l/dired-nav-map "v" (lambda () (interactive) (dired "~/Videos/")))
-    ;; (define-key l/dired-nav-map "m" (lambda () (interactive) (dired "/media")))
-    ;; (define-key l/dired-nav-map "C" (lambda () (interactive) (dired "~/.config/")))
-    ;; (define-key l/dired-nav-map "E" (lambda () (interactive) (dired "~/.emacs.d/")))
-    ;; (define-key l/dired-nav-map "!" (lambda () (interactive) (dired "~/dotfiles/")))
+      ;; (define-key l/dired-nav-map "h" (lambda () (interactive) (dired "~/")))
+      ;; (define-key l/dired-nav-map "D" (lambda () (interactive) (dired "~/Downloads/")))
+      ;; (define-key l/dired-nav-map "d" (lambda () (interactive) (dired "~/Documents/")))
+      ;; (define-key l/dired-nav-map "p" (lambda () (interactive) (dired "~/Pictures/")))
+      ;; (define-key l/dired-nav-map "M" (lambda () (interactive) (dired "~/Music/")))
+      ;; (define-key l/dired-nav-map "v" (lambda () (interactive) (dired "~/Videos/")))
+      ;; (define-key l/dired-nav-map "m" (lambda () (interactive) (dired "/media")))
+      ;; (define-key l/dired-nav-map "C" (lambda () (interactive) (dired "~/.config/")))
+      ;; (define-key l/dired-nav-map "E" (lambda () (interactive) (dired "~/.emacs.d/")))
+      ;; (define-key l/dired-nav-map "!" (lambda () (interactive) (dired "~/dotfiles/")))
 
-    ;; external scripts map -- Note: after using those, I think it's better to write full shell scripts and run those in emacs -- Sidenote: use dmenu for selection if those are run externally, but in emacs use the default completing mechanisms.
-    ;; (define-prefix-command 'l/dired-my-ext-cmds)
+      ;; external scripts map -- Note: after using those, I think it's better to write full shell scripts and run those in emacs -- Sidenote: use dmenu for selection if those are run externally, but in emacs use the default completing mechanisms.
+      ;; (define-prefix-command 'l/dired-my-ext-cmds)
 
-    ;; (define-key l/dired-my-ext-cmds "s" 'l/get-subtitles)
-    ;; (define-key l/dired-my-ext-cmds "?" 'dired-get-size)
-    ;; (define-key l/dired-my-ext-cmds "B" 'l/change-desktop-background)
-    ;; (define-key l/dired-my-ext-cmds "u" 'l/unmount-drive)
-    ;; (define-key l/dired-my-ext-cmds "zz" 'l/atool-pack)
-    ;; (define-key l/dired-my-ext-cmds "zx" 'l/atool-unpack)
-    #+end_src
+      ;; (define-key l/dired-my-ext-cmds "s" 'l/get-subtitles)
+      ;; (define-key l/dired-my-ext-cmds "?" 'dired-get-size)
+      ;; (define-key l/dired-my-ext-cmds "B" 'l/change-desktop-background)
+      ;; (define-key l/dired-my-ext-cmds "u" 'l/unmount-drive)
+      ;; (define-key l/dired-my-ext-cmds "zz" 'l/atool-pack)
+      ;; (define-key l/dired-my-ext-cmds "zx" 'l/atool-unpack)
+      #+end_src
 
-*** DONE Dired defaults
-    CLOSED: [2020-04-11 Sat 03:37]
+***** DONE Dired defaults
+      CLOSED: [2020-04-11 Sat 03:37]
 
-    #+begin_src emacs-lisp
-    ;; (setq dired-dwim-target t)
-    ;; (setq dired-listing-switches "-alh") ;; add human-readable sizes
+      #+begin_src emacs-lisp
+      ;; (setq dired-dwim-target t)
+      ;; (setq dired-listing-switches "-alh") ;; add human-readable sizes
 
 
-    ;; (add-hook 'dired-mode-hook
-	      ;; (lambda ()
-		;; (dired-hide-details-mode)
-		;; (dired-omit-mode)))
+      ;; (add-hook 'dired-mode-hook
+		;; (lambda ()
+		  ;; (dired-hide-details-mode)
+		  ;; (dired-omit-mode)))
 
-    ;; This hook seems to be added automatically to my 'custom.el' file and breaks dired. I have to find out where it comes from. It was a part of the `ranger' package, which I have deleted.
-    ;; (remove-hook 'dired-mode-hook 'ranger-set-dired-key)
-    #+end_src
+      ;; This hook seems to be added automatically to my 'custom.el' file and breaks dired. I have to find out where it comes from. It was a part of the `ranger' package, which I have deleted.
+      ;; (remove-hook 'dired-mode-hook 'ranger-set-dired-key)
+      #+end_src
 
-*** DONE Image dired
-    CLOSED: [2020-04-11 Sat 03:37]
+***** DONE Image dired
+      CLOSED: [2020-04-11 Sat 03:37]
 
-    #+begin_src emacs-lisp
-    ;; (setq image-dired-thumb-width 250)
-    ;; (setq image-dired-thumbs-per-row 4)
-    ;; (setq image-dired-external-viewer "sxiv")
-    #+end_src
+      #+begin_src emacs-lisp
+      ;; (setq image-dired-thumb-width 250)
+      ;; (setq image-dired-thumbs-per-row 4)
+      ;; (setq image-dired-external-viewer "sxiv")
+      #+end_src
 
-*** DONE Dired keybindings
-    CLOSED: [2020-04-11 Sat 03:37]
+***** DONE Dired keybindings
+      CLOSED: [2020-04-11 Sat 03:37]
 
-    Changing some default keybindings
+      Changing some default keybindings
 
-    #+begin_src emacs-lisp
-    ;; (eval-after-load "dired"
-      ;; '(progn
-	 ;; (define-key dired-mode-map "G" 'revert-buffer)
-	 ;; (define-key dired-mode-map "g" 'l/dired-nav-map)
-	 ;; (define-key dired-mode-map "z" 'dired-omit-mode)
-	 ;; (define-key dired-mode-map (kbd "C-x M-.") 'compose-attach-marked-files)
-	 ;; (define-key dired-mode-map (kbd "M-<") 'dired-goto-first-file)
-	 ;; (define-key dired-mode-map (kbd "M->") 'dired-goto-last-file)))
-    #+end_src
+      #+begin_src emacs-lisp
+      ;; (eval-after-load "dired"
+	;; '(progn
+	   ;; (define-key dired-mode-map "G" 'revert-buffer)
+	   ;; (define-key dired-mode-map "g" 'l/dired-nav-map)
+	   ;; (define-key dired-mode-map "z" 'dired-omit-mode)
+	   ;; (define-key dired-mode-map (kbd "C-x M-.") 'compose-attach-marked-files)
+	   ;; (define-key dired-mode-map (kbd "M-<") 'dired-goto-first-file)
+	   ;; (define-key dired-mode-map (kbd "M->") 'dired-goto-last-file)))
+      #+end_src
 
-*** DONE Evil dired bindings
-    CLOSED: [2020-04-11 Sat 02:49]
+***** DONE Evil dired bindings
+      CLOSED: [2020-04-11 Sat 02:49]
 
-   Loading the whole evil-collection proved cumbersome for me, there was some trouble with my custom keybindings (eg. I couldn't use 'r' as a prefix key, even when binding it to nil after loading evil-collection). Might be sth that I did wrong, but anyhow...
-
-   #+begin_src emacs-lisp
-   ;; ;; this is from evil-collection with some changes
-   ;; (eval-after-load "evil"
-   ;;   '(progn
-   ;;      (evil-define-key 'normal dired-mode-map
-   ;;        ;; basics
-   ;;        "q" 'quit-window
-   ;;        ;; basic movement
-   ;;        "j" 'dired-next-line
-   ;;        "k" 'dired-previous-line
-   ;;        "h" 'dired-up-directory
-   ;;        "l" 'dired-find-file
-   ;;        ">" 'dired-next-dirline
-   ;;        "<" 'dired-prev-dirline
-   ;;        "gg" 'dired-goto-first-file
-   ;;        "G" 'dired-goto-last-file
-   ;;        ;; basic functions
-   ;;        "A" 'dired-do-find-regexp
-   ;;        "B" 'dired-do-byte-compile
-   ;;        "C" 'dired-do-copy
-   ;;        "D" 'dired-do-delete
-   ;;        ;; dired-do-chgrp
-   ;;        "H" 'dired-do-hardlink
-   ;;        "L" 'dired-do-load
-   ;;        "M" 'dired-do-chmod
-   ;;        "O" 'dired-do-chown
-   ;;        "P" 'dired-do-print
-   ;;        "Q" 'dired-do-find-regexp-and-replace
-   ;;        "R" 'dired-do-rename
-   ;;        "S" 'dired-do-symlink
-   ;;        "T" 'dired-do-touch
-   ;;        "Z" 'dired-do-compress
-   ;;        "c" 'dired-do-compress-to
-   ;;        "!" 'dired-do-shell-command
-   ;;        "&" 'dired-do-async-shell-command
-   ;;        "=" 'dired-diff
-   ;;        ;; regexp operations
-   ;;        "%" nil ;; prefix
-   ;;        "%u" 'dired-upcase
-   ;;        "%l" 'dired-downcase
-   ;;        "%d" 'dired-flag-files-regexp
-   ;;        "%g" 'dired-mark-files-containing-regexp
-   ;;        "%m" 'dired-mark-files-regexp
-   ;;        "%C" 'dired-do-copy-regexp
-   ;;        "%H" 'dired-do-hardlink-regexp
-   ;;        "%R" 'dired-do-rename-regexp
-   ;;        "%S" 'dired-do-symlink-regexp
-   ;;        "%&" 'dired-flag-garbage-files
-   ;;        ;; marks & flags
-   ;;        "U" 'dired-unmark-all-marks
-   ;;        "u" 'dired-unmark
-   ;;        "m" 'dired-mark
-   ;;        (kbd "<SPC>") 'dired-mark
-   ;;        (kbd "C-<SPC>") 'l/dired-mark-backwards
-   ;;        "t" 'dired-toggle-marks
-   ;;        "d" 'dired-flag-file-deletion
-   ;;        "x" 'dired-do-flagged-delete
-   ;;        (kbd "* <delete>") 'dired-unmark-backward
-   ;;        (kbd "<delete>") 'dired-unmark-backward
-   ;;        "*" nil ;; prefix
-   ;;        "**" 'dired-mark-executables
-   ;;        "*/" 'dired-mark-directories
-   ;;        "*@" 'dired-mark-symlinks
-   ;;        "*%" 'dired-mark-files-regexp
-   ;;        "*(" 'dired-mark-sexp
-   ;;        "*." 'dired-mark-extension
-   ;;        "*O" 'dired-mark-omitted
-   ;;        "*c" 'dired-change-marks
-   ;;        "*s" 'dired-mark-subdir-files
-   ;;        "*?" 'dired-unmark-all-files
-   ;;        "*!" 'dired-unmark-all-marks
-   ;;        "*f" 'l/dired-narrow-to-marked-files
-   ;;        ;; encryption-decryption (epa-dired)
-   ;;        ";d" 'epa-dired-do-decrypt
-   ;;        ";v" 'epa-dired-do-verify
-   ;;        ";s" 'epa-dired-do-sign
-   ;;        ";e" 'epa-dired-do-encrypt
-   ;;        ;; unsorted
-   ;;        "X" 'l/dired-my-ext-cmds
-   ;;        "z" 'dired-omit-mode
-   ;;        "g" 'l/dired-nav-map
-   ;;        "gr" 'revert-buffer
-   ;;        "gR" 'dired-do-redisplay
-   ;;        "I" 'dired-maybe-insert-subdir
-   ;;        "i" 'dired-toggle-read-only
-   ;;        "J" 'dired-goto-file
-   ;;        "K" 'dired-do-kill-lines
-   ;;        "a" 'dired-find-alternate-file
-   ;;        "gy" 'dired-show-file-type
-   ;;        "Y" 'dired-copy-filename-as-kill
-   ;;        "+" 'dired-create-directory
-   ;;        (kbd "S-<return>") 'dired-find-file-other-window
-   ;;        (kbd "RET") 'dired-find-file
-   ;;        (kbd "M-<return>") 'browse-url-of-dired-file
-   ;;        ;; sorting
-   ;;        "o" nil ;; prefix -- was dired-sort-toggle-or-edit
-   ;;        "oo" 'l/dired-sort-by-name
-   ;;        "od" 'l/dired-sort-by-date
-   ;;        "os" 'l/dired-sort-by-size
-   ;;        "ox" 'l/dired-sort-by-ext
-   ;;        "o=" 'l/dired-sort-dirs-first
-   ;;        "(" 'dired-hide-details-mode
-   ;;        "g?" 'dired-summary
-   ;;        "?" 'dired-get-size)
-
-   ;;      (add-hook 'dired-mode-hook 'evil-normalize-keymaps)))
-   #+end_src
-
-*** DONE Dired subtree
-    CLOSED: [2020-04-11 Sat 04:28]
-
-    #+begin_src emacs-lisp
-    ;; (use-package dired-subtree
-      ;; :ensure t
-      ;; :after dired evil
-      ;; :config
-      ;; (evil-define-key 'normal dired-mode-map (kbd "TAB") 'dired-subtree-toggle))
-    #+end_src
-
-*** DONE Peep dired
-    CLOSED: [2020-04-11 Sat 04:23]
-
-    Peep dired is loaded from [[https://github.com/dakodeon/peep-dired][my fork]].
-
-**** Peepy-fied dired functions
-
-     Some functions for a more consistent peeping experience.
-     
-     Note: these were left out of my peep-dired fork because they are not part of dired
+     Loading the whole evil-collection proved cumbersome for me, there was some trouble with my custom keybindings (eg. I couldn't use 'r' as a prefix key, even when binding it to nil after loading evil-collection). Might be sth that I did wrong, but anyhow...
 
      #+begin_src emacs-lisp
-     ;; (defun l/peep-dired-goto-first-file ()
-       ;; "Go to first file line and peep there. Uses `dired-goto-first-file'"
-       ;; (interactive)
-       ;; (dired-goto-first-file)
-       ;; (peep-dired-display-file-other-window))
-
-     ;; (defun l/peep-dired-goto-last-file ()
-       ;; "Go to last file line and peep there. Uses `dired-goto-last-file'"
-       ;; (interactive)
-       ;; (dired-goto-last-file)
-       ;; (peep-dired-display-file-other-window))
-
-     ;; (defun l/peep-dired-mark-backwards ()
-       ;; "Mark and peep backwards."
-       ;; (interactive)
-       ;; (l/dired-mark-backwards)
-       ;; (peep-dired-display-file-other-window))
-     #+end_src
-
-**** Load Peep
-
-     This is my fork of peep-dired. clone it from [[https://github.com/dakodeon/peep-dired/tree/luc][github]] and set =:load-path= to point to the correct path.
-
-    #+begin_src emacs-lisp
-    ;; (use-package peep-dired
-      ;; :load-path "~/.source/peep-dired"
-      ;; :delight (peep-dired " ")
-      ;; :after dired-x
-      ;; :init
-      ;; is this that creates an error? -- Yes, do not use it, or fix it
-      ;; (setq peep-dired-cleanup-eagerly t)
-      ;; (setq peep-dired-ignored-extensions '("mkv" "mp4" "avi" "mov" "mp3" "wav" "iso"))
-      ;; :config
-      ;; evil integration
-      ;; (eval-after-load "evil"
-	;; '(progn
-	   ;; (evil-define-key 'normal peep-dired-mode-map
-	     ;; (kbd "C-j") 'peep-dired-scroll-page-down
-	     ;; (kbd "C-k") 'peep-dired-scroll-page-up
-	     ;; (kbd "j") 'peep-dired-next-file
-	     ;; (kbd "<down>") 'peep-dired-next-file
-	     ;; (kbd "k") 'peep-dired-prev-file
-	     ;; (kbd "<up>") 'peep-dired-prev-file
-	     ;; (kbd "h") 'peep-dired-up-directory
-	     ;; (kbd "<left>") 'peep-dired-up-directory
-	     ;; (kbd "l") 'peep-dired-find-file
-	     ;; (kbd "<right>") 'peep-dired-find-file
-	     ;; (kbd ">") 'peep-dired-next-dirline
-	     ;; (kbd "<") 'peep-dired-prev-dirline
-	     ;; (kbd "g g") 'l/peep-dired-goto-first-file
-	     ;; (kbd "G") 'l/peep-dired-goto-last-file
-	     ;; (kbd "C-SPC") 'l/peep-dired-mark-backwards)
-	   ;; (evil-define-key 'normal dired-mode-map (kbd "p") 'peep-dired)
-	   ;; (add-hook 'peep-dired-hook 'evil-normalize-keymaps)))
-      ;; :bind
-      ;; (:map dired-mode-map
-	    ;; ("p" . 'peep-dired)))
-    #+end_src
-
-*** DONE Dired narrow
-    CLOSED: [2020-04-11 Sat 04:30]
-
-    Narrow down what is shown in dired by filtering filenames.
-
-    #+begin_src emacs-lisp
-    ;; (use-package dired-narrow
-      ;; :ensure t
-      ;; :delight (dired-narrow-mode " >⋅<")
-      ;; :after dired evil
-      ;; :init
-      ;; (setq dired-narrow-exit-when-one-left t)
-      ;; :config
-      ;; (evil-define-key 'normal dired-mode-map (kbd "f") 'dired-narrow)
-      ;; :bind
-      ;; (:map dired-mode-map
-	    ;; ("f" . 'dired-narrow)))
-
-    #+end_src
-
-*** DONE Copying and pasting (and bookmarks)
-    CLOSED: [2020-04-11 Sat 04:50]
-
-    Three methods of copying and pasting:
-    1. Normal: The default dired way, copy and select destination on execution. Works neatly with the =dired-target-dwim= option, but sometimes you want to mark some files to copy and then paste them after some navigation.
-
-    2. Dired-ranger: Ranger-like copying and pasting (also bookmarks, but I have to check those out)
-
-    #+begin_src emacs-lisp
-    ;; (use-package dired-ranger
-      ;; :ensure t
-      ;; :after dired
-      ;; :init
-      ;; (setq dired-ranger-bookmark-reopen 'always)
-      ;; :config
-      ;; function to visit previous directory
-      ;; (defun l/dired-ranger-bookmark-visit-LRU ()
-	;; "Go to last visited directory."
-	;; (interactive)
-	;; (dired-ranger-bookmark-visit dired-ranger-bookmark-LRU))
-
-      ;; evil integration
-      ;; (eval-after-load "evil"
-	;; '(progn
-	   ;; (evil-define-key 'normal dired-mode-map
-	     ;; "y" nil ;; prefix
-	     ;; "yy" 'dired-ranger-copy
-	     ;; "yP" 'dired-ranger-move
-	     ;; "yp" 'dired-ranger-paste
-	     ;; "`" nil ;; prefix
-	     ;; "``" 'l/dired-ranger-bookmark-visit-LRU
-	     ;; "`v" 'dired-ranger-bookmark-visit
-	     ;; "`m" 'dired-ranger-bookmark))))
-    #+end_src
-
-    3. Dired-rsync: Really useful for BIG files, as it does not freeze emacs. Also, progress is shown in the modeline! Some other benefits, like copy-pasting from remote, are not yet explored. Works like normal copying.
-
-    #+begin_src emacs-lisp
-    ;; (use-package dired-rsync
-      ;; :ensure t
-      ;; :after dired
-      ;; :init
-      ;; (setq dired-rsync-unmark-on-completion nil)
-      ;; :config
-      ;; (defun l/dired-rsync-to-FAT32 ()
-	;; "Change `dired-rsync-options' temporarily to rsync to FAT32 driver."
-	;; (interactive)
-	;; (let ((dired-rsync-options "-rDz --info=progress2")
-	      ;; (dest (read-file-name "rsync to: " (dired-dwim-target-directory)
-			      ;; nil nil nil 'file-directory-p)))
-	      ;; (dired-rsync dest)))
-      ;; (eval-after-load "evil"
-	;; '(progn
-	   ;; (evil-define-key 'normal dired-mode-map "rr" 'dired-rsync)
-	   ;; (evil-define-key 'normal dired-mode-map "rf" 'l/dired-rsync-to-FAT32))))
-    #+end_src
-
-**** TODO Simplify keystrokes:
-     All this is really nice, but now I have three different keys related to copy-pasting (C, y, r). Maybe I should fix this somehow? I guess I will decide as I use it.
-
-*** DONE Wdired [2/2]
-    CLOSED: [2020-04-11 Sat 04:43]
-
-**** DONE Renaming functions
-     CLOSED: [2020-04-11 Sat 03:59]
-     #+begin_src emacs-lisp
-     ;; (defun l/evil-wdired-append-to-filename ()
-       ;; "Renaming helper for `wdired'. Append to filename before the extension."
-       ;; (interactive)
-       ;; (move-end-of-line nil)
-       ;; (search-backward ".")
-       ;; (evil-insert 1))
-
-     ;; (defun l/evil-wdired-change-filename ()
-       ;; "Renaming helper for `wdired'. Change the filename but keep the extension."
-       ;; (interactive)
-       ;; (move-end-of-line nil)
-       ;; (search-backward ".")
-       ;; (kill-region 1 (point))
-       ;; (evil-insert 1))
-
-     ;; (defun l/evil-wdired-change-extension ()
-       ;; "Renaming helper for `wdired'. Change file's extension."
-       ;; (interactive)
-       ;; (move-end-of-line nil)
-       ;; (set-mark-command nil)
-       ;; (search-backward ".")
-       ;; (forward-char)
-       ;; (kill-region (point) (mark))
-       ;; (evil-insert 1))
-     #+end_src
-
-**** DONE Wdired hook
-     CLOSED: [2020-04-11 Sat 03:59]
-
-     Just display a message when entering wdired!
-
-     #+begin_src emacs-lisp
+     ;; ;; this is from evil-collection with some changes
      ;; (eval-after-load "evil"
-       ;; '(progn
-	  ;; (evil-define-key 'normal wdired-mode-map
-	    ;; (kbd "C-r w") 'l/evil-wdired-change-filename
-	    ;; (kbd "C-r a") 'l/evil-wdired-append-to-filename
-	    ;; (kbd "C-r x") 'l/evil-wdired-change-extension)))
+     ;;   '(progn
+     ;;      (evil-define-key 'normal dired-mode-map
+     ;;        ;; basics
+     ;;        "q" 'quit-window
+     ;;        ;; basic movement
+     ;;        "j" 'dired-next-line
+     ;;        "k" 'dired-previous-line
+     ;;        "h" 'dired-up-directory
+     ;;        "l" 'dired-find-file
+     ;;        ">" 'dired-next-dirline
+     ;;        "<" 'dired-prev-dirline
+     ;;        "gg" 'dired-goto-first-file
+     ;;        "G" 'dired-goto-last-file
+     ;;        ;; basic functions
+     ;;        "A" 'dired-do-find-regexp
+     ;;        "B" 'dired-do-byte-compile
+     ;;        "C" 'dired-do-copy
+     ;;        "D" 'dired-do-delete
+     ;;        ;; dired-do-chgrp
+     ;;        "H" 'dired-do-hardlink
+     ;;        "L" 'dired-do-load
+     ;;        "M" 'dired-do-chmod
+     ;;        "O" 'dired-do-chown
+     ;;        "P" 'dired-do-print
+     ;;        "Q" 'dired-do-find-regexp-and-replace
+     ;;        "R" 'dired-do-rename
+     ;;        "S" 'dired-do-symlink
+     ;;        "T" 'dired-do-touch
+     ;;        "Z" 'dired-do-compress
+     ;;        "c" 'dired-do-compress-to
+     ;;        "!" 'dired-do-shell-command
+     ;;        "&" 'dired-do-async-shell-command
+     ;;        "=" 'dired-diff
+     ;;        ;; regexp operations
+     ;;        "%" nil ;; prefix
+     ;;        "%u" 'dired-upcase
+     ;;        "%l" 'dired-downcase
+     ;;        "%d" 'dired-flag-files-regexp
+     ;;        "%g" 'dired-mark-files-containing-regexp
+     ;;        "%m" 'dired-mark-files-regexp
+     ;;        "%C" 'dired-do-copy-regexp
+     ;;        "%H" 'dired-do-hardlink-regexp
+     ;;        "%R" 'dired-do-rename-regexp
+     ;;        "%S" 'dired-do-symlink-regexp
+     ;;        "%&" 'dired-flag-garbage-files
+     ;;        ;; marks & flags
+     ;;        "U" 'dired-unmark-all-marks
+     ;;        "u" 'dired-unmark
+     ;;        "m" 'dired-mark
+     ;;        (kbd "<SPC>") 'dired-mark
+     ;;        (kbd "C-<SPC>") 'l/dired-mark-backwards
+     ;;        "t" 'dired-toggle-marks
+     ;;        "d" 'dired-flag-file-deletion
+     ;;        "x" 'dired-do-flagged-delete
+     ;;        (kbd "* <delete>") 'dired-unmark-backward
+     ;;        (kbd "<delete>") 'dired-unmark-backward
+     ;;        "*" nil ;; prefix
+     ;;        "**" 'dired-mark-executables
+     ;;        "*/" 'dired-mark-directories
+     ;;        "*@" 'dired-mark-symlinks
+     ;;        "*%" 'dired-mark-files-regexp
+     ;;        "*(" 'dired-mark-sexp
+     ;;        "*." 'dired-mark-extension
+     ;;        "*O" 'dired-mark-omitted
+     ;;        "*c" 'dired-change-marks
+     ;;        "*s" 'dired-mark-subdir-files
+     ;;        "*?" 'dired-unmark-all-files
+     ;;        "*!" 'dired-unmark-all-marks
+     ;;        "*f" 'l/dired-narrow-to-marked-files
+     ;;        ;; encryption-decryption (epa-dired)
+     ;;        ";d" 'epa-dired-do-decrypt
+     ;;        ";v" 'epa-dired-do-verify
+     ;;        ";s" 'epa-dired-do-sign
+     ;;        ";e" 'epa-dired-do-encrypt
+     ;;        ;; unsorted
+     ;;        "X" 'l/dired-my-ext-cmds
+     ;;        "z" 'dired-omit-mode
+     ;;        "g" 'l/dired-nav-map
+     ;;        "gr" 'revert-buffer
+     ;;        "gR" 'dired-do-redisplay
+     ;;        "I" 'dired-maybe-insert-subdir
+     ;;        "i" 'dired-toggle-read-only
+     ;;        "J" 'dired-goto-file
+     ;;        "K" 'dired-do-kill-lines
+     ;;        "a" 'dired-find-alternate-file
+     ;;        "gy" 'dired-show-file-type
+     ;;        "Y" 'dired-copy-filename-as-kill
+     ;;        "+" 'dired-create-directory
+     ;;        (kbd "S-<return>") 'dired-find-file-other-window
+     ;;        (kbd "RET") 'dired-find-file
+     ;;        (kbd "M-<return>") 'browse-url-of-dired-file
+     ;;        ;; sorting
+     ;;        "o" nil ;; prefix -- was dired-sort-toggle-or-edit
+     ;;        "oo" 'l/dired-sort-by-name
+     ;;        "od" 'l/dired-sort-by-date
+     ;;        "os" 'l/dired-sort-by-size
+     ;;        "ox" 'l/dired-sort-by-ext
+     ;;        "o=" 'l/dired-sort-dirs-first
+     ;;        "(" 'dired-hide-details-mode
+     ;;        "g?" 'dired-summary
+     ;;        "?" 'dired-get-size)
+
+     ;;      (add-hook 'dired-mode-hook 'evil-normalize-keymaps)))
      #+end_src
 
-*** DONE Dired rainbow
-    CLOSED: [2020-04-11 Sat 04:53]
+***** DONE Dired subtree
+      CLOSED: [2020-04-11 Sat 04:28]
 
-    Prettier dired. I haven't really tweaked anything, it's just some defaults from their github page.
+      #+begin_src emacs-lisp
+      ;; (use-package dired-subtree
+	;; :ensure t
+	;; :after dired evil
+	;; :config
+	;; (evil-define-key 'normal dired-mode-map (kbd "TAB") 'dired-subtree-toggle))
+      #+end_src
 
-    #+begin_src emacs-lisp
-    ;; (use-package dired-rainbow
-      ;; :ensure t
-      ;; :config
-      ;; (progn
-	;; (dired-rainbow-define-chmod directory "#6cb2eb" "d.*")
-	;; (dired-rainbow-define html "#eb5286" ("css" "less" "sass" "scss" "htm" "html" "jhtm" "mht" "eml" "mustache" "xhtml"))
-	;; (dired-rainbow-define xml "#f2d024" ("xml" "xsd" "xsl" "xslt" "wsdl" "bib" "json" "msg" "pgn" "rss" "yaml" "yml" "rdata"))
-	;; (dired-rainbow-define document "#9561e2" ("docm" "doc" "docx" "odb" "odt" "pdb" "pdf" "ps" "rtf" "djvu" "epub" "odp" "ppt" "pptx"))
-	;; (dired-rainbow-define markdown "#ffed4a" ("org" "etx" "info" "markdown" "md" "mkd" "nfo" "pod" "rst" "tex" "textfile" "txt"))
-	;; (dired-rainbow-define database "#6574cd" ("xlsx" "xls" "csv" "accdb" "db" "mdb" "sqlite" "nc"))
-	;; (dired-rainbow-define media "#de751f" ("mp3" "mp4" "MP3" "MP4" "avi" "mpeg" "mpg" "flv" "ogg" "mov" "mid" "midi" "wav" "aiff" "flac"))
-	;; (dired-rainbow-define image "#f66d9b" ("tiff" "tif" "cdr" "gif" "ico" "jpeg" "jpg" "png" "psd" "eps" "svg"))
-	;; (dired-rainbow-define log "#c17d11" ("log"))
-	;; (dired-rainbow-define shell "#f6993f" ("awk" "bash" "bat" "sed" "sh" "zsh" "vim"))
-	;; (dired-rainbow-define interpreted "#38c172" ("py" "ipynb" "rb" "pl" "t" "msql" "mysql" "pgsql" "sql" "r" "clj" "cljs" "scala" "js"))
-	;; (dired-rainbow-define compiled "#4dc0b5" ("asm" "cl" "lisp" "el" "c" "h" "c++" "h++" "hpp" "hxx" "m" "cc" "cs" "cp" "cpp" "go" "f" "for" "ftn" "f90" "f95" "f03" "f08" "s" "rs" "hi" "hs" "pyc" ".java"))
-	;; (dired-rainbow-define executable "#8cc4ff" ("exe" "msi"))
-	;; (dired-rainbow-define compressed "#51d88a" ("7z" "zip" "bz2" "tgz" "txz" "gz" "xz" "z" "Z" "jar" "war" "ear" "rar" "sar" "xpi" "apk" "xz" "tar"))
-	;; (dired-rainbow-define packaged "#faad63" ("deb" "rpm" "apk" "jad" "jar" "cab" "pak" "pk3" "vdf" "vpk" "bsp"))
-	;; (dired-rainbow-define encrypted "#ffed4a" ("gpg" "pgp" "asc" "bfe" "enc" "signature" "sig" "p12" "pem"))
-	;; (dired-rainbow-define fonts "#6cb2eb" ("afm" "fon" "fnt" "pfb" "pfm" "ttf" "otf"))
-	;; (dired-rainbow-define partition "#e3342f" ("dmg" "iso" "bin" "nrg" "qcow" "toast" "vcd" "vmdk" "bak"))
-	;; (dired-rainbow-define vc "#0074d9" ("git" "gitignore" "gitattributes" "gitmodules"))
-	;; (dired-rainbow-define-chmod executable-unix "#38c172" "-.*x.*")
-	;; ))
-    #+end_src
+***** DONE Peep dired
+      CLOSED: [2020-04-11 Sat 04:23]
 
-*** DONE Dired icons
-    CLOSED: [2020-04-11 Sat 04:56]
+      Peep dired is loaded from [[https://github.com/dakodeon/peep-dired][my fork]].
 
-    Pretty icons for Dired!
+****** Peepy-fied dired functions
 
-    #+begin_src emacs-lisp
-    ;; (use-package all-the-icons-dired
-      ;; :ensure t
-      ;; :delight
-      ;; :after dired all-the-icons
-      ;; :config
-      ;; (add-hook 'dired-mode-hook 'all-the-icons-dired-mode))
-    #+end_src
+       Some functions for a more consistent peeping experience.
+     
+       Note: these were left out of my peep-dired fork because they are not part of dired
 
-** PDF TOOLS
+       #+begin_src emacs-lisp
+       ;; (defun l/peep-dired-goto-first-file ()
+	 ;; "Go to first file line and peep there. Uses `dired-goto-first-file'"
+	 ;; (interactive)
+	 ;; (dired-goto-first-file)
+	 ;; (peep-dired-display-file-other-window))
 
-   Pdf-tools cannot handle an update.
-   #+begin_src emacs-lisp
-     ;; (use-package pdf-tools
-       ;; :ensure t
-       ;; :pin manual ;; don't reinstall on updates
-       ;; :init
-       ;; (pdf-tools-install))
+       ;; (defun l/peep-dired-goto-last-file ()
+	 ;; "Go to last file line and peep there. Uses `dired-goto-last-file'"
+	 ;; (interactive)
+	 ;; (dired-goto-last-file)
+	 ;; (peep-dired-display-file-other-window))
 
-     ;; (add-to-list 'load-path "~/.source/pdf-tools")
-     ;; (require 'pdf-tools)
-     ;; (eval-after-load "pdf-tools"
-       ;; (pdf-tools-install))
-   #+end_src
+       ;; (defun l/peep-dired-mark-backwards ()
+	 ;; "Mark and peep backwards."
+	 ;; (interactive)
+	 ;; (l/dired-mark-backwards)
+	 ;; (peep-dired-display-file-other-window))
+       #+end_src
 
-** DIARY AND CALENDAR
+****** Load Peep
 
-   It made sense for these two to be configured together.
+       This is my fork of peep-dired. clone it from [[https://github.com/dakodeon/peep-dired/tree/luc][github]] and set =:load-path= to point to the correct path.
 
-   I want to make diary/calendar mode my default scheduling application.
-   The diary will show upon entering emacs, and all the diary entries will be shown in the calendar.
+      #+begin_src emacs-lisp
+      ;; (use-package peep-dired
+	;; :load-path "~/.source/peep-dired"
+	;; :delight (peep-dired " ")
+	;; :after dired-x
+	;; :init
+	;; is this that creates an error? -- Yes, do not use it, or fix it
+	;; (setq peep-dired-cleanup-eagerly t)
+	;; (setq peep-dired-ignored-extensions '("mkv" "mp4" "avi" "mov" "mp3" "wav" "iso"))
+	;; :config
+	;; evil integration
+	;; (eval-after-load "evil"
+	  ;; '(progn
+	     ;; (evil-define-key 'normal peep-dired-mode-map
+	       ;; (kbd "C-j") 'peep-dired-scroll-page-down
+	       ;; (kbd "C-k") 'peep-dired-scroll-page-up
+	       ;; (kbd "j") 'peep-dired-next-file
+	       ;; (kbd "<down>") 'peep-dired-next-file
+	       ;; (kbd "k") 'peep-dired-prev-file
+	       ;; (kbd "<up>") 'peep-dired-prev-file
+	       ;; (kbd "h") 'peep-dired-up-directory
+	       ;; (kbd "<left>") 'peep-dired-up-directory
+	       ;; (kbd "l") 'peep-dired-find-file
+	       ;; (kbd "<right>") 'peep-dired-find-file
+	       ;; (kbd ">") 'peep-dired-next-dirline
+	       ;; (kbd "<") 'peep-dired-prev-dirline
+	       ;; (kbd "g g") 'l/peep-dired-goto-first-file
+	       ;; (kbd "G") 'l/peep-dired-goto-last-file
+	       ;; (kbd "C-SPC") 'l/peep-dired-mark-backwards)
+	     ;; (evil-define-key 'normal dired-mode-map (kbd "p") 'peep-dired)
+	     ;; (add-hook 'peep-dired-hook 'evil-normalize-keymaps)))
+	;; :bind
+	;; (:map dired-mode-map
+	      ;; ("p" . 'peep-dired)))
+      #+end_src
+
+***** DONE Dired narrow
+      CLOSED: [2020-04-11 Sat 04:30]
+
+      Narrow down what is shown in dired by filtering filenames.
+
+      #+begin_src emacs-lisp
+      ;; (use-package dired-narrow
+	;; :ensure t
+	;; :delight (dired-narrow-mode " >⋅<")
+	;; :after dired evil
+	;; :init
+	;; (setq dired-narrow-exit-when-one-left t)
+	;; :config
+	;; (evil-define-key 'normal dired-mode-map (kbd "f") 'dired-narrow)
+	;; :bind
+	;; (:map dired-mode-map
+	      ;; ("f" . 'dired-narrow)))
+
+      #+end_src
+
+***** DONE Copying and pasting (and bookmarks)
+      CLOSED: [2020-04-11 Sat 04:50]
+
+      Three methods of copying and pasting:
+      1. Normal: The default dired way, copy and select destination on execution. Works neatly with the =dired-target-dwim= option, but sometimes you want to mark some files to copy and then paste them after some navigation.
+
+      2. Dired-ranger: Ranger-like copying and pasting (also bookmarks, but I have to check those out)
+
+      #+begin_src emacs-lisp
+      ;; (use-package dired-ranger
+	;; :ensure t
+	;; :after dired
+	;; :init
+	;; (setq dired-ranger-bookmark-reopen 'always)
+	;; :config
+	;; function to visit previous directory
+	;; (defun l/dired-ranger-bookmark-visit-LRU ()
+	  ;; "Go to last visited directory."
+	  ;; (interactive)
+	  ;; (dired-ranger-bookmark-visit dired-ranger-bookmark-LRU))
+
+	;; evil integration
+	;; (eval-after-load "evil"
+	  ;; '(progn
+	     ;; (evil-define-key 'normal dired-mode-map
+	       ;; "y" nil ;; prefix
+	       ;; "yy" 'dired-ranger-copy
+	       ;; "yP" 'dired-ranger-move
+	       ;; "yp" 'dired-ranger-paste
+	       ;; "`" nil ;; prefix
+	       ;; "``" 'l/dired-ranger-bookmark-visit-LRU
+	       ;; "`v" 'dired-ranger-bookmark-visit
+	       ;; "`m" 'dired-ranger-bookmark))))
+      #+end_src
+
+      3. Dired-rsync: Really useful for BIG files, as it does not freeze emacs. Also, progress is shown in the modeline! Some other benefits, like copy-pasting from remote, are not yet explored. Works like normal copying.
+
+      #+begin_src emacs-lisp
+      ;; (use-package dired-rsync
+	;; :ensure t
+	;; :after dired
+	;; :init
+	;; (setq dired-rsync-unmark-on-completion nil)
+	;; :config
+	;; (defun l/dired-rsync-to-FAT32 ()
+	  ;; "Change `dired-rsync-options' temporarily to rsync to FAT32 driver."
+	  ;; (interactive)
+	  ;; (let ((dired-rsync-options "-rDz --info=progress2")
+		;; (dest (read-file-name "rsync to: " (dired-dwim-target-directory)
+				;; nil nil nil 'file-directory-p)))
+		;; (dired-rsync dest)))
+	;; (eval-after-load "evil"
+	  ;; '(progn
+	     ;; (evil-define-key 'normal dired-mode-map "rr" 'dired-rsync)
+	     ;; (evil-define-key 'normal dired-mode-map "rf" 'l/dired-rsync-to-FAT32))))
+      #+end_src
+
+****** TODO Simplify keystrokes:
+       All this is really nice, but now I have three different keys related to copy-pasting (C, y, r). Maybe I should fix this somehow? I guess I will decide as I use it.
+
+***** DONE Wdired [2/2]
+      CLOSED: [2020-04-11 Sat 04:43]
+
+****** DONE Renaming functions
+       CLOSED: [2020-04-11 Sat 03:59]
+       #+begin_src emacs-lisp
+       ;; (defun l/evil-wdired-append-to-filename ()
+	 ;; "Renaming helper for `wdired'. Append to filename before the extension."
+	 ;; (interactive)
+	 ;; (move-end-of-line nil)
+	 ;; (search-backward ".")
+	 ;; (evil-insert 1))
+
+       ;; (defun l/evil-wdired-change-filename ()
+	 ;; "Renaming helper for `wdired'. Change the filename but keep the extension."
+	 ;; (interactive)
+	 ;; (move-end-of-line nil)
+	 ;; (search-backward ".")
+	 ;; (kill-region 1 (point))
+	 ;; (evil-insert 1))
+
+       ;; (defun l/evil-wdired-change-extension ()
+	 ;; "Renaming helper for `wdired'. Change file's extension."
+	 ;; (interactive)
+	 ;; (move-end-of-line nil)
+	 ;; (set-mark-command nil)
+	 ;; (search-backward ".")
+	 ;; (forward-char)
+	 ;; (kill-region (point) (mark))
+	 ;; (evil-insert 1))
+       #+end_src
+
+****** DONE Wdired hook
+       CLOSED: [2020-04-11 Sat 03:59]
+
+       Just display a message when entering wdired!
+
+       #+begin_src emacs-lisp
+       ;; (eval-after-load "evil"
+	 ;; '(progn
+	    ;; (evil-define-key 'normal wdired-mode-map
+	      ;; (kbd "C-r w") 'l/evil-wdired-change-filename
+	      ;; (kbd "C-r a") 'l/evil-wdired-append-to-filename
+	      ;; (kbd "C-r x") 'l/evil-wdired-change-extension)))
+       #+end_src
+
+***** DONE Dired rainbow
+      CLOSED: [2020-04-11 Sat 04:53]
+
+      Prettier dired. I haven't really tweaked anything, it's just some defaults from their github page.
+
+      #+begin_src emacs-lisp
+      ;; (use-package dired-rainbow
+	;; :ensure t
+	;; :config
+	;; (progn
+	  ;; (dired-rainbow-define-chmod directory "#6cb2eb" "d.*")
+	  ;; (dired-rainbow-define html "#eb5286" ("css" "less" "sass" "scss" "htm" "html" "jhtm" "mht" "eml" "mustache" "xhtml"))
+	  ;; (dired-rainbow-define xml "#f2d024" ("xml" "xsd" "xsl" "xslt" "wsdl" "bib" "json" "msg" "pgn" "rss" "yaml" "yml" "rdata"))
+	  ;; (dired-rainbow-define document "#9561e2" ("docm" "doc" "docx" "odb" "odt" "pdb" "pdf" "ps" "rtf" "djvu" "epub" "odp" "ppt" "pptx"))
+	  ;; (dired-rainbow-define markdown "#ffed4a" ("org" "etx" "info" "markdown" "md" "mkd" "nfo" "pod" "rst" "tex" "textfile" "txt"))
+	  ;; (dired-rainbow-define database "#6574cd" ("xlsx" "xls" "csv" "accdb" "db" "mdb" "sqlite" "nc"))
+	  ;; (dired-rainbow-define media "#de751f" ("mp3" "mp4" "MP3" "MP4" "avi" "mpeg" "mpg" "flv" "ogg" "mov" "mid" "midi" "wav" "aiff" "flac"))
+	  ;; (dired-rainbow-define image "#f66d9b" ("tiff" "tif" "cdr" "gif" "ico" "jpeg" "jpg" "png" "psd" "eps" "svg"))
+	  ;; (dired-rainbow-define log "#c17d11" ("log"))
+	  ;; (dired-rainbow-define shell "#f6993f" ("awk" "bash" "bat" "sed" "sh" "zsh" "vim"))
+	  ;; (dired-rainbow-define interpreted "#38c172" ("py" "ipynb" "rb" "pl" "t" "msql" "mysql" "pgsql" "sql" "r" "clj" "cljs" "scala" "js"))
+	  ;; (dired-rainbow-define compiled "#4dc0b5" ("asm" "cl" "lisp" "el" "c" "h" "c++" "h++" "hpp" "hxx" "m" "cc" "cs" "cp" "cpp" "go" "f" "for" "ftn" "f90" "f95" "f03" "f08" "s" "rs" "hi" "hs" "pyc" ".java"))
+	  ;; (dired-rainbow-define executable "#8cc4ff" ("exe" "msi"))
+	  ;; (dired-rainbow-define compressed "#51d88a" ("7z" "zip" "bz2" "tgz" "txz" "gz" "xz" "z" "Z" "jar" "war" "ear" "rar" "sar" "xpi" "apk" "xz" "tar"))
+	  ;; (dired-rainbow-define packaged "#faad63" ("deb" "rpm" "apk" "jad" "jar" "cab" "pak" "pk3" "vdf" "vpk" "bsp"))
+	  ;; (dired-rainbow-define encrypted "#ffed4a" ("gpg" "pgp" "asc" "bfe" "enc" "signature" "sig" "p12" "pem"))
+	  ;; (dired-rainbow-define fonts "#6cb2eb" ("afm" "fon" "fnt" "pfb" "pfm" "ttf" "otf"))
+	  ;; (dired-rainbow-define partition "#e3342f" ("dmg" "iso" "bin" "nrg" "qcow" "toast" "vcd" "vmdk" "bak"))
+	  ;; (dired-rainbow-define vc "#0074d9" ("git" "gitignore" "gitattributes" "gitmodules"))
+	  ;; (dired-rainbow-define-chmod executable-unix "#38c172" "-.*x.*")
+	  ;; ))
+      #+end_src
+
+***** DONE Dired icons
+      CLOSED: [2020-04-11 Sat 04:56]
+
+      Pretty icons for Dired!
+
+      #+begin_src emacs-lisp
+      ;; (use-package all-the-icons-dired
+	;; :ensure t
+	;; :delight
+	;; :after dired all-the-icons
+	;; :config
+	;; (add-hook 'dired-mode-hook 'all-the-icons-dired-mode))
+      #+end_src
+
+** TODO PDF TOOLS
+
+     Pdf-tools cannot handle an update.
+     #+begin_src emacs-lisp
+       ;; (use-package pdf-tools
+	 ;; :ensure t
+	 ;; :pin manual ;; don't reinstall on updates
+	 ;; :init
+	 ;; (pdf-tools-install))
+
+       ;; (add-to-list 'load-path "~/.source/pdf-tools")
+       ;; (require 'pdf-tools)
+       ;; (eval-after-load "pdf-tools"
+	 ;; (pdf-tools-install))
+     #+end_src
+
+** TODO DIARY AND CALENDAR
+
+     It made sense for these two to be configured together.
+
+     I want to make diary/calendar mode my default scheduling application.
+     The diary will show upon entering emacs, and all the diary entries will be shown in the calendar.
    
-   #+begin_src emacs-lisp
-   ;; default diary file
-   (setq diary-file "~/.personal/diary")
+     #+begin_src emacs-lisp
+     ;; default diary file
+     (setq diary-file "~/.personal/diary")
 
-   ;; default entries shown in the diary
-   (setq diary-number-of-entries 7)
+     ;; default entries shown in the diary
+     (setq diary-number-of-entries 7)
 
-   ;; date style
-   (calendar-set-date-style 'european)
+     ;; date style
+     (calendar-set-date-style 'european)
 
-   ;; calendar-diary integration
-   (setq calendar-view-diary-initially-flag t)
-   (setq calendar-mark-diary-entries-flag t)
+     ;; calendar-diary integration
+     (setq calendar-view-diary-initially-flag t)
+     (setq calendar-mark-diary-entries-flag t)
 
-   ;; launch diary on startup
-   (diary)
-   #+end_src
+     ;; launch diary on startup
+     (diary)
+     #+end_src
    
-*** TODO Future improvements
-    - External notifications using dunst
-    - Add/remove entries easily (org-capture?)
-    - Archive old entries, keep clean file (maybe)
-    - Integration with org-agenda
-
-** VTERM
-
-   A new friend in the family! I am pretty excited about this,
-after testing it seems to be a viable option for a terminal emulator
-inside of emacs.
-
-#+begin_src emacs-lisp
-(use-package vterm
-  :load-path "~/.source/emacs-libvterm"
-  :init
-  (setq vterm-kill-buffer-on-exit t)
-  (setq vterm-clear-scrollback t))
-#+end_src
-
-** ORG-MODE
-*** Ensure org-plus-contrib
-
-    #+begin_src emacs-lisp
-    (unless (package-installed-p 'org-plus-contrib)
-      (package-refresh-contents)
-      (package-install 'org-plus-contrib))
-    #+end_src
-
-*** Org-mode misc options
-
-    #+begin_src emacs-lisp
-    ;; prettify
-    (setq org-hide-leading-stars t)
-
-    ;; tables
-    (define-key org-mode-map (kbd "C-x ,") 'org-table-toggle-column-width)
-
-    ;; src options
-    (require 'org-tempo)
-
-    (setq org-src-fontify-natively t)
-    (setq org-src-tab-acts-natively t)
-    (setq org-confirm-babel-evaluate nil)
-    (setq org-edit-src-content-indentation 0)
-
-    (setq org-special-ctrl-a/e t)
-    (setq org-src-window-setup 'current-window)
-    ;; export options -- for mail html export (fix it locally!)
-    ;;    (setq org-export-with-toc nil)
-    ;;  (setq org-export-with-section-numbers nil)
-
-    ;; links
-    (setq org-link-search-must-match-exact-headline nil)
-    #+end_src
-
-*** Org-mode capture and agenda
-
-    #+begin_src emacs-lisp
-    ;; files
-    (setq org-directory "~/.personal")
-    (setq org-default-notes-file (concat org-directory "/organizer.org"))
-
-    ;; include diary entries in agenda
-    (setq org-agenda-include-diary t)
-
-    ;; TODOs
-    (setq org-log-done 'time)
-    (setq org-log-into-drawer 'LOGBOOK)
-    (setq org-clock-into-drawer t)
-
-
-    ;; bindings
-    (global-set-key (kbd "C-c l") 'org-store-link)
-    (global-set-key (kbd "C-c a") 'org-agenda)
-    (global-set-key (kbd "C-c c") 'org-capture)
-    (global-set-key (kbd "C-c C-x C-z") 'org-resolve-clocks)
-
-    ;; some capture functions from Zamansky's configuration
-    (defadvice org-capture-finalize
-	(after delete-capture-frame activate)
-      "Advise capture-finalize to close the frame"
-      (if (equal "capture" (frame-parameter nil 'name))
-	  (delete-frame)))
-
-    (defadvice org-capture-destroy
-	(after delete-capture-frame activate)
-      "Advise capture-destroy to close the frame"
-      (if (equal "capture" (frame-parameter nil 'name))
-	  (delete-frame)))
-
-    (defun make-capture-frame ()
-      "Create a new frame and run org-capture."
-      (interactive)
-      (make-frame '((name . "capture")))
-      (select-frame-by-name "capture")
-      (delete-other-windows))
-    #+end_src
-
-*** Org-capture templates
-
-    #+begin_src emacs-lisp
-    (setq org-capture-templates
-	  '(("t" "Todo" entry (file+headline "" "Tasks")
-	     "* TODO %?\n  %i\n  %a")
-
-	    ("j" "Journal" entry (file+datetree "journal.org")
-	     "* %^{entry title}%^G\n%U\n  %?\n")
-
-	    ("p" "Logs for photographic process")
-
-	    ("pd" "Darkroom log" entry (file+datetree "darkroom-log.org")
-	     "* %U :darkroom:%^g\n%?" :clock-in t)
-
-	    ("r" "Rempetika lyrics" entry (file+headline "~/stixoi.org" "Στίχοι ρεμπέτικα")
-	     "* %^{ΤΙΤΛΟΣ}\n%^{ΤΡΑΓΟΥΔΙΣΤΗΣ}p%^{ΣΥΝΘΕΤΗΣ}p%^{ΡΥΘΜΟΣ}p%^{ΔΡΟΜΟΣ}p%^{ΤΟΝΟΣ}p\n%x")
-
-	    ;; ("B" "Web purchase" entry (file+headline "web-stuff.org" "Purchases")
-	    ;;  "* ORDERED %^{item desc.}\n\n%x\n\nEst. delivery: %?\n\nOrder placed on: %U")
-
-	    ;; ("l" "Link" entry (file+headline "web-stuff.org" "Links")
-	    ;;  "* %x %^g\n %?\n%U")
-
-	    ;; ("b" "Bibliography reference" entry (file "bib-references.org")
-	    ;;  "* @%^{.bib entry}: %^{description} %^g\n %^{page(s)} %?\n%U")
-
-	    ("c" "Contact" entry (file "contacts.org")
-	     "* %^{NICKNAME}\n%^{EMAIL}p\n:END:")
-	    ))
-    #+end_src
-
-*** Org-contacts
-
-    #+begin_src emacs-lisp
-    (use-package org-contacts
-      :ensure nil
-      :after org mu4e
-      :custom (org-contacts-files '("~/.personal/contacts.org"))
-      :bind  ("C-x M-." . 'org-contacts-view-send-email))
-    #+end_src
-
-*** org-msg
-    #+begin_src emacs-lisp
-    (use-package org-msg
-      :ensure t
-      :after org mu4e
-      :bind
-      (:map mu4e-compose-mode-map ("M-c" . 'org-msg-edit-mode)))
-    #+end_src
-
-*** org-general
-
-    Temporary fix. Later to be declared in use-package.
-
-    #+begin_src emacs-lisp
-    (evil-leader-org
-       :keymaps 'org-mode-map
-       :states 'normal
-       "p" 'org-set-property)
-    #+end_src
-
-** LATEX
-
-   #+begin_src emacs-lisp
-   (setq TeX-parse-self t)
-   (setq-default TeX-master nil)
-
-   ;; === run xelatex on save for latex mode
-   (defun latex-save-compile ()
-     "Compile file after saving in latex mode. Using Xelatex."
-     (when (eq major-mode 'latex-mode)
-       (when (memq this-command '(save-buffer))
-	 (shell-command-to-string (format "xelatex %s" buffer-file-name)))))
-
-   (add-hook 'after-save-hook #'latex-save-compile)
-   #+end_src
-
-** MU4E
-*** mu4e basic setup
-
-    #+begin_src emacs-lisp
-    (add-to-list 'load-path "/usr/local/share/emacs/site-lisp/mu4e")
-    (require 'mu4e)
-
-    (global-set-key (kbd "C-x m") 'mu4e)
-
-    ;; some interface options
-    (setq mu4e-confirm-quit nil) ;; do not confirm quitting
-    (setq mail-user-agent 'mu4e-user-agent) ;; make mu4e the default for email
-    (setq message-kill-buffer-on-exit t) ;; kill message buffer on exit
-    (setq mu4e-index-update-in-background t) ;; do not show me the update process
-    (setq mu4e-hide-index-messages t)
-    (setq mu4e-headers-include-related nil)
-    (setq mu4e-compose-dont-reply-to-self nil)
-    (setq mu4e-compose-signature-auto-include nil)
-    (setq mu4e-sent-messages-behavior 'sent)
-    (setq mu4e-change-filenames-when-moving t)
-    (setq mu4e-attachment-dir "~/Downloads")
-    (setq mu4e-view-show-addresses t)
-    (setq mu4e-headers-visible-columns 60)
-    (setq mu4e-split-view 'vertical) ;; should write a function: if height is longer than width, split horizontally
-    ;; this one does not work out of the box. Emacs needs to be compiled with imagemagick support. Will look into this
-    (setq mu4e-show-images t)
-    (when (fboundp 'imagemagick-register-types)
-      (imagemagick-register-types))
-
-    (add-to-list 'mu4e-view-actions '("ViewInBrowser" . mu4e-action-view-in-browser) t)
-
-    (setq mu4e-user-mail-address-list '("loukas.bass@gmx.com"
-					"dakodeon@hotmail.com"
-					"freehuggs701@gmail.com"
-					"luc.bassoukos@gmail.com"))
-    #+end_src
-
-*** mu4e (smtp setup)
-
-    #+begin_src emacs-lisp
-    (require 'smtpmail)
-
-    (setq message-send-mail-function 'smtpmail-send-it
-	  smtpmail-default-smtp-server "mail.gmx.com"
-	  smtpmail-smtp-server "mail.gmx.com"
-	  smtpmail-smtp-user "loukas.bass@gmx.com"
-	  smtpmail-stream-type 'starttls
-	  smtpmail-smtp-service 587
-	  smtpmail-debug-info t)
-    #+end_src
-
-*** mu4e sync mail
-
-    #+begin_src emacs-lisp
-    (setq mu4e-get-mail-command "mbsync -c ~/.config/mbsyncrc -a") ;; default location of mbsyncrc is in ~
-    (setq mu4e-html2text-command "w3m -T text/html")
-    (setq mu4e-update-interval nil) ;; do not auto-update, this is done with cronjob
-    (setq mu4e-headers-auto-update t)
-    #+end_src
-
-*** mu4e directories
-
-    #+begin_src emacs-lisp
-    (setq mu4e-maildir (expand-file-name "~/.personal/Mail"))
-
-    ;; default directories
-    (setq mu4e-drafts-folder "/loukas.bass/Drafts")
-    (setq mu4e-sent-folder "/loukas.bass/Sent")
-    (setq mu4e-trash-folder "/loukas.bass/Trash")
-
-    ;; maildirs shortcuts
-    (setq mu4e-maildir-shortcuts
-	  '( ("/Inbox" . ?i)
-	     ("/loukas.bass/Inbox" . ?l)
-	     ("/loukas.bass/Sent" . ?s)
-	     ("/loukas.bass/Trash" . ?t)
-	     ("/loukas.bass/Drafts" . ?D)
-	     ("/gmail/Inbox" . ?g)
-	     ("/gmail_luc/Inbox" . ?G)
-	     ("/dakodeon/Inbox" . ?d)))
-    #+end_src
-
-*** mu4e contexts
-
-    #+begin_src emacs-lisp
-    (setq mu4e-contexts
-	  `( ,(make-mu4e-context
-	       :name "loukas.bass"
-	       :match-func (lambda (msg)
-			     (when msg
-			       (mu4e-message-contact-field-matches msg
-								   :to "loukas.bass@gmx.com")))
-	       :vars '((smtpmail-smtp-user . "loukas.bass@gmx.com")
-		       (smtpmail-default-smtp-server . "mail.gmx.com")
-		       (smtpmail-smtp-server . "mail.gmx.com")
-		       (user-mail-address . "loukas.bass@gmx.com")
-		       (user-full-name . "loukas bass")
-		       (mu4e-sent-folder . "/loukas.bass/Sent")
-		       (mu4e-drafts-folder . "/loukas.bass/Drafts")
-		       (mu4e-trash-folder . "/loukas.bass/Trash")))
-
-	     ,(make-mu4e-context
-	       :name "gmail_luc"
-	       :match-func (lambda (msg)
-			     (when msg
-			       (mu4e-message-contact-field-matches msg
-								   :to "luc.bassoukos@gmail.com")))
-	       :vars '((smtpmail-smtp-user . "luc.bassoukos@gmail.com")
-		       (smtpmail-default-smtp-server . "smtp.gmail.com")
-		       (smtpmail-smtp-server . "smtp.gmail.com")
-		       (user-mail-address . "luc.bassoukos@gmail.com")
-		       (user-full-name . "freexon")
-		       (mu4e-sent-folder . "/gmail_luc/[Gmail]/Sent Mail")
-		       (mu4e-drafts-folder . "/gmail_luc/Drafts")
-		       (mu4e-trash-folder . "/gmail_luc/Trash")))
-
-	     ,(make-mu4e-context
-	       :name "gmail"
-	       :match-func (lambda (msg)
-			     (when msg
-			       (mu4e-message-contact-field-matches msg
-								   :to "freehuggs701@gmail.com")))
-	       :vars '((smtpmail-smtp-user . "freehuggs701@gmail.com")
-		       (smtpmail-default-smtp-server . "smtp.gmail.com")
-		       (smtpmail-smtp-server . "smtp.gmail.com")
-		       (user-mail-address . "freehuggs701@gmail.com")
-		       (user-full-name . "freexon")
-		       (mu4e-sent-folder . "/gmail/[Gmail]/Sent Mail")
-		       (mu4e-drafts-folder . "/gmail/Drafts")
-		       (mu4e-trash-folder . "/gmail/Trash")))
-
-	     ,(make-mu4e-context
-	       :name "dakodeon"
-	       :match-func (lambda (msg)
-			     (when msg
-			       (mu4e-message-contact-field-matches msg
-								   :to "dakodeon@hotmail.com")))
-	       :vars '((smtpmail-smtp-user . "dakodeon@hotmail.com")
-		       (smtpmail-default-smtp-server . "smtp.office365.com")
-		       (smtpmail-smtp-server . "smtp.office365.com")
-		       (user-mail-address . "dakodeon@hotmail.com")
-		       (user-full-name . "loukas b")
-		       (mu4e-sent-folder . "/dakodeon/Sent")
-		       (mu4e-drafts-folder . "/dakodeon/Drafts")
-		       (mu4e-trash-folder . "/dakodeon/Trash")))))
-
-    (setq mu4e-context-policy 'pick-first)
-
-    ;; it is useful for a lot of queries to have a list of contexts
-
-    (defvar l/mu4e-context-names
-      (mapcar (lambda (x) (car x))
-	      (cl-map 'list (lambda (context)
-			      (cons (mu4e-context-name context) context))
-		      mu4e-contexts)))
-    #+end_src
-
-*** mu4e bookmarks
-
-    #+begin_src emacs-lisp
-    ;; get only the last received message
-    (defun l/mu4e-fetch-last-received-msg ()
-      "Shows the last received message in mu4e"
-      (interactive)
-      (let* ((query (string-trim (format "%s" (mapcar (lambda (x) (concat "maildir:/" x "/Inbox OR ")) l/mu4e-context-names)) "(" " OR )")))
-	(mu4e-headers-search (concat "msgid:" (string-trim (shell-command-to-string (concat "mu find -n 1 --fields \"i\" --sortfield=date --reverse " query)) nil "\n")))))
-
-    (eval-after-load "evil"
-      '(progn
-	(evil-define-key 'normal mu4e-main-mode-map
-	  "gl" 'l/mu4e-fetch-last-received-msg)
-	(evil-define-key 'normal mu4e-headers-mode-map
-	  "gl" 'l/mu4e-fetch-last-received-msg)))
-
-
-    ;; brazenly stolen from the manual, then changed to fit my contexts
-    ;; Asks for how many days' messages to show
-    (defun l/mu4e-bookmark-num-days-old-query (days-old)
-      (interactive (list (read-number "How many days? " 2)))
-      (let ((start-date (subtract-time (current-time) (days-to-time days-old)))
-	    (maildirquery (string-trim (format "%s" (mapcar (lambda (x) (concat "maildir:/" x "/Inbox OR ")) l/mu4e-context-names)) "(" " OR )")))
-	(concat "(" maildirquery ") AND date:"
-		(format-time-string "%Y%m%d" start-date))))
-
-    (setq mu4e-bookmarks
-	  `( ,(make-mu4e-bookmark
-	       :name "Unread messages"
-	       :query "flag:unread AND NOT flag:trashed"
-	       :key ?u)
-	     ,(make-mu4e-bookmark
-	       :name "Today's messages"
-	       :query "date:today..now"
-	       :key ?t)
-	     ,(make-mu4e-bookmark
-	       :name "Messages from last [x] days"
-	       :query (lambda () (call-interactively 'l/mu4e-bookmark-num-days-old-query))
-	       :key ?w)))			;; TODO: fetch messages of the last x minutes
-
-    #+end_src
-
-*** mu4e open in headers of specific account
-
-    #+begin_src emacs-lisp
-    (defun mu4e-open-in-headers (account)
-      "Open mu4e in account's Inbox"
-      (interactive)
+***** TODO Future improvements
+      - External notifications using dunst
+      - Add/remove entries easily (org-capture?)
+      - Archive old entries, keep clean file (maybe)
+      - Integration with org-agenda
+
+** TODO VTERM
+
+     A new friend in the family! I am pretty excited about this,
+  after testing it seems to be a viable option for a terminal emulator
+  inside of emacs.
+
+  #+begin_src emacs-lisp
+  (use-package vterm
+    :load-path "~/.source/emacs-libvterm"
+    :init
+    (setq vterm-kill-buffer-on-exit t)
+    (setq vterm-clear-scrollback t))
+  #+end_src
+
+** TODO ORG-MODE
+***** Ensure org-plus-contrib
+
+      #+begin_src emacs-lisp
+      (unless (package-installed-p 'org-plus-contrib)
+	(package-refresh-contents)
+	(package-install 'org-plus-contrib))
+      #+end_src
+
+***** Org-mode misc options
+
+      #+begin_src emacs-lisp
+      ;; prettify
+      (setq org-hide-leading-stars t)
+
+      ;; tables
+      (define-key org-mode-map (kbd "C-x ,") 'org-table-toggle-column-width)
+
+      ;; src options
+      (require 'org-tempo)
+
+      (setq org-src-fontify-natively t)
+      (setq org-src-tab-acts-natively t)
+      (setq org-confirm-babel-evaluate nil)
+      (setq org-edit-src-content-indentation 0)
+
+      (setq org-special-ctrl-a/e t)
+      (setq org-src-window-setup 'current-window)
+      ;; export options -- for mail html export (fix it locally!)
+      ;;    (setq org-export-with-toc nil)
+      ;;  (setq org-export-with-section-numbers nil)
+
+      ;; links
+      (setq org-link-search-must-match-exact-headline nil)
+      #+end_src
+
+***** Org-mode capture and agenda
+
+      #+begin_src emacs-lisp
+      ;; files
+      (setq org-directory "~/.personal")
+      (setq org-default-notes-file (concat org-directory "/organizer.org"))
+
+      ;; include diary entries in agenda
+      (setq org-agenda-include-diary t)
+
+      ;; TODOs
+      (setq org-log-done 'time)
+      (setq org-log-into-drawer 'LOGBOOK)
+      (setq org-clock-into-drawer t)
+
+
+      ;; bindings
+      (global-set-key (kbd "C-c l") 'org-store-link)
+      (global-set-key (kbd "C-c a") 'org-agenda)
+      (global-set-key (kbd "C-c c") 'org-capture)
+      (global-set-key (kbd "C-c C-x C-z") 'org-resolve-clocks)
+
+      ;; some capture functions from Zamansky's configuration
+      (defadvice org-capture-finalize
+	  (after delete-capture-frame activate)
+	"Advise capture-finalize to close the frame"
+	(if (equal "capture" (frame-parameter nil 'name))
+	    (delete-frame)))
+
+      (defadvice org-capture-destroy
+	  (after delete-capture-frame activate)
+	"Advise capture-destroy to close the frame"
+	(if (equal "capture" (frame-parameter nil 'name))
+	    (delete-frame)))
+
+      (defun make-capture-frame ()
+	"Create a new frame and run org-capture."
+	(interactive)
+	(make-frame '((name . "capture")))
+	(select-frame-by-name "capture")
+	(delete-other-windows))
+      #+end_src
+
+***** Org-capture templates
+
+      #+begin_src emacs-lisp
+      (setq org-capture-templates
+	    '(("t" "Todo" entry (file+headline "" "Tasks")
+	       "* TODO %?\n  %i\n  %a")
+
+	      ("j" "Journal" entry (file+datetree "journal.org")
+	       "* %^{entry title}%^G\n%U\n  %?\n")
+
+	      ("p" "Logs for photographic process")
+
+	      ("pd" "Darkroom log" entry (file+datetree "darkroom-log.org")
+	       "* %U :darkroom:%^g\n%?" :clock-in t)
+
+	      ("r" "Rempetika lyrics" entry (file+headline "~/stixoi.org" "Στίχοι ρεμπέτικα")
+	       "* %^{ΤΙΤΛΟΣ}\n%^{ΤΡΑΓΟΥΔΙΣΤΗΣ}p%^{ΣΥΝΘΕΤΗΣ}p%^{ΡΥΘΜΟΣ}p%^{ΔΡΟΜΟΣ}p%^{ΤΟΝΟΣ}p\n%x")
+
+	      ;; ("B" "Web purchase" entry (file+headline "web-stuff.org" "Purchases")
+	      ;;  "* ORDERED %^{item desc.}\n\n%x\n\nEst. delivery: %?\n\nOrder placed on: %U")
+
+	      ;; ("l" "Link" entry (file+headline "web-stuff.org" "Links")
+	      ;;  "* %x %^g\n %?\n%U")
+
+	      ;; ("b" "Bibliography reference" entry (file "bib-references.org")
+	      ;;  "* @%^{.bib entry}: %^{description} %^g\n %^{page(s)} %?\n%U")
+
+	      ("c" "Contact" entry (file "contacts.org")
+	       "* %^{NICKNAME}\n%^{EMAIL}p\n:END:")
+	      ))
+      #+end_src
+
+***** Org-contacts
+
+      #+begin_src emacs-lisp
+      (use-package org-contacts
+	:ensure nil
+	:after org mu4e
+	:custom (org-contacts-files '("~/.personal/contacts.org"))
+	:bind  ("C-x M-." . 'org-contacts-view-send-email))
+      #+end_src
+
+***** org-msg
+      #+begin_src emacs-lisp
+      (use-package org-msg
+	:ensure t
+	:after org mu4e
+	:bind
+	(:map mu4e-compose-mode-map ("M-c" . 'org-msg-edit-mode)))
+      #+end_src
+
+***** org-general
+
+      Temporary fix. Later to be declared in use-package.
+
+      #+begin_src emacs-lisp
+      (evil-leader-org
+	 :keymaps 'org-mode-map
+	 :states 'normal
+	 "p" 'org-set-property)
+      #+end_src
+
+** TODO LATEX
+
+     #+begin_src emacs-lisp
+     (setq TeX-parse-self t)
+     (setq-default TeX-master nil)
+
+     ;; === run xelatex on save for latex mode
+     (defun latex-save-compile ()
+       "Compile file after saving in latex mode. Using Xelatex."
+       (when (eq major-mode 'latex-mode)
+	 (when (memq this-command '(save-buffer))
+	   (shell-command-to-string (format "xelatex %s" buffer-file-name)))))
+
+     (add-hook 'after-save-hook #'latex-save-compile)
+     #+end_src
+
+** WORKING MU4E [7/13]
+***** DONE mu4e basic setup
+      CLOSED: [2020-04-12 Sun 03:59]
+
+      #+begin_src emacs-lisp
+      ;; (add-to-list 'load-path "/usr/local/share/emacs/site-lisp/mu4e")
+      ;; (require 'mu4e)
+
+
+      ;; some interface options
+      ;; (setq mu4e-confirm-quit nil) ;; do not confirm quitting
+      ;; (setq mail-user-agent 'mu4e-user-agent) ;; make mu4e the default for email
+      ;; (setq message-kill-buffer-on-exit t) ;; kill message buffer on exit
+      ;; (setq mu4e-index-update-in-background t) ;; do not show me the update process
+      ;; (setq mu4e-hide-index-messages t)
+      ;; (setq mu4e-headers-include-related nil)
+      ;; (setq mu4e-compose-dont-reply-to-self nil)
+      ;; (setq mu4e-compose-signature-auto-include nil)
+      ;; (setq mu4e-sent-messages-behavior 'sent)
+      ;; (setq mu4e-change-filenames-when-moving t)
+      ;; (setq mu4e-attachment-dir "~/Downloads")
+      ;; (setq mu4e-view-show-addresses t)
+      ;; (setq mu4e-headers-visible-columns 60)
+      ;; (setq mu4e-split-view 'vertical) ;; should write a function: if height is longer than width, split horizontally
+      ;; this one does not work out of the box. Emacs needs to be compiled with imagemagick support. Will look into this
+      ;; (setq mu4e-show-images t)
+      ;; (when (fboundp 'imagemagick-register-types)
+	;; (imagemagick-register-types))
+
+
+      ;; (setq mu4e-user-mail-address-list '("loukas.bass@gmx.com"
+					  ;; "dakodeon@hotmail.com"
+					  ;; "freehuggs701@gmail.com"
+					  ;; "luc.bassoukos@gmail.com"))
+      #+end_src
+
+***** DONE mu4e (smtp setup)
+      CLOSED: [2020-04-11 Sat 21:24]
+
+      #+begin_src emacs-lisp
+      ;; (require 'smtpmail)
+
+      ;; (setq message-send-mail-function 'smtpmail-send-it
+	    ;; smtpmail-default-smtp-server "mail.gmx.com"
+	    ;; smtpmail-smtp-server "mail.gmx.com"
+	    ;; smtpmail-smtp-user "loukas.bass@gmx.com"
+	    ;; smtpmail-stream-type 'starttls
+	    ;; smtpmail-smtp-service 587
+	    ;; smtpmail-debug-info t)
+      #+end_src
+
+***** DONE mu4e sync mail
+      CLOSED: [2020-04-11 Sat 23:21]
+
+      #+begin_src emacs-lisp
+      ;; (setq mu4e-get-mail-command "mbsync -c ~/.config/mbsyncrc -a") ;; default location of mbsyncrc is in ~
+      ;; (setq mu4e-html2text-command "w3m -T text/html")
+      ;; (setq mu4e-update-interval nil) ;; do not auto-update, this is done with cronjob
+      ;; (setq mu4e-headers-auto-update t)
+      #+end_src
+
+***** DONE mu4e directories
+      CLOSED: [2020-04-12 Sun 01:25]
+
+      #+begin_src emacs-lisp
+      ;; (setq mu4e-maildir (expand-file-name "~/.personal/Mail"))
+
+      ;; default directories
+      ;; (setq mu4e-drafts-folder "/loukas.bass/Drafts")
+      ;; (setq mu4e-sent-folder "/loukas.bass/Sent")
+      ;; (setq mu4e-trash-folder "/loukas.bass/Trash")
+
+      ;; maildirs shortcuts
+      ;; (setq mu4e-maildir-shortcuts
+	    ;; '( ("/Inbox" . ?i)
+	       ;; ("/loukas.bass/Inbox" . ?l)
+	       ;; ("/loukas.bass/Sent" . ?s)
+	       ;; ("/loukas.bass/Trash" . ?t)
+	       ;; ("/loukas.bass/Drafts" . ?D)
+	       ;; ("/gmail/Inbox" . ?g)
+	       ;; ("/gmail_luc/Inbox" . ?G)
+	       ;; ("/dakodeon/Inbox" . ?d)))
+      #+end_src
+
+***** DONE mu4e contexts
+      CLOSED: [2020-04-12 Sun 05:47]
+
+      #+begin_src emacs-lisp
+      ;; (setq mu4e-contexts
+	    ;; `( ,(make-mu4e-context
+		 ;; :name "loukas.bass"
+		 ;; :match-func (lambda (msg)
+			       ;; (when msg
+				 ;; (mu4e-message-contact-field-matches msg
+								     ;; :to "loukas.bass@gmx.com")))
+		 ;; :vars '((smtpmail-smtp-user . "loukas.bass@gmx.com")
+			 ;; (smtpmail-default-smtp-server . "mail.gmx.com")
+			 ;; (smtpmail-smtp-server . "mail.gmx.com")
+			 ;; (user-mail-address . "loukas.bass@gmx.com")
+			 ;; (user-full-name . "loukas bass")
+			 ;; (mu4e-sent-folder . "/loukas.bass/Sent")
+			 ;; (mu4e-drafts-folder . "/loukas.bass/Drafts")
+			 ;; (mu4e-trash-folder . "/loukas.bass/Trash")))
+
+	       ;; ,(make-mu4e-context
+		 ;; :name "gmail_luc"
+		 ;; :match-func (lambda (msg)
+			       ;; (when msg
+				 ;; (mu4e-message-contact-field-matches msg
+								     ;; :to "luc.bassoukos@gmail.com")))
+		 ;; :vars '((smtpmail-smtp-user . "luc.bassoukos@gmail.com")
+			 ;; (smtpmail-default-smtp-server . "smtp.gmail.com")
+			 ;; (smtpmail-smtp-server . "smtp.gmail.com")
+			 ;; (user-mail-address . "luc.bassoukos@gmail.com")
+			 ;; (user-full-name . "luc bassoukos")
+			 ;; (mu4e-sent-folder . "/gmail_luc/[Gmail]/Sent Mail")
+			 ;; (mu4e-drafts-folder . "/gmail_luc/Drafts")
+			 ;; (mu4e-trash-folder . "/gmail_luc/Trash")))
+
+	       ;; ,(make-mu4e-context
+		 ;; :name "gmail"
+		 ;; :match-func (lambda (msg)
+			       ;; (when msg
+				 ;; (mu4e-message-contact-field-matches msg
+								     ;; :to "freehuggs701@gmail.com")))
+		 ;; :vars '((smtpmail-smtp-user . "freehuggs701@gmail.com")
+			 ;; (smtpmail-default-smtp-server . "smtp.gmail.com")
+			 ;; (smtpmail-smtp-server . "smtp.gmail.com")
+			 ;; (user-mail-address . "freehuggs701@gmail.com")
+			 ;; (user-full-name . "freexon")
+			 ;; (mu4e-sent-folder . "/gmail/[Gmail]/Sent Mail")
+			 ;; (mu4e-drafts-folder . "/gmail/Drafts")
+			 ;; (mu4e-trash-folder . "/gmail/Trash")))
+
+	       ;; ,(make-mu4e-context
+		 ;; :name "dakodeon"
+		 ;; :match-func (lambda (msg)
+			       ;; (when msg
+				 ;; (mu4e-message-contact-field-matches msg
+								     ;; :to "dakodeon@hotmail.com")))
+		 ;; :vars '((smtpmail-smtp-user . "dakodeon@hotmail.com")
+			 ;; (smtpmail-default-smtp-server . "smtp.office365.com")
+			 ;; (smtpmail-smtp-server . "smtp.office365.com")
+			 ;; (user-mail-address . "dakodeon@hotmail.com")
+			 ;; (user-full-name . "loukas b")
+			 ;; (mu4e-sent-folder . "/dakodeon/Sent")
+			 ;; (mu4e-drafts-folder . "/dakodeon/Drafts")
+			 ;; (mu4e-trash-folder . "/dakodeon/Trash")))))
+
+      ;; (setq mu4e-context-policy 'pick-first)
+
+      ;; it is useful for a lot of queries to have a list of contexts
+
+      ;; (defvar l/mu4e-context-names
+	;; (mapcar (lambda (x) (car x))
+		;; (cl-map 'list (lambda (context)
+				;; (cons (mu4e-context-name context) context))
+			;; mu4e-contexts)))
+      #+end_src
+
+***** WORKING mu4e bookmarks
+
+      #+begin_src emacs-lisp
+      ;; get only the last received message
+      ;; (defun l/mu4e-fetch-last-received-msg ()
+	;; "Shows the last received message in mu4e"
+	;; (interactive)
+	;; (let* ((query (string-trim (format "%s" (mapcar (lambda (x) (concat "maildir:/" x "/Inbox OR ")) l/mu4e-context-names)) "(" " OR )")))
+	  ;; (mu4e-headers-search (concat "msgid:" (string-trim (shell-command-to-string (concat "mu find -n 1 --fields \"i\" --sortfield=date --reverse " query)) nil "\n")))))
+
+      (eval-after-load "evil"
+	'(progn
+	  (evil-define-key 'normal mu4e-main-mode-map
+	    "gl" 'l/mu4e-fetch-last-received-msg)
+	  (evil-define-key 'normal mu4e-headers-mode-map
+	    "gl" 'l/mu4e-fetch-last-received-msg)))
+
+
+      ;; brazenly stolen from the manual, then changed to fit my contexts
+      ;; Asks for how many days' messages to show
+      ;; (defun l/mu4e-bookmark-num-days-old-query (days-old)
+	;; (interactive (list (read-number "How many days? " 2)))
+	;; (let ((start-date (subtract-time (current-time) (days-to-time days-old)))
+	      ;; (maildirquery (string-trim (format "%s" (mapcar (lambda (x) (concat "maildir:/" x "/Inbox OR ")) l/mu4e-context-names)) "(" " OR )")))
+	  ;; (concat "(" maildirquery ") AND date:"
+		  ;; (format-time-string "%Y%m%d" start-date))))
+
+      ;; (setq mu4e-bookmarks
+	    ;; `( ,(make-mu4e-bookmark
+		 ;; :name "Unread messages"
+		 ;; :query "flag:unread AND NOT flag:trashed"
+		 ;; :key ?u)
+	       ;; ,(make-mu4e-bookmark
+		 ;; :name "Today's messages"
+		 ;; :query "date:today..now"
+		 ;; :key ?t)
+	       ;; ,(make-mu4e-bookmark
+		 ;; :name "Messages from last [x] days"
+		 ;; :query (lambda () (call-interactively 'l/mu4e-bookmark-num-days-old-query))
+		 ;; :key ?w)))			;; TODO: fetch messages of the last x minutes
+
+      #+end_src
+
+***** REJECTED mu4e open in headers of specific account
+      CLOSED: [2020-04-12 Sun 06:03]
+
+      #+begin_src emacs-lisp
+      ;; (defun mu4e-open-in-headers (account)
+	;; "Open mu4e in account's Inbox"
+	;; (interactive)
+	;; (mu4e~start)
+	;; (if (get-buffer "*mu4e-headers*" )
+	    ;; (switch-to-buffer "*mu4e-headers*"))
+	;; (mu4e-headers-search (concat "maildir:/" account "/Inbox")))
+      #+end_src
+
+***** DONE mu4e open directly in unread messages
+      CLOSED: [2020-04-12 Sun 05:58]
+
+      #+begin_src emacs-lisp
+      ;; (defun l/mu4e-open-unread ()
+	;; "Open mu4e in unread messages."
+	;; (interactive)
+	;; (mu4e-headers-search "flag:unread AND NOT flag:trashed"))
+      #+end_src
+
+***** TODO mu4e change split depending on window dimensions
+
+      #+begin_src emacs-lisp
+      (defun l/mu4e-view-change-split-advice ()
+	"Used to advice `mu4e-headers-view-message'.
+      Changes the way windows split when viewing a message depending on
+      current window size. If height is greater than width, split
+      horizontally. Else, split vertically"
+	(if (> (window-pixel-height) (window-pixel-width))
+	    (setq mu4e-split-view 'horizontal)
+	  (setq mu4e-split-view 'vertical)))
+
+      (advice-add 'mu4e-headers-view-message :before #'l/mu4e-view-change-split-advice)
+
+      #+end_src
+
+***** TODO mu4e external notifications (for i3blocks)
+
+      #+begin_src emacs-lisp
+      (add-hook 'mu4e-index-updated-hook
+		(defun mu4e-signal-i3blocks ()
+		  (shell-command "pkill -RTMIN+2 i3blocks")))
+
+      (add-hook 'mu4e-view-mode-hook 'mu4e-signal-i3blocks)
+      #+end_src
+
+***** TODO Contacts management
+
+  Manage contacts with org-contacts
+
+  #+begin_src emacs-lisp
+  (setq mu4e-org-contacts-file "~/.personal/contacts.org")
+
+  (add-to-list 'mu4e-headers-actions
+	       '("org-contact-add" . mu4e-action-add-org-contact) t)
+
+  (add-to-list 'mu4e-view-actions
+	       '("org-contact-add" . mu4e-action-add-org-contact) t)
+  #+end_src
+
+***** TODO Start mu4e
+
+  Auto start mu4e on emacs startup
+
+      #+begin_src emacs-lisp
+      (global-set-key (kbd "C-x m") 'mu4e)
       (mu4e~start)
-      (if (get-buffer "*mu4e-headers*" )
-	  (switch-to-buffer "*mu4e-headers*"))
-      (mu4e-headers-search (concat "maildir:/" account "/Inbox")))
-    #+end_src
+      (mu4e-update-mail-and-index t)
+      #+end_src
+***** TODO mu4e general
 
-*** mu4e open directly in unread messages
+      Temporary fix. Later to be declared in use-package
 
-    #+begin_src emacs-lisp
-    (defun l/mu4e-open-unread ()
-      "Open mu4e in unread messages."
-      (interactive)
-      (mu4e-headers-search "flag:unread AND NOT flag:trashed"))
-    #+end_src
+      #+begin_src emacs-lisp
+      (evil-leader 'normal
+	"m" 'l/mu4e-open-unread)
+      #+end_src
+** TODO CUSTOM FILE SHORTCUTS
 
-*** mu4e change split depending on window dimensions
+     #+begin_src emacs-lisp
+     ;; (defun goto-file-or-dir (f)
+       ;; "Find the given file. If file is a directory, run dired"
+       ;; (if (file-directory-p f)
+	   ;; (helm-find-files-1 f)
+	 ;; (if (file-exists-p f)
+	     ;; (find-file f))))
 
-    #+begin_src emacs-lisp
-    (defun l/mu4e-view-change-split-advice ()
-      "Used to advice `mu4e-headers-view-message'.
-    Changes the way windows split when viewing a message depending on current window size.
-    If height is greater than width, split horizontally. Else, split vertically"
-      (if (> (window-pixel-height) (window-pixel-width))
-	  (setq mu4e-split-view 'horizontal)
-	(setq mu4e-split-view 'vertical)))
+     ;; create a prefix
+     (define-prefix-command 'z-map)
+     (global-set-key (kbd "C-x g") 'z-map)
 
-    (advice-add 'mu4e-headers-view-message :before #'l/mu4e-view-change-split-advice)
-
-    #+end_src
-
-*** mu4e external notifications (for i3blocks)
-
-    #+begin_src emacs-lisp
-    (add-hook 'mu4e-index-updated-hook
-	      (defun mu4e-signal-i3blocks ()
-		(shell-command "pkill -RTMIN+2 i3blocks")))
-
-    (add-hook 'mu4e-view-mode-hook 'mu4e-signal-i3blocks)
-    #+end_src
-
-*** Contacts management
-
-Manage contacts with org-contacts
-
-#+begin_src emacs-lisp
-(setq mu4e-org-contacts-file "~/.personal/contacts.org")
-
-(add-to-list 'mu4e-headers-actions
-	     '("org-contact-add" . mu4e-action-add-org-contact) t)
-
-(add-to-list 'mu4e-view-actions
-	     '("org-contact-add" . mu4e-action-add-org-contact) t)
-#+end_src
-
-*** Start mu4e
-
-Auto start mu4e on emacs startup
-
-    #+begin_src emacs-lisp
-    (mu4e~start)
-    (mu4e-update-mail-and-index t)
-    #+end_src
-*** mu4e general
-
-    Temporary fix. Later to be declared in use-package
-
-    #+begin_src emacs-lisp
-    (evil-leader 'normal
-      "m" 'l/mu4e-open-unread)
-    #+end_src
-** CUSTOM FILE SHORTCUTS
-
-   #+begin_src emacs-lisp
-   ;; (defun goto-file-or-dir (f)
-     ;; "Find the given file. If file is a directory, run dired"
-     ;; (if (file-directory-p f)
-	 ;; (helm-find-files-1 f)
-       ;; (if (file-exists-p f)
-	   ;; (find-file f))))
-
-   ;; create a prefix
-   (define-prefix-command 'z-map)
-   (global-set-key (kbd "C-x g") 'z-map)
-
-   (define-key z-map (kbd "E") (lambda () (interactive) (find-file "~/.emacs.d/init.el")))
-   (define-key z-map (kbd "e") (lambda () (interactive) (find-file "~/.emacs.d/my-config.org")))
-   (define-key z-map (kbd "i") (lambda () (interactive) (find-file "~/.config/i3/i3.conf")))
-   (define-key z-map (kbd "r") (lambda () (interactive) (find-file "~/.config/ranger/rc.conf")))
-   (define-key z-map (kbd "x") (lambda () (interactive) (find-file "~/.Xresources")))
-   (define-key z-map (kbd "z") (lambda () (interactive) (find-file "~/.zshrc")))
-   (define-key z-map (kbd "h") (lambda () (interactive) (find-file "~/")))
-   (define-key z-map (kbd "P") (lambda () (interactive) (find-file "~/Pictures/")))
-   (define-key z-map (kbd "p") (lambda () (interactive) (find-file "~/.personal/")))
-   (define-key z-map (kbd "C") (lambda () (interactive) (find-file "~/.config/")))
-   (define-key z-map (kbd "D") (lambda () (interactive) (find-file "~/Downloads/")))
-   (define-key z-map (kbd "d") (lambda () (interactive) (find-file "~/Documents/")))
-   (define-key z-map (kbd "!") (lambda () (interactive) (find-file "~/.source/dotfiles/")))
-   (define-key z-map (kbd "S") (lambda () (interactive) (find-file "~/.local/bin/")))
-   #+end_src
+     (define-key z-map (kbd "E") (lambda () (interactive) (find-file "~/.emacs.d/init.el")))
+     (define-key z-map (kbd "e") (lambda () (interactive) (find-file "~/.emacs.d/my-config.org")))
+     (define-key z-map (kbd "i") (lambda () (interactive) (find-file "~/.config/i3/i3.conf")))
+     (define-key z-map (kbd "r") (lambda () (interactive) (find-file "~/.config/ranger/rc.conf")))
+     (define-key z-map (kbd "x") (lambda () (interactive) (find-file "~/.Xresources")))
+     (define-key z-map (kbd "z") (lambda () (interactive) (find-file "~/.zshrc")))
+     (define-key z-map (kbd "h") (lambda () (interactive) (find-file "~/")))
+     (define-key z-map (kbd "P") (lambda () (interactive) (find-file "~/Pictures/")))
+     (define-key z-map (kbd "p") (lambda () (interactive) (find-file "~/.personal/")))
+     (define-key z-map (kbd "C") (lambda () (interactive) (find-file "~/.config/")))
+     (define-key z-map (kbd "D") (lambda () (interactive) (find-file "~/Downloads/")))
+     (define-key z-map (kbd "d") (lambda () (interactive) (find-file "~/Documents/")))
+     (define-key z-map (kbd "!") (lambda () (interactive) (find-file "~/.source/dotfiles/")))
+     (define-key z-map (kbd "S") (lambda () (interactive) (find-file "~/.local/bin/")))
+     #+end_src
  
-** GAMES
-*** SNAKE
+** TODO GAMES
+***** SNAKE
     
-    #+begin_src emacs-lisp
-    (eval-after-load "evil"
-      '(progn
-	 (evil-set-initial-state 'snake-mode 'normal)
-	 (evil-define-key 'normal snake-mode-map
-	   "h" 'snake-move-left
-	   "j" 'snake-move-down
-	   "k" 'snake-move-up
-	   "l" 'snake-move-right
-	   "p" 'snake-pause-game
-	   "q" 'quit-window
-	   "N" 'snake-start-game)))
-    #+end_src
-*** 2048
+      #+begin_src emacs-lisp
+      (eval-after-load "evil"
+	'(progn
+	   (evil-set-initial-state 'snake-mode 'normal)
+	   (evil-define-key 'normal snake-mode-map
+	     "h" 'snake-move-left
+	     "j" 'snake-move-down
+	     "k" 'snake-move-up
+	     "l" 'snake-move-right
+	     "p" 'snake-pause-game
+	     "q" 'quit-window
+	     "N" 'snake-start-game)))
+      #+end_src
+***** 2048
 
-    #+begin_src emacs-lisp
-    (use-package 2048-game
-      :ensure t)
-    #+end_src
+      #+begin_src emacs-lisp
+      (use-package 2048-game
+	:ensure t)
+      #+end_src
 
 

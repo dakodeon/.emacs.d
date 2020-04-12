@@ -1288,6 +1288,7 @@ One note though, while trying to copy to a FAT32 device, I discovered that there
       :init
       (setq mu4e-get-mail-command "mbsync -c ~/.config/mbsyncrc -a" ;; mbsync with custom config location
 	    mu4e-maildir (expand-file-name "~/.personal/Mail")
+	    mu4e-org-contacts-file "~/.personal/contacts.org"
 	    mu4e-update-interval nil ;; cronjob takes care of this
 	    mu4e-confirm-quit nil
 	    mu4e-index-update-in-background t
@@ -1455,9 +1456,44 @@ One note though, while trying to copy to a FAT32 device, I discovered that there
 	      ,(make-mu4e-bookmark
 		:name "Messages from last [x] days"
 		:query (lambda () (call-interactively 'l/mu4e-bookmark-num-days-old-query))
-		:key ?w))))    ;; TODO: fetch messages of the last x minutes
+		:key ?w)))    ;; TODO: fetch messages of the last x minutes
+
+     ;; keybindings for the functions defined here --maybe move thos at the end?
+     (evil-leader 'normal "m" 'l/mu4e-open-unread)
+     (general-def 'normal mu4e-main-mode-map "g'" 'l/mu4e-fetch-last-received-msg)
+     (general-def 'normal mu4e-headers-mode-map "g'" 'l/mu4e-fetch-last-received-msg))
    #+end_src
    
+*** Mu4e -- actions
+
+    Actions are pre-defined actions you can run on a mail message,
+    either in headers view, or while visiting it. Mu4e defines some
+    default actions, but you have to load them yourself. You can also
+    write your own actions, however I haven't done that yet.
+
+    The actions are defined by adding them in the related association
+    list. Then, the actions are callable by pressing the actions
+    shortcut ("a") and the first letter of the description associated
+    with the action.
+
+    The actions I load for now are:
+    - _ViewInBrowser_: opens the message in browser as html
+    - _org-contact-add_: adds the message's sender to my org-contacts
+      file (for org-contacts see later section.) This action is
+      callable both from the headers and from the message views.
+
+    #+begin_src emacs-lisp
+    (use-package mu4e
+      :config
+      (add-to-list 'mu4e-view-actions
+		   '("ViewInBrowser" . mu4e-action-view-in-browser) t)
+      (add-to-list 'mu4e-view-actions
+		   '("org-contacts-add" . mu4e-action-add-org-contact) t)
+      (add-to-list 'mu4e-headers-actions
+		   '("org-contacts-add" . mu4e-action-add-org-contact) t))
+
+
+    #+end_src
 
 * TODO CONFIURATION [2/14]
 ** TODO INTERFACE
@@ -2869,7 +2905,7 @@ Restart emacs from within emacs (duh!)
      (add-hook 'after-save-hook #'latex-save-compile)
      #+end_src
 
-** WORKING MU4E [7/13]
+** WORKING MU4E [10/13]
 ***** DONE mu4e basic setup
       CLOSED: [2020-04-12 Sun 03:59]
 
@@ -3029,7 +3065,8 @@ Restart emacs from within emacs (duh!)
 			;; mu4e-contexts)))
       #+end_src
 
-***** WORKING mu4e bookmarks
+***** DONE mu4e bookmarks
+      CLOSED: [2020-04-12 Sun 13:47]
 
       #+begin_src emacs-lisp
       ;; get only the last received message
@@ -3039,12 +3076,12 @@ Restart emacs from within emacs (duh!)
 	;; (let* ((query (string-trim (format "%s" (mapcar (lambda (x) (concat "maildir:/" x "/Inbox OR ")) l/mu4e-context-names)) "(" " OR )")))
 	  ;; (mu4e-headers-search (concat "msgid:" (string-trim (shell-command-to-string (concat "mu find -n 1 --fields \"i\" --sortfield=date --reverse " query)) nil "\n")))))
 
-      (eval-after-load "evil"
-	'(progn
-	  (evil-define-key 'normal mu4e-main-mode-map
-	    "gl" 'l/mu4e-fetch-last-received-msg)
-	  (evil-define-key 'normal mu4e-headers-mode-map
-	    "gl" 'l/mu4e-fetch-last-received-msg)))
+      ;; (eval-after-load "evil"
+	;; '(progn
+	  ;; (evil-define-key 'normal mu4e-main-mode-map
+	    ;; "gl" 'l/mu4e-fetch-last-received-msg)
+	  ;; (evil-define-key 'normal mu4e-headers-mode-map
+	    ;; "gl" 'l/mu4e-fetch-last-received-msg)))
 
 
       ;; brazenly stolen from the manual, then changed to fit my contexts
@@ -3121,18 +3158,19 @@ Restart emacs from within emacs (duh!)
       (add-hook 'mu4e-view-mode-hook 'mu4e-signal-i3blocks)
       #+end_src
 
-***** TODO Contacts management
+***** DONE Contacts management
+      CLOSED: [2020-04-12 Sun 14:29]
 
   Manage contacts with org-contacts
 
   #+begin_src emacs-lisp
-  (setq mu4e-org-contacts-file "~/.personal/contacts.org")
+  ;; (setq mu4e-org-contacts-file "~/.personal/contacts.org")
 
-  (add-to-list 'mu4e-headers-actions
-	       '("org-contact-add" . mu4e-action-add-org-contact) t)
+  ;; (add-to-list 'mu4e-headers-actions
+	       ;; '("org-contact-add" . mu4e-action-add-org-contact) t)
 
-  (add-to-list 'mu4e-view-actions
-	       '("org-contact-add" . mu4e-action-add-org-contact) t)
+  ;; (add-to-list 'mu4e-view-actions
+	       ;; '("org-contact-add" . mu4e-action-add-org-contact) t)
   #+end_src
 
 ***** TODO Start mu4e
@@ -3144,13 +3182,14 @@ Restart emacs from within emacs (duh!)
       (mu4e~start)
       (mu4e-update-mail-and-index t)
       #+end_src
-***** TODO mu4e general
+***** DONE mu4e general
+      CLOSED: [2020-04-12 Sun 13:44]
 
       Temporary fix. Later to be declared in use-package
 
       #+begin_src emacs-lisp
-      (evil-leader 'normal
-	"m" 'l/mu4e-open-unread)
+      ;; (evil-leader 'normal
+	;; "m" 'l/mu4e-open-unread)
       #+end_src
 ** TODO CUSTOM FILE SHORTCUTS
 

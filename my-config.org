@@ -44,6 +44,19 @@ The code snippets below are loaded by =init.el=, which also loads
      (general-create-definer evil-leader-org
        :prefix "SPC o"))
    #+end_src
+   
+** TODO TODO list [0/2]
+
+*** TODO General's general usage
+
+    General is a package that can completely replace other key
+    bindings' definitions. This has the plus of syntax consistency,
+    but I am not convinced to use it e.g instead of the :bind key in
+    use-package. For sure the create-definer function is very useful.
+
+*** TODO Local definers
+
+    Figure out a way to bind local definers.
 
 * EVIL
 
@@ -137,6 +150,31 @@ The code snippets below are loaded by =init.el=, which also loads
 	    ([escape] . 'evil-normal-state)))
      #+end_src
 
+** TODO TODO list [0/3]
+
+*** TODO Dired evil collection
+
+    Figure out the bug with dired. I could use the basis of
+    evil-collection's bindings and expand upon them.
+
+*** TODO Visual line
+
+    This is not really related to evil mode, but I put it here as it
+    kinda messes with evil bindings. In general, when you switch to
+    visual-line-mode, emacs reflects this switch on the related
+    functions (eg beginning-of-line becomes beginning-of-visual-line
+    and so forth). Evil-mode does not do that. One might argue that it
+    should, but this made me think about the necessity of running such
+    a mode in the first place. Recently I ended up using
+    fill-paragraph more and more, so I think I should switch to using
+    fill-mode.
+
+*** TODO Better understnding of evil-ex
+
+    There is a lack of documentation when it comes to the evil-ex
+    command. It would be useful to dwelve into this so that I can
+    manipulate it and customize it some more.
+
 * AUTOCOMPLETE
 
   This is just a generic autocompletion framework. I haven't tweaked
@@ -156,9 +194,17 @@ The code snippets below are loaded by =init.el=, which also loads
      (setq ac-sources (append ac-sources '(ac-sources-filename)))
      (setq ac-ignore-case nil))
    #+end_src
+
+** TODO TODO list [0/1]
+
+*** TODO Switch to company
+
+    After browsing the web, I found out that the autocomplete package
+    is in fact unmaintained. So, it makes more and more sense to try
+    company.
      
 * NAVIGATION WITH IVY
-*** Ivy-mode
+** Ivy-mode
     
     Ivy is a narrowing and completion fraqmework for emacs. I switched
     to it from helm, because it was a lot easier to customize.
@@ -213,7 +259,7 @@ The code snippets below are loaded by =init.el=, which also loads
      ("M-w" . l/ivy-yank-word)
      ("M-s" . l/ivy-yank-symbol)))
    #+end_src
-*** Counsel
+** Counsel
     
     Counsel is essentially the frontend of ivy. It packs all the
     useful ivy-enriched commands.
@@ -314,11 +360,11 @@ The code snippets below are loaded by =init.el=, which also loads
 **** TODO Pack l/counsel-sufraw:
      I should keep this in a separate file and load it as a package.
 
-*** TODO Swiper
+** Swiper
 
     I should add here the configuration about swiper.
 
-*** Other functionality
+** Other functionality
  
     Here is some extra packages for ivy/counsel/swiper:
 
@@ -385,6 +431,42 @@ The code snippets below are loaded by =init.el=, which also loads
       (ivy-posframe-mode 1))
     #+end_src
 
+** TODO TODO list [0/6]
+
+*** TODO Swiper
+    
+    I haven't touch this yet, but I should. It is very useful.
+
+*** TODO Pack l/ivy-surfraw
+
+    The code revolving around this function could be separated from
+    the config. I am not sure yet, but it could be it's own package.
+
+*** TODO Configure ivy-posframe
+
+    Posframe allows for every ivy frame to be positioned differently.
+    I should standardize which frames I want to be in the classical
+    position on the bottom of the frame and which I want popping up.
+    Additionally, I should work out what happens with a smaller emacs
+    frame (fix dimensions etc)
+
+*** TODO Configure counsel-rg
+
+    Counsel-rg is great for searching text in a bunch of files. I
+    should configure it a bit more (check out prot's dotfiles).
+
+*** TODO Configure counsel-wmctrl
+
+    This is a very useful tool. It allows to focus on a different
+    program by choosing it from an ivy list. I should expand on this
+    functionality. Actually, this could be implemented system-wise,
+    with dmenu (off-topic).
+
+*** TODO Configure occur
+
+    Again, check prot's dotfiles to configure what happens with the
+    occur buffer from ivy candidates.
+
 * DIRED
 
   Dired, the DIRectory EDitor, is the default file manager inside
@@ -395,7 +477,7 @@ The code snippets below are loaded by =init.el=, which also loads
   I customized dired up to the point that I am very happy with the
   workflow achieved. This is a really long config, so I guess it is
   best to document it along the way.
-
+  
 ** Defaults
 
    Here I define some defaults for dired. These include the default ls
@@ -711,18 +793,7 @@ The code snippets below are loaded by =init.el=, which also loads
 	(setq cmd (concat cpcmd " && " fehcmd))
 	(shell-command cmd))))
   #+end_src
-
-  I also defined a custom keymap with shortcuts to most used
-  directories, similar to the navigation system in ranger (gh -- go to
-  home, gD -- go to Downloads etc)
-
-
-  Another part of dired's configuration is the evil bindings. I did
-  not use the pre-existing bindings from evil-collection, due to some
-  buggy behavior that wouldn't let me rebind a key. Maybe I will
-  revisit this possibility as my config tidies up, it could be some
-  weird conflict that would resolve itself with a tidier config.
-
+  
 ** Custom maps
 
    Here are declared two prefix commands with their bindings:
@@ -1158,6 +1229,34 @@ One note though, while trying to copy to a FAT32 device, I discovered that there
       :config
       (add-hook 'dired-mode-hook 'all-the-icons-dired-mode))
     #+end_src
+    
+** TODO TODO list [0/2]
+
+*** TODO Fix/organize keybindings [0/3]
+
+    This implementation is a massive improvement, but my keybindings
+    are still all over the place.
+    
+**** TODO Evil-collection dired bindings
+
+     See [[TODO Dired evil collection][this]] similar concern on evil-collection.
+
+**** TODO More custom keymaps
+
+     One point of improvement could be the definition of custom maps
+     for various collections of bindings, for example the sorting
+     functions.
+
+**** TODO Keys in the wrong place
+
+     Specifically this: I have bound my custom map for navigation
+     under the "g" key. Also, under the "g" key is the command to move
+     on the top of the file ("gg"), but it doesn't belong in this map.
+     Find a way to fix this.
+
+*** TODO Some more external functions
+
+    Like my mp3-rename-script
 
 * EMAIL CLIENT
 
@@ -1312,7 +1411,9 @@ One note though, while trying to copy to a FAT32 device, I discovered that there
 	(imagemagick-register-types))
 
       :config
-      (setq mail-user-agent 'mu4e-user-agent))
+      (setq mail-user-agent 'mu4e-user-agent)
+      :bind
+      ("C-x m" . 'mu4e))
     #+end_src
 
 *** Mu4e -- accounts, maildirs and contexts
@@ -1426,8 +1527,13 @@ One note though, while trying to copy to a FAT32 device, I discovered that there
      (defun l/mu4e-fetch-last-received-msg ()
        "Shows the last received message in mu4e"
        (interactive)
-       (let* ((query (string-trim (format "%s" (mapcar (lambda (x) (concat "maildir:/" x "/Inbox OR ")) l/mu4e-context-names)) "(" " OR )")))
-	 (mu4e-headers-search (concat "msgid:" (string-trim (shell-command-to-string (concat "mu find -n 1 --fields \"i\" --sortfield=date --reverse " query)) nil "\n")))))
+       (let* ((query
+	       (string-trim
+		(format "%s"
+			(mapcar (lambda (x) (concat "maildir:/" x "/Inbox OR "))
+				l/mu4e-context-names)) "(" " OR )")))
+	 (mu4e-headers-search
+	  (concat "msgid:" (string-trim (shell-command-to-string (concat "mu find -n 1 --fields \"i\" --sortfield=date --reverse " query)) nil "\n")))))
 
      ;; Asks for how many days' messages to show -- from the manual, edited
      (defun l/mu4e-bookmark-num-days-old-query (days-old)
@@ -1495,7 +1601,267 @@ One note though, while trying to copy to a FAT32 device, I discovered that there
 
     #+end_src
 
-* TODO CONFIURATION [2/14]
+*** Mu4e -- extra customisation
+
+    Here are some extra pieces of functionality that I put together.
+
+    One is the ability to split the headers view when viewing a
+    message according to the current window's dimensions. I have set
+    the default to be a vertical split, but, if the window height is
+    larger than the window width, then the split will be horizontal.
+    This is achieved by advising the 'mu4e-headers-view-message'
+    function.
+    
+    The other is to update my external mail notifications (I use
+    i3blocks and dunst for that) by sending the required signal to
+    i3blocks. This is run as a hook after updating the index as well
+    as when viewing a message (thus disabling the unread flag).
+
+    All other small pieces of functionality that don't really belong
+    to any other section will be put here.
+
+    #+begin_src emacs-lisp
+    (use-package mu4e
+      :config
+      ;; split according to window dimensions
+      (defun l/mu4e-view-change-split-advice ()
+	"Used to advice `mu4e-headers-view-message'.
+    Changes the way windows split when viewing a message depending on
+    current window size. If height is greater than width, split
+    horizontally. Else, split vertically"
+	(if (> (window-pixel-height) (window-pixel-width))
+	    (setq mu4e-split-view 'horizontal)
+	  (setq mu4e-split-view 'vertical)))
+  
+      (advice-add 'mu4e-headers-view-message
+		  :before #'l/mu4e-view-change-split-advice)
+  
+      ;; update i3blocks notification when updating manually
+      (add-hook 'index-updated-hook
+		(defun mu4e-signal-i3blocks ()
+		  (shell-command "pkill -RTMIN+2 i3blocks")))
+  
+      ;; also when viewing a message
+      (add-hook 'mu4e-view-mode-hook 'mu4e-signal-i3blocks))
+    #+end_src
+
+
+* ORG MODE
+
+  Org mode is a note-taking and organizing framework that does much
+  more than that. It can evaluate souce code blocks (see this very
+  file), keep track of TODO lists, create and calculate datasheets,
+  capture notes on the fly, keep an agenda etc... It is really hard to
+  describe all the use cases of org-mode.
+
+  Anyhow, this configuration is really, really basic, I haven't even
+  scratched the surface: some sensible defaults, the ensurance of
+  'org-plus-contrib' for extra functionality, a little bit of
+  capturing etc... We 'll see how this goes.
+
+** Basic configuration
+
+   Defining some defaults. General behaviour etc.
+   
+   An important thing here is the ensurance of 'org-plus-contrib'.
+   This library is not a part of the main org package, but expands
+   org-mode in a lot of useful ways.
+
+  #+begin_src emacs-lisp
+  (use-package org
+    :ensure org-plus-contrib
+    :init
+    (setq org-directory "~/.personal"
+	  org-default-notes-file (concat org-directory "/organizer.org")
+	  org-hide-leading-stars t
+	  org-special-ctrl-a/e t
+	  ;; links
+	  org-link-search-must-match-exact-headline nil
+	  ;; org src / code blocks
+	  org-src-fontify-natively t
+	  org-src-tab-acts-natively t
+	  org-confirm-babel-evaluate nil
+	  org-edit-src-content-indentation 0
+	  org-src-window-setup 'current-window)
+    :config
+    (evil-leader-org
+      :keymaps 'org-mode-map
+      :states 'normal
+      "p" 'org-set-property)
+    :bind
+    (("C-c l" . org-store-link)))
+  #+end_src
+
+** Org TODOs
+
+   TODO lists is something that org does well. Some basic options
+   defined here, like time-logging and behaviour for nested TODO
+   headlines.
+
+   Also, I pasted a function from the info page: this automates the
+   change od the TODO state of a header with TODO children.
+   
+   All configuration considering clocking and time-management in
+   general will be included here as well.
+
+   #+begin_src emacs-lisp
+   (use-package org
+     :init
+     (setq org-log-done 'time
+	   org-log-into-drawer 'LOGBOOK
+	   org-clock-into-drawer t
+	   org-enforce-todo-dependencies t
+	   org-enforce-todo-checkbox-dependencies t)
+     :config
+     ;; This is straight from the configs. I should probably tweak it at some point.
+     ;; change todo states when all children todos are done
+     (defun org-summary-todo (n-done n-not-done)
+       "Switch entry to DONE when all subentries are done, to TODO otherwise."
+       (let (org-log-done org-log-states)   ; turn off logging
+	 (org-todo (if (= n-not-done 0) "DONE" "TODO"))))
+  
+     (add-hook 'org-after-todo-statistics-hook 'org-summary-todo)
+     :bind
+     (("C-c C-x C-z" . org-resolve-clocks)))
+   #+end_src
+
+** Org capture
+
+   Org-capture lets you keep notes on the fly in an organized manner,
+   and without interrupting your current workflow.
+
+   This is done by pre-defining capture templates, which are then
+   assigned to a shortcut key.
+
+   The capture facility uses the 'org-directory' and the
+   'org-default-notes-file' to figure out where to store the notes, if
+   not specifically stated. These variables are defined in the
+   previous section.
+
+   Also, I implemented the idea presented [[https://www.youtube.com/watch?v=gjr9mP01oWE][here]] by Mike Zamansky
+   (apparently he got it from somewhere else too, but anyway). It is
+   about creating a new frame in org-capture mode and binding it to a
+   keybinding on your system. That way you don't have to focus back to
+   emacs if you want to take a note, say, while in your browser.
+   
+   My note-taking skills are bad at best, so I haven't put much stuff in here. I have some defaults that I rarely use, and some templates commented out, that I decided to be not useful, but I keep them for reference.
+
+   My templates include:
+
+   1. Todo: Specify a TODO headline in the default file, under the
+      headline "Tasks". -- from the defaults
+   2. Journal: A journal entry in the file "journal.org". I rarely use
+      this. -- from the defaults
+   3. Darkroom log: My darkroom progress notepad. Also logs time.
+   4. Rempetika lyrics: Capture lyrics and save them with info about
+      atrist, rhythm etc as properties.
+   5. Contacts: Save a contact to "contacts.org"
+
+   #+begin_src emacs-lisp
+   (use-package org-capture
+     :after org
+     :init
+     ;; my capture templates
+     (setq org-capture-templates
+	   '(("t" "Todo" entry (file+headline "" "Tasks")
+	      "* TODO %?\n  %i\n  %a")
+
+	     ("j" "Journal" entry (file+datetree "journal.org")
+	      "* %^{entry title}%^G\n%U\n  %?\n")
+
+	     ("p" "Logs for photographic process")
+	     ("pd" "Darkroom log" entry (file+datetree "darkroom-log.org")
+	      "* %U :darkroom:%^g\n%?" :clock-in t)
+
+	     ("r" "Rempetika lyrics" entry (file+headline "~/stixoi.org" "Στίχοι ρεμπέτικα")
+	      "* %^{ΤΙΤΛΟΣ}\n%^{ΤΡΑΓΟΥΔΙΣΤΗΣ}p%^{ΣΥΝΘΕΤΗΣ}p%^{ΡΥΘΜΟΣ}p%^{ΔΡΟΜΟΣ}p%^{ΤΟΝΟΣ}p\n%x")
+
+	     ;; ("B" "Web purchase" entry (file+headline "web-stuff.org" "Purchases")
+	     ;;  "* ORDERED %^{item desc.}\n\n%x\n\nEst. delivery: %?\n\nOrder placed on: %U")
+
+	     ;; ("l" "Link" entry (file+headline "web-stuff.org" "Links")
+	     ;;  "* %x %^g\n %?\n%U")
+
+	     ;; ("b" "Bibliography reference" entry (file "bib-references.org")
+	     ;;  "* @%^{.bib entry}: %^{description} %^g\n %^{page(s)} %?\n%U")
+
+	     ("c" "Contact" entry (file "contacts.org")
+	      "* %^{NICKNAME}\n%^{EMAIL}p\n:END:")))
+     :config
+     ;; Functions used in creating capture frame -- credits to Mike Zamansky
+     (defadvice org-capture-finalize
+	 (after delete-capture-frame activate)
+       "Advise capture-finalize to close the frame"
+       (if (equal "capture" (frame-parameter nil 'name))
+	   (delete-frame)))
+
+     (defadvice org-capture-destroy
+	 (after delete-capture-frame activate)
+       "Advise capture-destroy to close the frame"
+       (if (equal "capture" (frame-parameter nil 'name))
+	   (delete-frame)))
+
+     (defun make-capture-frame ()
+       "Create a new frame and run org-capture."
+       (interactive)
+       (make-frame '((name . "capture")))
+       (select-frame-by-name "capture")
+       (delete-other-windows))
+     :bind
+     (("C-c c" . org-capture)))
+   #+end_src
+
+** Org agenda
+
+   Org agenda is what it says on the lid... It offers an overview of
+   todos, appointments etc from your files in 'org-directory'. Of
+   course, what you see is fully customizable. It also offers
+   integration with the diary (see next section).
+
+   #+begin_src emacs-lisp
+   (use-package org-agenda
+     :after org
+     :init
+     (setq org-agenda-include-diary t)
+     :bind
+     (("C-c a" . org-agenda)))
+   #+end_src
+
+** Other tools
+
+   Some other tools that I use, or don't use...
+
+*** Org contacts
+
+    This package works in tandem with mu4e. It stores contacts in a
+    contacts file, and offers some functionality on this file (like
+    send mail to contact).
+
+    #+begin_src emacs-lisp
+    (use-package org-contacts
+      :after org
+      :custom
+      (org-contacts-files '("~/.personal/contacts.org"))
+      :bind ("C-x M-." . org-contacts-view-send-email))
+    #+end_src
+
+*** Org msg
+
+    Org-msg is a package that is supposed to offer better integration
+    of org-mode while composing an email message, so that you can send
+    a correctly formatted html email. It is very interesting, but it
+    never worked correctly for me, so I will keep it disabled.
+
+    #+begin_src emacs-lisp
+    (use-package org-msg
+      :ensure t
+      :disabled t
+      :after org mu4e
+      :bind
+      (:map mu4e-compose-mode-map ("M-c" . org-msg-edit-mode)))
+    #+end_src
+
+* TODO CONFIURATION [4/14]
 ** TODO INTERFACE
 *** Try packages
 
@@ -2748,128 +3114,145 @@ Restart emacs from within emacs (duh!)
     (setq vterm-clear-scrollback t))
   #+end_src
 
-** TODO ORG-MODE
-***** Ensure org-plus-contrib
+** DONE ORG-MODE [7/7]
+***** DONE Ensure org-plus-contrib
+      CLOSED: [2020-04-12 Sun 23:59]
 
       #+begin_src emacs-lisp
-      (unless (package-installed-p 'org-plus-contrib)
-	(package-refresh-contents)
-	(package-install 'org-plus-contrib))
+      ;; (unless (package-installed-p 'org-plus-contrib)
+	;; (package-refresh-contents)
+	;; (package-install 'org-plus-contrib))
       #+end_src
 
-***** Org-mode misc options
+***** DONE Org-mode misc options
+      CLOSED: [2020-04-14 Tue 15:43]
 
       #+begin_src emacs-lisp
       ;; prettify
-      (setq org-hide-leading-stars t)
+      ;; (setq org-hide-leading-stars t)
 
       ;; tables
-      (define-key org-mode-map (kbd "C-x ,") 'org-table-toggle-column-width)
+      ;; (define-key org-mode-map (kbd "C-x ,") 'org-table-toggle-column-width)
 
       ;; src options
-      (require 'org-tempo)
+      ;; (require 'org-tempo)
 
-      (setq org-src-fontify-natively t)
-      (setq org-src-tab-acts-natively t)
-      (setq org-confirm-babel-evaluate nil)
-      (setq org-edit-src-content-indentation 0)
+      ;; (setq org-src-fontify-natively t)
 
-      (setq org-special-ctrl-a/e t)
-      (setq org-src-window-setup 'current-window)
+      ;; (setq org-src-tab-acts-natively t)
+      ;; (setq org-confirm-babel-evaluate nil)
+      ;; (setq org-edit-src-content-indentation 0)
+
+      ;; (setq org-special-ctrl-a/e t)
+      ;; (setq org-src-window-setup 'current-window)
       ;; export options -- for mail html export (fix it locally!)
       ;;    (setq org-export-with-toc nil)
       ;;  (setq org-export-with-section-numbers nil)
 
+      ;; change todo states when all children todos are done
+      ;; (defun org-summary-todo (n-done n-not-done)
+	;; "Switch entry to DONE when all subentries are done, to TODO otherwise."
+	;; (let (org-log-done org-log-states)   ; turn off logging
+	  ;; (org-todo (if (= n-not-done 0) "DONE" "TODO"))))
+
+      ;; (add-hook 'org-after-todo-statistics-hook 'org-summary-todo)
+
+      ;; (setq org-enforce-todo-dependencies t)
+      ;; (setq org-enforce-todo-checkbox-dependencies t)
       ;; links
-      (setq org-link-search-must-match-exact-headline nil)
+      ;; (setq org-link-search-must-match-exact-headline nil)
       #+end_src
 
-***** Org-mode capture and agenda
+***** DONE Org-mode capture and agenda
+      CLOSED: [2020-04-14 Tue 14:28]
 
       #+begin_src emacs-lisp
       ;; files
-      (setq org-directory "~/.personal")
-      (setq org-default-notes-file (concat org-directory "/organizer.org"))
+      ;; (setq org-directory "~/.personal")
+      ;; (setq org-default-notes-file (concat org-directory "/organizer.org"))
 
       ;; include diary entries in agenda
-      (setq org-agenda-include-diary t)
+      ;; (setq org-agenda-include-diary t)
 
       ;; TODOs
-      (setq org-log-done 'time)
-      (setq org-log-into-drawer 'LOGBOOK)
-      (setq org-clock-into-drawer t)
+      ;; (setq org-log-done 'time)
+      ;; (setq org-log-into-drawer 'LOGBOOK)
+      ;; (setq org-clock-into-drawer t)
 
 
       ;; bindings
-      (global-set-key (kbd "C-c l") 'org-store-link)
-      (global-set-key (kbd "C-c a") 'org-agenda)
-      (global-set-key (kbd "C-c c") 'org-capture)
-      (global-set-key (kbd "C-c C-x C-z") 'org-resolve-clocks)
+      ;; (global-set-key (kbd "C-c l") 'org-store-link)
+      ;; (global-set-key (kbd "C-c a") 'org-agenda)
+      ;; (global-set-key (kbd "C-c c") 'org-capture)
+      ;; (global-set-key (kbd "C-c C-x C-z") 'org-resolve-clocks)
 
       ;; some capture functions from Zamansky's configuration
-      (defadvice org-capture-finalize
-	  (after delete-capture-frame activate)
-	"Advise capture-finalize to close the frame"
-	(if (equal "capture" (frame-parameter nil 'name))
-	    (delete-frame)))
+      ;; (defadvice org-capture-finalize
+	  ;; (after delete-capture-frame activate)
+	;; "Advise capture-finalize to close the frame"
+	;; (if (equal "capture" (frame-parameter nil 'name))
+	    ;; (delete-frame)))
 
-      (defadvice org-capture-destroy
-	  (after delete-capture-frame activate)
-	"Advise capture-destroy to close the frame"
-	(if (equal "capture" (frame-parameter nil 'name))
-	    (delete-frame)))
+      ;; (defadvice org-capture-destroy
+	  ;; (after delete-capture-frame activate)
+	;; "Advise capture-destroy to close the frame"
+	;; (if (equal "capture" (frame-parameter nil 'name))
+	    ;; (delete-frame)))
 
-      (defun make-capture-frame ()
-	"Create a new frame and run org-capture."
-	(interactive)
-	(make-frame '((name . "capture")))
-	(select-frame-by-name "capture")
-	(delete-other-windows))
+      ;; (defun make-capture-frame ()
+	;; "Create a new frame and run org-capture."
+	;; (interactive)
+	;; (make-frame '((name . "capture")))
+	;; (select-frame-by-name "capture")
+	;; (delete-other-windows))
       #+end_src
 
-***** Org-capture templates
+***** DONE Org-capture templates
+      CLOSED: [2020-04-14 Tue 14:42]
 
       #+begin_src emacs-lisp
-      (setq org-capture-templates
-	    '(("t" "Todo" entry (file+headline "" "Tasks")
-	       "* TODO %?\n  %i\n  %a")
+      ;; (setq org-capture-templates
+      ;;       '(("t" "Todo" entry (file+headline "" "Tasks")
+      ;; 	 "* TODO %?\n  %i\n  %a")
 
-	      ("j" "Journal" entry (file+datetree "journal.org")
-	       "* %^{entry title}%^G\n%U\n  %?\n")
+      ;; 	("j" "Journal" entry (file+datetree "journal.org")
+      ;; 	 "* %^{entry title}%^G\n%U\n  %?\n")
 
-	      ("p" "Logs for photographic process")
+      ;; 	("p" "Logs for photographic process")
 
-	      ("pd" "Darkroom log" entry (file+datetree "darkroom-log.org")
-	       "* %U :darkroom:%^g\n%?" :clock-in t)
+      ;; 	("pd" "Darkroom log" entry (file+datetree "darkroom-log.org")
+      ;; 	 "* %U :darkroom:%^g\n%?" :clock-in t)
 
-	      ("r" "Rempetika lyrics" entry (file+headline "~/stixoi.org" "Στίχοι ρεμπέτικα")
-	       "* %^{ΤΙΤΛΟΣ}\n%^{ΤΡΑΓΟΥΔΙΣΤΗΣ}p%^{ΣΥΝΘΕΤΗΣ}p%^{ΡΥΘΜΟΣ}p%^{ΔΡΟΜΟΣ}p%^{ΤΟΝΟΣ}p\n%x")
+      ;; 	("r" "Rempetika lyrics" entry (file+headline "~/stixoi.org" "Στίχοι ρεμπέτικα")
+      ;; 	 "* %^{ΤΙΤΛΟΣ}\n%^{ΤΡΑΓΟΥΔΙΣΤΗΣ}p%^{ΣΥΝΘΕΤΗΣ}p%^{ΡΥΘΜΟΣ}p%^{ΔΡΟΜΟΣ}p%^{ΤΟΝΟΣ}p\n%x")
 
-	      ;; ("B" "Web purchase" entry (file+headline "web-stuff.org" "Purchases")
-	      ;;  "* ORDERED %^{item desc.}\n\n%x\n\nEst. delivery: %?\n\nOrder placed on: %U")
+      ;; 	;; ("B" "Web purchase" entry (file+headline "web-stuff.org" "Purchases")
+      ;; 	;;  "* ORDERED %^{item desc.}\n\n%x\n\nEst. delivery: %?\n\nOrder placed on: %U")
 
-	      ;; ("l" "Link" entry (file+headline "web-stuff.org" "Links")
-	      ;;  "* %x %^g\n %?\n%U")
+      ;; 	;; ("l" "Link" entry (file+headline "web-stuff.org" "Links")
+      ;; 	;;  "* %x %^g\n %?\n%U")
 
-	      ;; ("b" "Bibliography reference" entry (file "bib-references.org")
-	      ;;  "* @%^{.bib entry}: %^{description} %^g\n %^{page(s)} %?\n%U")
+      ;; 	;; ("b" "Bibliography reference" entry (file "bib-references.org")
+      ;; 	;;  "* @%^{.bib entry}: %^{description} %^g\n %^{page(s)} %?\n%U")
 
-	      ("c" "Contact" entry (file "contacts.org")
-	       "* %^{NICKNAME}\n%^{EMAIL}p\n:END:")
-	      ))
+      ;; 	("c" "Contact" entry (file "contacts.org")
+      ;; 	 "* %^{NICKNAME}\n%^{EMAIL}p\n:END:")
+      ;; 	))
       #+end_src
 
-***** Org-contacts
+***** DONE Org-contacts
+      CLOSED: [2020-04-14 Tue 15:55]
 
       #+begin_src emacs-lisp
-      (use-package org-contacts
-	:ensure nil
-	:after org mu4e
-	:custom (org-contacts-files '("~/.personal/contacts.org"))
-	:bind  ("C-x M-." . 'org-contacts-view-send-email))
+      ;; (use-package org-contacts
+	;; :ensure nil
+	;; :after org mu4e
+	;; :custom (org-contacts-files '("~/.personal/contacts.org"))
+	;; :bind  ("C-x M-." . 'org-contacts-view-send-email))
       #+end_src
 
-***** org-msg
+***** DONE org-msg
+      CLOSED: [2020-04-14 Tue 15:59]
       #+begin_src emacs-lisp
       (use-package org-msg
 	:ensure t
@@ -2878,18 +3261,19 @@ Restart emacs from within emacs (duh!)
 	(:map mu4e-compose-mode-map ("M-c" . 'org-msg-edit-mode)))
       #+end_src
 
-***** org-general
+***** DONE org-general
+      CLOSED: [2020-04-13 Mon 00:20]
 
       Temporary fix. Later to be declared in use-package.
 
       #+begin_src emacs-lisp
-      (evil-leader-org
-	 :keymaps 'org-mode-map
-	 :states 'normal
-	 "p" 'org-set-property)
+      ;; (evil-leader-org
+	 ;; :keymaps 'org-mode-map
+	 ;; :states 'normal
+	 ;; "p" 'org-set-property)
       #+end_src
 
-** TODO LATEX
+** WORKING LATEX
 
      #+begin_src emacs-lisp
      (setq TeX-parse-self t)
@@ -2905,9 +3289,10 @@ Restart emacs from within emacs (duh!)
      (add-hook 'after-save-hook #'latex-save-compile)
      #+end_src
 
-** WORKING MU4E [10/13]
+** DONE MU4E [13/13]
+   CLOSED: [2020-04-12 Sun 16:02]
 ***** DONE mu4e basic setup
-      CLOSED: [2020-04-12 Sun 03:59]
+      CLOSED: [2020-04-12 Sun 16:02]
 
       #+begin_src emacs-lisp
       ;; (add-to-list 'load-path "/usr/local/share/emacs/site-lisp/mu4e")
@@ -3132,30 +3517,32 @@ Restart emacs from within emacs (duh!)
 	;; (mu4e-headers-search "flag:unread AND NOT flag:trashed"))
       #+end_src
 
-***** TODO mu4e change split depending on window dimensions
+***** DONE mu4e change split depending on window dimensions
+      CLOSED: [2020-04-12 Sun 15:53]
 
       #+begin_src emacs-lisp
-      (defun l/mu4e-view-change-split-advice ()
-	"Used to advice `mu4e-headers-view-message'.
-      Changes the way windows split when viewing a message depending on
-      current window size. If height is greater than width, split
-      horizontally. Else, split vertically"
-	(if (> (window-pixel-height) (window-pixel-width))
-	    (setq mu4e-split-view 'horizontal)
-	  (setq mu4e-split-view 'vertical)))
+      ;; (defun l/mu4e-view-change-split-advice ()
+	;; "Used to advice `mu4e-headers-view-message'.
+      ;; Changes the way windows split when viewing a message depending on
+      ;; current window size. If height is greater than width, split
+      ;; horizontally. Else, split vertically"
+	;; (if (> (window-pixel-height) (window-pixel-width))
+	    ;; (setq mu4e-split-view 'horizontal)
+	  ;; (setq mu4e-split-view 'vertical)))
 
-      (advice-add 'mu4e-headers-view-message :before #'l/mu4e-view-change-split-advice)
+      ;; (advice-add 'mu4e-headers-view-message :before #'l/mu4e-view-change-split-advice)
 
       #+end_src
 
-***** TODO mu4e external notifications (for i3blocks)
+***** DONE mu4e external notifications (for i3blocks)
+      CLOSED: [2020-04-12 Sun 15:52]
 
       #+begin_src emacs-lisp
-      (add-hook 'mu4e-index-updated-hook
-		(defun mu4e-signal-i3blocks ()
-		  (shell-command "pkill -RTMIN+2 i3blocks")))
+      ;; (add-hook 'mu4e-index-updated-hook
+		;; (defun mu4e-signal-i3blocks ()
+		  ;; (shell-command "pkill -RTMIN+2 i3blocks")))
 
-      (add-hook 'mu4e-view-mode-hook 'mu4e-signal-i3blocks)
+      ;; (add-hook 'mu4e-view-mode-hook 'mu4e-signal-i3blocks)
       #+end_src
 
 ***** DONE Contacts management
@@ -3173,14 +3560,15 @@ Restart emacs from within emacs (duh!)
 	       ;; '("org-contact-add" . mu4e-action-add-org-contact) t)
   #+end_src
 
-***** TODO Start mu4e
+***** REJECTED Start mu4e
+      CLOSED: [2020-04-12 Sun 14:56]
 
   Auto start mu4e on emacs startup
 
       #+begin_src emacs-lisp
-      (global-set-key (kbd "C-x m") 'mu4e)
-      (mu4e~start)
-      (mu4e-update-mail-and-index t)
+      ;; (global-set-key (kbd "C-x m") 'mu4e)
+      ;; (mu4e~start)
+      ;; (mu4e-update-mail-and-index t)
       #+end_src
 ***** DONE mu4e general
       CLOSED: [2020-04-12 Sun 13:44]

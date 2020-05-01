@@ -86,21 +86,21 @@
    seriously incorporating Emacs into my (digital) life: I wrote my thesis
    in LaTeX in Emacs, I started using mu4e as my day-to-day email client, I
    started using org-capture... It is an ongoing process and I really enjoy
-   it! Really helpful in this matter was the content by [[https://cestlaz.github.io/][Mike Zamansky]],
-   which pushed me to start writing my config in org-mode with use-package
-   declarations, also to dwelve into mu4e configuration, and, more
-   recently, the content put up by [[https://protesilaos.com/][Protesilaos Stavrou]], which expanded on
-   the aforementioned org-mode/use-package "alliance" and helped me with a
-   lot of obscure issues and functionality lurking into the dark corners of
-   Emacs...
+   it! Really helpful in this matter was the content put up by [[https://cestlaz.github.io/][Mike
+   Zamansky]], which pushed me to start writing my config in org-mode with
+   use-package declarations, as well as to dwelve into mu4e configuration,
+   and, more recently, the content put up by [[https://protesilaos.com/][Protesilaos Stavrou]], which
+   expanded on the aforementioned org-mode/use-package "alliance" and
+   helped me with a lot of obscure issues and functionality lurking into
+   the dark corners of Emacs...
 
    Although not being a melodramatic vimmer, I feel obliged to quote the
    introduction of the [[https://github.com/hlissner/doom-emacs][doom-emacs]] README page:
 
-   /It is a story as old as time. A stubborn, shell-dwelling, and
-   melodramatic vimmer—envious of the features of modern text
-   editors—spirals into despair before he succumbs to the dark side. This
-   is his config./
+   /It is a story as old as time. A stubborn, shell-dwelling, and/
+   /melodramatic vimmer—envious of the features of modern text/
+   /editors—spirals into despair before he succumbs to the dark side. This/
+   /is his config./
 
 * GENERAL
 

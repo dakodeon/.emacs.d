@@ -12,25 +12,26 @@ The code snippets below are loaded by =init.el=, which also loads
 =use-package=.
 
 ** TODO Attempting a more concise documentation
-  - Start by loading frameworks like evil and general (avoid writing eval-after-load all the time.)
-  - Use :general use-package delcaration to specify leader keys and the :general keyword in all other packages. (maybe)
+  - Start by loading frameworks like evil and general (avoid writing
+    eval-after-load all the time.)
+  - Use :general use-package delcaration to specify leader keys and the
+    :general keyword in all other packages. (maybe)
   - Generalise the use of use package, for consistency
 
 
 * GENERAL
 
-  General provides a universal way of binding keys, which integrates
-  both define-key and evil-define-key. It also offers a way to
-  immitate vim's leader key functionality, both locally and globally.
-  This is great for someone who uses evil, as bindings can be a mess.
+  General provides a universal way of binding keys, which integrates both
+  define-key and evil-define-key. It also offers a way to immitate vim's
+  leader key functionality, both locally and globally. This is great for
+  someone who uses evil, as bindings can be a mess.
 
-  It is supposed to provide a key for use-package (:general), which
-  can be used for per-package configuration. That way I can define all
-  leaders in general's declaration and then assign key chords in a
-  per-package basis.
+  It is supposed to provide a key for use-package (:general), which can be
+  used for per-package configuration. That way I can define all leaders in
+  general's declaration and then assign key chords in a per-package basis.
 
-  I haven't really played around with this package, so I am not sure
-  if I will keep it around.
+  I haven't really played around with this package, so I am not sure if I
+  will keep it around.
   
    #+begin_src emacs-lisp
    (use-package general
@@ -44,10 +45,10 @@ The code snippets below are loaded by =init.el=, which also loads
 
 *** TODO General's general usage
 
-    General is a package that can completely replace other key
-    bindings' definitions. This has the plus of syntax consistency,
-    but I am not convinced to use it e.g instead of the :bind key in
-    use-package. For sure the create-definer function is very useful.
+    General is a package that can completely replace other key bindings'
+    definitions. This has the plus of syntax consistency, but I am not
+    convinced to use it e.g instead of the :bind key in use-package. For
+    sure the create-definer function is very useful.
 
 *** TODO Local definers
 
@@ -55,22 +56,20 @@ The code snippets below are loaded by =init.el=, which also loads
 
 * EVIL
 
-  I tried evil-mode after being forced to stop using my arrow keys, as
-  they were broken. So I got used to 'h,j,k,l'. I ended up really
-  enjoying modal editing. Already using i3, it was a logical next
-  step.
+  I tried evil-mode after being forced to stop using my arrow keys, as they
+  were broken. So I got used to 'h,j,k,l'. I ended up really enjoying modal
+  editing. Already using i3, it was a logical next step.
 
   So I decided to base my Emacs build on Evil mode.
 
-  The most imortant change that I made is the replacement of insert
-  state with normal emacs. That way I can have emacs bindings while
-  editing text.
+  The most imortant change that I made is the replacement of insert state
+  with normal emacs. That way I can have emacs bindings while editing text.
 
   I also use Evil collection. This is a package with preconfigured
-  evil-bindings for many emacs packages, like mu4e and org-mode. I
-  dont enable evil collection for all packages. For example, I define
-  custom bindings for dired, due to some buggy behaviour (for some
-  reason I was unable to rebind a key bound by evil collection).
+  evil-bindings for many emacs packages, like mu4e and org-mode. I dont
+  enable evil collection for all packages. For example, I define custom
+  bindings for dired, due to some buggy behaviour (for some reason I was
+  unable to rebind a key bound by evil collection).
 
 ** Evil collection
 
@@ -93,82 +92,78 @@ The code snippets below are loaded by =init.el=, which also loads
 
 ** Evil mode
 
-    * Note: there's a bunch of bindings in normal-state beause of the
-    visual-line-mode that I use. I have to get rid of that at some
-    point.
+   #+begin_src emacs-lisp
+   (use-package evil
+     :ensure t
+     :init
+     (setq evil-move-cursor-back nil)
+     (setq evil-move-beyond-eol t)
+     (setq evil-respect-visual-line-mode t)
+     (setq evil-want-C-u-scroll t)
+     (setq evil-want-fine-undo t)
+     (setq evil-normal-state-cursor 'box)
+     (setq evil-emacs-state-cursor 'bar)
+     (setq evil-replace-state-cursor 'hbar)
+     (setq evil-want-integration t)
+     (setq evil-want-keybinding nil)
+     :config
+     (evil-mode 1)
+     (evil-set-initial-state 'Info-mode 'emacs)
+     (evil-set-initial-state 'org-capture-mode 'emacs)
+     (evil-set-initial-state 'mu4e-compose-mode 'emacs)
+     (evil-set-initial-state 'org-msg-mode 'emacs)
+     ;; (evil-set-initial-state 'package-menu-mode 'emacs)
+     (evil-set-initial-state 'special-mode 'emacs)
+     ;; Use emacs state instead of insert state
+     (evil-define-state emacs
+       "Emacs used as insert state in evil."
+       :tag " <EE> "
+       :message "-- EMACS INSERT --"
+       :input-method t)
+     (defadvice evil-insert-state
+	 (around emacs-state-instead-of-insert-state activate)
+       "Emacs instead of Insert."
+       (evil-emacs-state))
+     :bind
+     (:map evil-normal-state-map
+	   ("g^" . 'evil-first-non-blank)
+	   ("C-S-o" . 'evil-jump-forward)
+	   ("*" . nil) ;;prefix
+	   ("*w" . 'evil-search-word-forward))
+     (:map evil-emacs-state-map
+	   ([escape] . 'evil-normal-state)))
+   #+end_src
 
-    #+begin_src emacs-lisp
-    (use-package evil
-      :ensure t
-      :init
-      (setq evil-move-cursor-back nil)
-      (setq evil-move-beyond-eol t)
-      (setq evil-respect-visual-line-mode t)
-      (setq evil-want-C-u-scroll t)
-      (setq evil-want-fine-undo t)
-      (setq evil-normal-state-cursor 'box)
-      (setq evil-emacs-state-cursor 'bar)
-      (setq evil-replace-state-cursor 'hbar)
-      (setq evil-want-integration t)
-      (setq evil-want-keybinding nil)
-      :config
-      (evil-mode 1)
-      (evil-set-initial-state 'Info-mode 'emacs)
-      (evil-set-initial-state 'org-capture-mode 'emacs)
-      (evil-set-initial-state 'mu4e-compose-mode 'emacs)
-      (evil-set-initial-state 'org-msg-mode 'emacs)
-      ;; (evil-set-initial-state 'package-menu-mode 'emacs)
-      (evil-set-initial-state 'special-mode 'emacs)
-      ;; Use emacs state instead of insert state
-      (evil-define-state emacs
-	"Emacs used as insert state in evil."
-	:tag " <EE> "
-	:message "-- EMACS INSERT --"
-	:input-method t)
-      (defadvice evil-insert-state
-	  (around emacs-state-instead-of-insert-state activate)
-	"Emacs instead of Insert."
-	(evil-emacs-state))
-      :bind
-      (:map evil-normal-state-map
-	    ("g^" . 'evil-first-non-blank)
-	    ("C-S-o" . 'evil-jump-forward)
-	    ("*" . nil) ;;prefix
-	    ("*w" . 'evil-search-word-forward))
-      (:map evil-emacs-state-map
-	    ([escape] . 'evil-normal-state)))
-     #+end_src
-
-** TODO TODO list [0/3]
+** TODO TODO list [1/3]
 
 *** TODO Dired evil collection
 
     Figure out the bug with dired. I could use the basis of
     evil-collection's bindings and expand upon them.
 
-*** TODO Visual line
+*** DONE Visual line
+    CLOSED: [2020-05-01 Fri 12:32]
 
-    This is not really related to evil mode, but I put it here as it
-    kinda messes with evil bindings. In general, when you switch to
-    visual-line-mode, emacs reflects this switch on the related
-    functions (eg beginning-of-line becomes beginning-of-visual-line
-    and so forth). Evil-mode does not do that. One might argue that it
-    should, but this made me think about the necessity of running such
-    a mode in the first place. Recently I ended up using
-    fill-paragraph more and more, so I think I should switch to using
-    fill-mode.
+    This is not really related to evil mode, but I put it here as it kinda
+    messes with evil bindings. In general, when you switch to
+    visual-line-mode, emacs reflects this switch on the related functions
+    (eg beginning-of-line becomes beginning-of-visual-line and so forth).
+    Evil-mode does not do that. One might argue that it should, but this
+    made me think about the necessity of running such a mode in the first
+    place. Recently I ended up using fill-paragraph more and more, so I
+    think I should switch to using fill-mode.
 
 *** TODO Better understnding of evil-ex
 
-    There is a lack of documentation when it comes to the evil-ex
-    command. It would be useful to dwelve into this so that I can
-    manipulate it and customize it some more.
+    There is a lack of documentation when it comes to the evil-ex command.
+    It would be useful to dwelve into this so that I can manipulate it and
+    customize it some more.
 
 * IMPORTANT LOCATIONS
 
   Here are some places that I often visit. Finding these files or
-  directories will happen via a custom keymap, accessible both
-  globally and in dired.
+  directories will happen via a custom keymap, accessible both globally and
+  in dired.
 
   The list of locations will be stored in a variable and then some
   functions will use this variable to access these locations.
@@ -244,23 +239,23 @@ The code snippets below are loaded by =init.el=, which also loads
 * "POOR MAN'S" LEADER KEYS
 
   This is my own, rather crude, attempt to immitate vim's leader key
-  functionality, just by defining prefix commands and assigning them
-  to the evil-normal-state-map.
+  functionality, just by defining prefix commands and assigning them to the
+  evil-normal-state-map.
 
-  I decided not to use any external packages for this task (like
-  [[GENERAL][General]]), as I don't want to mess with extra definitions and such.
-  Also, what I need is really basic.
+  I decided not to use any external packages for this task (like [[GENERAL][General]]),
+  as I don't want to mess with extra definitions and such. Also, what I
+  need is really basic.
 
-  Here are the definitions of the keymaps, they are populated later in
-  the document in their relevant parts.
+  Here are the definitions of the keymaps, they are populated later in the
+  document in their relevant parts.
 
   As for now, there are three leader keys:
 
   1. Main leader key, it will be assigned to =SPC=
   2. Org leader key, it will be assigned to =*= in org-mode only
-  3. Other window leader key, it will be assigned to =o= as a part of
-     the main leader key (eg. =SPC f= will call =find-file=, while
-     =SPC o f= will call =find-file-other-window=)
+  3. Other window leader key, it will be assigned to =o= as a part of the
+     main leader key (eg. =SPC f= will call =find-file=, while =SPC o f=
+     will call =find-file-other-window=)
 
   #+begin_src emacs-lisp
   (use-package emacs
@@ -287,9 +282,9 @@ The code snippets below are loaded by =init.el=, which also loads
 
 * AUTOCOMPLETE
 
-  This is just a generic autocompletion framework. I haven't tweaked
-  it in any way and it only works most of the time. For example,
-  filename completion never worked as intended.
+  This is just a generic autocompletion framework. I haven't tweaked it in
+  any way and it only works most of the time. For example, filename
+  completion never worked as intended.
 
   Anyhow, it is still useable, but I guess I will try something like
   company soon.
@@ -309,26 +304,24 @@ The code snippets below are loaded by =init.el=, which also loads
 
 *** TODO Switch to company
 
-    After browsing the web, I found out that the autocomplete package
-    is in fact unmaintained. So, it makes more and more sense to try
-    company.
+    After browsing the web, I found out that the autocomplete package is in
+    fact unmaintained. So, it makes more and more sense to try company.
      
 * NAVIGATION WITH IVY
 ** Ivy-mode
     
-    Ivy is a narrowing and completion fraqmework for emacs. I switched
-    to it from helm, because it was a lot easier to customize.
+    Ivy is a narrowing and completion fraqmework for emacs. I switched to
+    it from helm, because it was a lot easier to customize.
 
-    Together with counsel, ivy provides alternatives to emacs
-    commands, like switch-buffer, find-file, M-x etc. It also
-    interfaces with some external tools, like fzf, ripgrep and wmctrl,
-    which is great.
+    Together with counsel, ivy provides alternatives to emacs commands,
+    like switch-buffer, find-file, M-x etc. It also interfaces with some
+    external tools, like fzf, ripgrep and wmctrl, which is great.
 
     I wrote some custom functions for Ivy to improve upon the existing
     functionality of inserting in the minibuffer text from the current
     buffer. However, these were rendered obsolete by a somewhat hidden
-    feature of Ivy (ivy-next-history-element), which does exactly
-    that, but better. I keep those, because of the code I wrote.
+    feature of Ivy (ivy-next-history-element), which does exactly that, but
+    better. I keep those, because of the code I wrote.
 
    #+begin_src emacs-lisp
    (use-package ivy
@@ -371,30 +364,29 @@ The code snippets below are loaded by =init.el=, which also loads
    #+end_src
 ** Counsel
     
-    Counsel is essentially the frontend of ivy. It packs all the
-    useful ivy-enriched commands.
+    Counsel is essentially the frontend of ivy. It packs all the useful
+    ivy-enriched commands.
 
     Some of the functionality I use:
 
-    - counsel-fzf: [[https://github.com/junegunn/fzf][Fzf]] is a fuzzy finder for files. Great tool! I
-      added functionality from [[https://protesilaos.com/dotemacs][prot's configuration]] that enables us to
-      switch root directory for a search (although I simplified it, as
-      I still don't use counsel-rg). I also wrote a wrapper around the
-      default function so that I can search for marked text if the
-      region is active.
-    - cousel-outline: Navigate an org file by searching it's headers.
-      Also great! Just for customization's sake, I wrote an action to
-      begin a fzf search with selected candidate, inspired by the way
-      Prot handles switching from fzf to rg and vice-versa.
-    - l/counsel-sufraw (to be renamed): [[https://gitlab.com/surfraw/Surfraw][Surfraw]] is a tool for
-      searching the web from the command line. It provides a set of
-      scripts (they are called elvi) which correspond each to a search
-      engine (eg. Google, DuckDuckGo etc). Although there is already a
-      package that integrates surfraw with ivy ([[https://github.com/jws85/counsel-surfraw/blob/master/counsel-surfraw.el][counsel-surfraw]]) I
-      wrote my own, just for practice and for the sake of it! I ended
-      up using some code from this package though. I also took an
-      extra step (just for the bling!) and took the elvi's
-      descriptions and passed them to ivy-rich (see next section).
+    - counsel-fzf: [[https://github.com/junegunn/fzf][Fzf]] is a fuzzy finder for files. Great tool! I added
+      functionality from [[https://protesilaos.com/dotemacs][prot's configuration]] that enables us to switch
+      root directory for a search (although I simplified it, as I still
+      don't use counsel-rg). I also wrote a wrapper around the default
+      function so that I can search for marked text if the region is
+      active.
+    - cousel-outline: Navigate an org file by searching it's headers. Also
+      great! Just for customization's sake, I wrote an action to begin a
+      fzf search with selected candidate, inspired by the way Prot handles
+      switching from fzf to rg and vice-versa.
+    - l/counsel-sufraw (to be renamed): [[https://gitlab.com/surfraw/Surfraw][Surfraw]] is a tool for searching the
+      web from the command line. It provides a set of scripts (they are
+      called elvi) which correspond each to a search engine (eg. Google,
+      DuckDuckGo etc). Although there is already a package that integrates
+      surfraw with ivy ([[https://github.com/jws85/counsel-surfraw/blob/master/counsel-surfraw.el][counsel-surfraw]]) I wrote my own, just for practice
+      and for the sake of it! I ended up using some code from this package
+      though. I also took an extra step (just for the bling!) and took the
+      elvi's descriptions and passed them to ivy-rich (see next section).
 
     
    #+begin_src emacs-lisp
@@ -540,66 +532,65 @@ The code snippets below are loaded by =init.el=, which also loads
 
 *** TODO Pack l/ivy-surfraw
 
-    The code revolving around this function could be separated from
-    the config. I am not sure yet, but it could be it's own package.
+    The code revolving around this function could be separated from the
+    config. I am not sure yet, but it could be it's own package.
 
 *** TODO Configure ivy-posframe
 
-    Posframe allows for every ivy frame to be positioned differently.
-    I should standardize which frames I want to be in the classical
-    position on the bottom of the frame and which I want popping up.
-    Additionally, I should work out what happens with a smaller emacs
-    frame (fix dimensions etc)
+    Posframe allows for every ivy frame to be positioned differently. I
+    should standardize which frames I want to be in the classical position
+    on the bottom of the frame and which I want popping up. Additionally, I
+    should work out what happens with a smaller emacs frame (fix dimensions
+    etc)
 
 *** TODO Configure counsel-rg
 
-    Counsel-rg is great for searching text in a bunch of files. I
-    should configure it a bit more (check out prot's dotfiles).
+    Counsel-rg is great for searching text in a bunch of files. I should
+    configure it a bit more (check out prot's dotfiles).
 
 *** TODO Configure counsel-wmctrl
 
-    This is a very useful tool. It allows to focus on a different
-    program by choosing it from an ivy list. I should expand on this
-    functionality. Actually, this could be implemented system-wise,
-    with dmenu (off-topic).
+    This is a very useful tool. It allows to focus on a different program
+    by choosing it from an ivy list. I should expand on this functionality.
+    Actually, this could be implemented system-wise, with dmenu
+    (off-topic).
 
 *** TODO Configure occur
 
-    Again, check prot's dotfiles to configure what happens with the
-    occur buffer from ivy candidates.
+    Again, check prot's dotfiles to configure what happens with the occur
+    buffer from ivy candidates.
 
 * DIRED
 
-  Dired, the DIRectory EDitor, is the default file manager inside
-  emacs. It uses ls with ls switches to generate an editable buffer of
-  files lists, in which you can do whatever you would normally do in
-  any file manager, and maybe more.
+  Dired, the DIRectory EDitor, is the default file manager inside emacs. It
+  uses ls with ls switches to generate an editable buffer of files lists,
+  in which you can do whatever you would normally do in any file manager,
+  and maybe more.
 
-  I customized dired up to the point that I am very happy with the
-  workflow achieved. This is a really long config, so I guess it is
-  best to document it along the way.
+  I customized dired up to the point that I am very happy with the workflow
+  achieved. This is a really long config, so I guess it is best to document
+  it along the way.
   
 ** Defaults
 
    Here I define some defaults for dired. These include the default ls
    switches that generate the dired buffer, the use of dwim (do what I
-   mean) while copying and moving (meaning that when performing a copy
-   or move action the default target is the dired buffer in the other
-   window, if existing), also adding hide-details-mode to the hook, to
-   omit displaying all the info that the '-l' flag produces, as well
-   as fixing a bug caused by a package no longer existent (something
-   like the digital equivalent of a ghost limb).
+   mean) while copying and moving (meaning that when performing a copy or
+   move action the default target is the dired buffer in the other window,
+   if existing), also adding hide-details-mode to the hook, to omit
+   displaying all the info that the '-l' flag produces, as well as fixing a
+   bug caused by a package no longer existent (something like the digital
+   equivalent of a ghost limb).
 
-   One drastic change I made to the defaults is the way dired shows up
-   in the modeline. Delight does not work for dired, as its modeline
-   output changes every time the ls flags change. This clutters the
-   modeline as, for example, one flag that I use is
-   '--group-directories-first'... I discovered the culprit: it was the
-   function 'dired-sort-set-mode-line'. So, I completely redefined the
-   function to output my custom names instead (note -- I know I should
-   just advise the function, not completely redefine it, but at the
-   time I was not familiar enough with advising. I might look into it
-   soon).
+   One drastic change I made to the defaults is the way dired shows up in
+   the modeline. Delight does not work for dired, as its modeline output
+   changes every time the ls flags change. This clutters the modeline as,
+   for example, one flag that I use is '--group-directories-first'... I
+   discovered the culprit: it was the function 'dired-sort-set-mode-line'.
+   So, I completely redefined the function to output my custom names
+   instead (note -- I know I should just advise the function, not
+   completely redefine it, but at the time I was not familiar enough with
+   advising. I might look into it soon).
   
   #+begin_src emacs-lisp
   (use-package dired
@@ -654,25 +645,23 @@ The code snippets below are loaded by =init.el=, which also loads
 
    Some tweaks of basic behaviour that I felt were missing:
    
-   - The default behaviour when moving to the beginning / end of the
-     buffer is to treat it like a normal buffer, instead I wanted to
-     move to the first / last line in the file list. I found these
-     code snippets code snippets from a file called [[https://www.emacswiki.org/emacs/dired-extension.el][dired-extension]]
-     that was posted in emacswiki.
-   - The default behaviour when marking a file is to mark and move
-     forward. This makes it really easy to mark a bunch of consecutive
-     files. But what about in reverse? Let's define a function to do
-     exactly that!
-   - The ability to kill lines of a dired buffer so that you can
-     narrow down the files you're working on is very useful. More
-     useful is to be able to do it on a selection of files.
-   - After I started using emacs as my mail client, I thought it would
-     be great to use dired to attach files to an email. Apparently
-     someone else also thought about this in [[https://emacs.stackexchange.com/questions/14652/attach-multiple-files-from-the-same-directory-to-an-email-message][this]] question in
-     stackexchange. This is the provided function, with the ability to
-     attach all marked files. /NOTE: this does not always work as
-     intended, and anyways I don't use it as much. It is worth
-     checking out however./
+   - The default behaviour when moving to the beginning / end of the buffer
+     is to treat it like a normal buffer, instead I wanted to move to the
+     first / last line in the file list. I found these code snippets code
+     snippets from a file called [[https://www.emacswiki.org/emacs/dired-extension.el][dired-extension]] that was posted in
+     emacswiki.
+   - The default behaviour when marking a file is to mark and move forward.
+     This makes it really easy to mark a bunch of consecutive files. But
+     what about in reverse? Let's define a function to do exactly that!
+   - The ability to kill lines of a dired buffer so that you can narrow
+     down the files you're working on is very useful. More useful is to be
+     able to do it on a selection of files.
+   - After I started using emacs as my mail client, I thought it would be
+     great to use dired to attach files to an email. Apparently someone
+     else also thought about this in [[https://emacs.stackexchange.com/questions/14652/attach-multiple-files-from-the-same-directory-to-an-email-message][this]] question in stackexchange. This
+     is the provided function, with the ability to attach all marked files.
+     /NOTE: this does not always work as intended, and anyways I don't use
+     it as much. It is worth checking out however./
 
    #+begin_src emacs-lisp
    (use-package emacs
@@ -727,11 +716,11 @@ The code snippets below are loaded by =init.el=, which also loads
 
 ** Sorting functions
 
-   Although the use of ls switches can be very useful for diferent
-   sorting options, dired by default does not provide this kind of
-   functionality. Here I define some functions to switch between
-   sorting by name, by date, by size and by extension. Also, as toggle
-   functions grouping of directories first and reverse order.
+   Although the use of ls switches can be very useful for diferent sorting
+   options, dired by default does not provide this kind of functionality.
+   Here I define some functions to switch between sorting by name, by date,
+   by size and by extension. Also, as toggle functions grouping of
+   directories first and reverse order.
 
    #+begin_src emacs-lisp
    (use-package dired
@@ -795,29 +784,27 @@ The code snippets below are loaded by =init.el=, which also loads
 
 ** External programs
 
-  Definitions of some "external" functions. These are functions that
-  act on files or lists of files using some external tool. Those
-  include:
+  Definitions of some "external" functions. These are functions that act on
+  files or lists of files using some external tool. Those include:
 
-  - dired-get-size: calls du and outputs the size on the minibuffer. I
-    got this from [[https://www.emacswiki.org/emacs/dired-extension.el][this]] post on emacswiki, from the same package called
+  - dired-get-size: calls du and outputs the size on the minibuffer. I got
+    this from [[https://www.emacswiki.org/emacs/dired-extension.el][this]] post on emacswiki, from the same package called
     dired-extension mentioned previously. I also left the chinese text
     inside!
   - l/unmount-drive: if called on a mountpoint, it unmounts the drive
-    mounted there. Really simple function, as I rarely use it, and
-    only for this, quickly unmount a drive if I am already there.
-  - l/atool-pack and unpack: atool is a script for managing file
-    archives. I tried the existing [[https://github.com/HKey/dired-atool][dired-atool]] package from github,
-    but I didn't like it, so I wrote my own functions with modified
-    code from this project. I prefered something simpler and with nice
-    output.
+    mounted there. Really simple function, as I rarely use it, and only for
+    this, quickly unmount a drive if I am already there.
+  - l/atool-pack and unpack: atool is a script for managing file archives.
+    I tried the existing [[https://github.com/HKey/dired-atool][dired-atool]] package from github, but I didn't like
+    it, so I wrote my own functions with modified code from this project. I
+    prefered something simpler and with nice output.
   - l/get-subtitles: uses sublime, a command-line tool to download
-    subtitles written in python. Although the implementation is mine,
-    I got some basic ideas from [[http://ergoemacs.org/emacs/elisp_call_shell_command.html][this post about 'start-process']] on
-    ergoemacs and [[https://stackoverflow.com/questions/17075920/passing-list-to-rest-args?rq=1][this one about 'apply']] on stackoverflow.
-  - l/change-desktop-background: uses feh, a minimal image viewer, to
-    set the desktop background with the file at point. Provides a menu
-    with different fits.
+    subtitles written in python. Although the implementation is mine, I got
+    some basic ideas from [[http://ergoemacs.org/emacs/elisp_call_shell_command.html][this post about 'start-process']] on ergoemacs and
+    [[https://stackoverflow.com/questions/17075920/passing-list-to-rest-args?rq=1][this one about 'apply']] on stackoverflow.
+  - l/change-desktop-background: uses feh, a minimal image viewer, to set
+    the desktop background with the file at point. Provides a menu with
+    different fits.
     
   #+begin_src emacs-lisp
   (use-package dired
@@ -1050,8 +1037,8 @@ The code snippets below are loaded by =init.el=, which also loads
 
    Dired-X provides some extra functionality for dired.
 
-   For now, I use it only for the omit-mode that it offers, which
-   hides non-interesting files by regexp or by extension.
+   For now, I use it only for the omit-mode that it offers, which hides
+   non-interesting files by regexp or by extension.
 
    However, there are other useful features which I should check, like
    shell command guessing.
@@ -1084,8 +1071,8 @@ The code snippets below are loaded by =init.el=, which also loads
 
 ** Wdired
 
-   Wdired (Writable dired) is a way to manipulate the file listing
-   like a text file. This means super-easy renaming.
+   Wdired (Writable dired) is a way to manipulate the file listing like a
+   text file. This means super-easy renaming.
 
    #+begin_src emacs-lisp
    (use-package wdired
@@ -1094,7 +1081,8 @@ The code snippets below are loaded by =init.el=, which also loads
 
 ** Image dired
 
-   Image dired provides functionality to view images in emacs. Nothing too fancy, just some sane defaults.
+   Image dired provides functionality to view images in emacs. Nothing too
+   fancy, just some sane defaults.
 
    #+begin_src emacs-lisp
    (use-package image-dired
@@ -1107,13 +1095,15 @@ The code snippets below are loaded by =init.el=, which also loads
 
 ** Peep dired
 
-   Peep dired is a minor mode for dired which offers a preview of the file at point on another window. Very useful. It provides an experience similar to file managers like Ranger.
+   Peep dired is a minor mode for dired which offers a preview of the file
+   at point on another window. Very useful. It provides an experience
+   similar to file managers like Ranger.
 
-   However, some features where missing imho, also some functions
-   caused abnormal behaviour. So, I cloned the project from the
-   [[https://github.com/asok/peep-dired][original repo]], tweaked it, added some extra functions and run it...
-   It still needs maintenance, some stuff should be reimplemented, but
-   it will do for now. My fork can be found [[https://github.com/dakodeon/peep-dired][here]].
+   However, some features where missing imho, also some functions caused
+   abnormal behaviour. So, I cloned the project from the [[https://github.com/asok/peep-dired][original repo]],
+   tweaked it, added some extra functions and run it... It still needs
+   maintenance, some stuff should be reimplemented, but it will do for now.
+   My fork can be found [[https://github.com/dakodeon/peep-dired][here]].
 
    #+begin_src emacs-lisp
    (use-package peep-dired
@@ -1173,9 +1163,8 @@ The code snippets below are loaded by =init.el=, which also loads
 
 ** Some extra pieces of functionality
 
-   Here are some packages that offer a little bit of extra
-   functionality. Small things really, but they make a better
-   experience.
+   Here are some packages that offer a little bit of extra functionality.
+   Small things really, but they make a better experience.
 
 *** Dired subtree
 
@@ -1287,8 +1276,8 @@ One note though, while trying to copy to a FAT32 device, I discovered that there
 
 *** Dired rainbow
 
-    Colors the output of dired. Haven't tweaked anything, this is just
-    the defaults from the github page.
+    Colors the output of dired. Haven't tweaked anything, this is just the
+    defaults from the github page.
 
     #+begin_src emacs-lisp
     (use-package dired-rainbow
@@ -1321,8 +1310,8 @@ One note though, while trying to copy to a FAT32 device, I discovered that there
 
 *** Dired icons
 
-    Adds icons in front of file names. Always good to have! Depends on
-    the all-the-icons package, which is loaded later in the config.
+    Adds icons in front of file names. Always good to have! Depends on the
+    all-the-icons package, which is loaded later in the config.
 
     #+begin_src emacs-lisp
     (use-package all-the-icons-dired
@@ -1337,8 +1326,8 @@ One note though, while trying to copy to a FAT32 device, I discovered that there
 
 *** TODO Fix/organize keybindings [0/3]
 
-    This implementation is a massive improvement, but my keybindings
-    are still all over the place.
+    This implementation is a massive improvement, but my keybindings are
+    still all over the place.
     
 **** TODO Evil-collection dired bindings
 
@@ -1361,23 +1350,23 @@ One note though, while trying to copy to a FAT32 device, I discovered that there
 
     Like my mp3-rename-script
 
-* EMAIL CLIENT
-
+* MU4E EMAIL CLIENT
+  
   I use mu4e to manage my emails. mu4e is the emacs front-end for the
-  program 'mu' so installing mu on your system brings also mu4e.
-  Depending on your system, you might have to build it yourself, e.g
-  from git. Then, find the path of mu4e and add it to load-path (in my
-  case it was =/usr/local/share/emacs/site-lisp/mu4e=).
+  program 'mu' so installing mu on your system brings also mu4e. Depending
+  on your system, you might have to build it yourself, e.g from git. Then,
+  find the path of mu4e and add it to load-path (in my case it was
+  =/usr/local/share/emacs/site-lisp/mu4e=).
 
 ** The layout
 *** Parts and components
 
-    Mu4e only manages your emails. You actually need to install a
-    different program to download them and store them to your
-    computer. The most popular alternatives are [[https://www.offlineimap.org/][offlineimap]] and [[http://isync.sourceforge.net/][isync]]
-    (which provides the executable mbsync). I use the latter. Sending
-    email is also provided by a different package: the smtp and
-    message packages that are built-in within emacs.
+    Mu4e only manages your emails. You actually need to install a different
+    program to download them and store them to your computer. The most
+    popular alternatives are [[https://www.offlineimap.org/][offlineimap]] and [[http://isync.sourceforge.net/][isync]] (which provides the
+    executable mbsync). I use the latter. Sending email is also provided by
+    a different package: the smtp and message packages that are built-in
+    within emacs.
   
     So: the steps to manage and send emails through emacs are:
 
@@ -1389,32 +1378,31 @@ One note though, while trying to copy to a FAT32 device, I discovered that there
 
     _Disclaimer:_ I do not understand fully all the mechanics involved
     here, so the above explanation might be from over-simplified to
-    dead-wrong. However, it works, thanks to all the resources existing
-    on the Internet.
+    dead-wrong. However, it works, thanks to all the resources existing on
+    the Internet.
 
-    There is separate configuration required for mbsync. It is out of
-    the scope of this description, so I will not go into it. There are a
-    lot of sample configurations and instructions on the web, as well as
-    a well-documented [[https://wiki.archlinux.org/index.php/Isync][archwiki article]]. However, configuring mbsync can
-    be a headache. Best of luck!
+    There is separate configuration required for mbsync. It is out of the
+    scope of this description, so I will not go into it. There are a lot of
+    sample configurations and instructions on the web, as well as a
+    well-documented [[https://wiki.archlinux.org/index.php/Isync][archwiki article]]. However, configuring mbsync can be a
+    headache. Best of luck!
 
 *** Some info about my config
 
     Mu4e gives the ability to set an interval on which it's database
-    updates. I set this to nil, as I prefer to have a cronjob taking
-    care of that. I have set the interval to be 5 minutes. Updating
-    while on mu4e happens only manually.
+    updates. I set this to nil, as I prefer to have a cronjob taking care
+    of that. I have set the interval to be 5 minutes. Updating while on
+    mu4e happens only manually.
 
-    Another thing to note is that I don't keep all my email info in
-    this file. I use a separate file, which is required in the
-    configuration, which provides a variable storing a list of all the
-    accounts' information that mu4e needs to build te contexts,
-    maildir structure etc. This is not about security, I wouldn't
-    store passwords and stuff even to this file, it just seems more
-    appropriate not to share all my email addresses in a public file.
-    It also makes the config more portable, as you can easily
-    implement the same file, the basic structure of which can be seen
-    below:
+    Another thing to note is that I don't keep all my email info in this
+    file. I use a separate file, which is required in the configuration,
+    which provides a variable storing a list of all the accounts'
+    information that mu4e needs to build te contexts, maildir structure
+    etc. This is not about security, I wouldn't store passwords and stuff
+    even to this file, it just seems more appropriate not to share all my
+    email addresses in a public file. It also makes the config more
+    portable, as you can easily implement the same file, the basic
+    structure of which can be seen below:
 
     #+begin_example emacs-lisp
     (defvar l/accounts-info-list
@@ -1459,8 +1447,8 @@ One note though, while trying to copy to a FAT32 device, I discovered that there
 ** The actual config
 *** SMTP configuration
 
-    SMTP handles the connection with your email provider. It also sets
-    some values for the default email account.
+    SMTP handles the connection with your email provider. It also sets some
+    values for the default email account.
 
     #+begin_src emacs-lisp
     (use-package smtpmail
@@ -1483,20 +1471,23 @@ One note though, while trying to copy to a FAT32 device, I discovered that there
 *** Message configuration
 
     Message is the package that does the actual editing of an email
-    message. It is configured to use smtpmail to actually send it.
+    message. It is configured to use smtpmail to actually send it. It is
+    the backend for the mu4e:compose mode.
 
     #+begin_src emacs-lisp
     (use-package message
       :after smtpmail
       :config
       (setq message-send-mail-function 'smtpmail-send-it)
-      (setq message-kill-buffer-on-exit t))
+      (setq message-kill-buffer-on-exit t)
+      :hook
+      (message-mode . visual-line-mode))
     #+end_src
     
 *** Mu4e -- base settings
 
-    The 'main course'. If it goes all together it will be a very big
-    code block, so I will break it into several categories.
+    The 'main course'. If it goes all together it will be a very big code
+    block, so I will break it into several categories.
 
     Here are the basic settings.
 
@@ -1505,7 +1496,8 @@ One note though, while trying to copy to a FAT32 device, I discovered that there
       :load-path "/usr/local/share/emacs/site-lisp/mu4e"
       :after message
       :init
-      (setq mu4e-get-mail-command "mbsync -a -c ~/.config/mbsyncrc" ;; mbsync with custom config location
+      (setq mu4e-get-mail-command
+	    "mbsync -a -c ~/.config/mbsyncrc" ;; mbsync with custom config location
 	    mu4e-maildir (expand-file-name "~/.personal/Mail")
 	    mu4e-org-contacts-file "~/.personal/contacts.org"
 	    mu4e-update-interval nil ;; cronjob takes care of this
@@ -1524,12 +1516,11 @@ One note though, while trying to copy to a FAT32 device, I discovered that there
 	    mu4e-compose-dont-reply-to-self nil
 	    mu4e-compose-signature-auto-include nil
 	    mu4e-context-policy 'pick-first)
-
-      ;; this one does not work out of the box. Emacs needs to be compiled with imagemagick support. Will look into this
+      ;; this one does not work out of the box. Emacs needs to be compiled with
+      ;; imagemagick support. Will look into this
       (setq mu4e-show-images t)
       (when (fboundp 'imagemagick-register-types)
 	(imagemagick-register-types))
-
       :config
       (setq mail-user-agent 'mu4e-user-agent)
       :bind
@@ -1543,14 +1534,14 @@ One note though, while trying to copy to a FAT32 device, I discovered that there
     personal email list is built, then the shortcuts for the various
     Inboxes and finally the contexts' definitions.
 
-    Note how portable this is: you can have 2 or 12 email accounts and
-    this code will not change. However, also note that only shortcuts
-    for the Inboxes are provided. This is to minimize the information
-    stored in the info list. Maybe in the future I will come up with a
-    better implementation.
+    Note how portable this is: you can have 2 or 12 email accounts and this
+    code will not change. However, also note that only shortcuts for the
+    Inboxes are provided. This is to minimize the information stored in the
+    info list. Maybe in the future I will come up with a better
+    implementation.
 
-    The code is kinda convoluted though... Defining contexts that way
-    was a headache, so I am very happy to have figured it out.
+    The code is kinda convoluted though... Defining contexts that way was a
+    headache, so I am very happy to have figured it out.
 
     #+begin_src emacs-lisp
     (use-package mu4e
@@ -1602,36 +1593,34 @@ One note though, while trying to copy to a FAT32 device, I discovered that there
 
 *** Mu4e -- bookmarks and queries
 
-    In mu4e, when you want to find an email, you perform a search
-    query. You rarely go in your inbox folder and start scrolling
-    around. As for the queries that you run most of the time, you can
-    define them as bookmarks. Bookmarks in mu4e are pre-defined
-    queries, callable with a keybinding.
+    In mu4e, when you want to find an email, you perform a search query.
+    You rarely go in your inbox folder and start scrolling around. As for
+    the queries that you run most of the time, you can define them as
+    bookmarks. Bookmarks in mu4e are pre-defined queries, callable with a
+    keybinding.
 
-   Mu4e provides some default bookmarks, the most common one to be
-   unread messages, but they are not all useful. So I defined my own
-   list:
+   Mu4e provides some default bookmarks, the most common one to be unread
+   messages, but they are not all useful. So I defined my own list:
 
    1. Unread messages -- by default
    2. Today's messages -- by default
-   3. Messages from the last x days, where x is set interactively --
-      this one is based on an example in the manual. I changed some
-      things to integrate it with my various contexts.
+   3. Messages from the last x days, where x is set interactively -- this
+      one is based on an example in the manual. I changed some things to
+      integrate it with my various contexts.
 
-   There was another query that I wanted to have as a bookmark, but I
-   could not, due to some internals of the bookmarks' definition
-   process. This is the ability to re-visit the last received message.
-   So, the function that perform this specific query is callable from
-   outside the bookmarks' scope.
+   There was another query that I wanted to have as a bookmark, but I could
+   not, due to some internals of the bookmarks' definition process. This is
+   the ability to re-visit the last received message. So, the function that
+   perform this specific query is callable from outside the bookmarks'
+   scope.
 
    Another useful feature is to be able to perform a query for unread
-   messages globally, meaning outside of mu4e. That way we can quickly
-   jump to unread messages directly upon receiving an email. This is
-   useful to be implemented system-wise.
+   messages globally, meaning outside of mu4e. That way we can quickly jump
+   to unread messages directly upon receiving an email. This is useful to
+   be implemented system-wise.
 
-   To facilitate definitions of queries that span through all
-   different contexts, a variable holding a list of inboxes is also
-   defined here.
+   To facilitate definitions of queries that span through all different
+   contexts, a variable holding a list of inboxes is also defined here.
 
    #+begin_src emacs-lisp
    (use-package mu4e
@@ -1696,21 +1685,20 @@ One note though, while trying to copy to a FAT32 device, I discovered that there
    
 *** Mu4e -- actions
 
-    Actions are pre-defined actions you can run on a mail message,
-    either in headers view, or while visiting it. Mu4e defines some
-    default actions, but you have to load them yourself. You can also
-    write your own actions, however I haven't done that yet.
+    Actions are pre-defined actions you can run on a mail message, either
+    in headers view, or while visiting it. Mu4e defines some default
+    actions, but you have to load them yourself. You can also write your
+    own actions, however I haven't done that yet.
 
-    The actions are defined by adding them in the related association
-    list. Then, the actions are callable by pressing the actions
-    shortcut ("a") and the first letter of the description associated
-    with the action.
+    The actions are defined by adding them in the related association list.
+    Then, the actions are callable by pressing the actions shortcut ("a")
+    and the first letter of the description associated with the action.
 
     The actions I load for now are:
     - _ViewInBrowser_: opens the message in browser as html
-    - _org-contact-add_: adds the message's sender to my org-contacts
-      file (for org-contacts see later section.) This action is
-      callable both from the headers and from the message views.
+    - _org-contact-add_: adds the message's sender to my org-contacts file
+      (for org-contacts see later section.) This action is callable both
+      from the headers and from the message views.
 
     #+begin_src emacs-lisp
     (use-package mu4e
@@ -1729,25 +1717,24 @@ One note though, while trying to copy to a FAT32 device, I discovered that there
 
     Here are some extra pieces of functionality that I put together.
 
-    One is the ability to split the headers view when viewing a
-    message according to the current window's dimensions. I have set
-    the default to be a vertical split, but, if the window height is
-    larger than the window width, then the split will be horizontal.
-    /This is achieved by advising the 'mu4e-headers-view-message'/
-    /function./ -- Not anymore: the problem was that
-    'mu4e-headers-view-message' is called even when jumping from one
-    message directly to the next. This caused the advice to activate,
-    thus interchanging the split-view value. Instead, I now defined an
-    extra function which is called only when opening a message from
-    the headers view.
+    One is the ability to split the headers view when viewing a message
+    according to the current window's dimensions. I have set the default to
+    be a vertical split, but, if the window height is larger than the
+    window width, then the split will be horizontal. /This is achieved by
+    advising the 'mu4e-headers-view-message'/ /function./ -- Not anymore:
+    the problem was that 'mu4e-headers-view-message' is called even when
+    jumping from one message directly to the next. This caused the advice
+    to activate, thus interchanging the split-view value. Instead, I now
+    defined an extra function which is called only when opening a message
+    from the headers view.
     
-    The other is to update my external mail notifications (I use
-    i3blocks and dunst for that) by sending the required signal to
-    i3blocks. This is run as a hook after updating the index as well
-    as when viewing a message (thus disabling the unread flag).
+    The other is to update my external mail notifications (I use i3blocks
+    and dunst for that) by sending the required signal to i3blocks. This is
+    run as a hook after updating the index as well as when viewing a
+    message (thus disabling the unread flag).
 
-    All other small pieces of functionality that don't really belong
-    to any other section will be put here.
+    All other small pieces of functionality that don't really belong to any
+    other section will be put here.
 
     #+begin_src emacs-lisp
     (use-package mu4e
@@ -1781,28 +1768,30 @@ One note though, while trying to copy to a FAT32 device, I discovered that there
 
 * ORG MODE
 
-  Org mode is a note-taking and organizing framework that does much
-  more than that. It can evaluate souce code blocks (see this very
-  file), keep track of TODO lists, create and calculate datasheets,
-  capture notes on the fly, keep an agenda etc... It is really hard to
-  describe all the use cases of org-mode.
+  Org mode is a note-taking and organizing framework that does much more
+  than that. It can evaluate souce code blocks (see this very file), keep
+  track of TODO lists, create and calculate datasheets, capture notes on
+  the fly, keep an agenda etc... It is really hard to describe all the use
+  cases of org-mode.
 
   Anyhow, this configuration is really, really basic, I haven't even
   scratched the surface: some sensible defaults, the ensurance of
-  'org-plus-contrib' for extra functionality, a little bit of
-  capturing etc... We 'll see how this goes.
+  'org-plus-contrib' for extra functionality, a little bit of capturing
+  etc... We 'll see how this goes.
 
 ** Basic configuration
 
    Defining some defaults. General behaviour etc.
    
-   An important thing here is the ensurance of 'org-plus-contrib'.
-   This library is not a part of the main org package, but expands
-   org-mode in a lot of useful ways.
+   An important thing here is the ensurance of 'org-plus-contrib'. This
+   library is not a part of the main org package, but expands org-mode in a
+   lot of useful ways.
 
   #+begin_src emacs-lisp
   (use-package org
-    :delight ""
+    :delight
+    (org-mode "")
+    (org-src-mode " SRC")
     :ensure org-plus-contrib
     :init
     (setq org-M-RET-may-split-line '((default . nil)))
@@ -1831,14 +1820,14 @@ One note though, while trying to copy to a FAT32 device, I discovered that there
 
 ** Org TODOs
 
-   TODO lists is something org does well. Some basic options defined
-   here, like time-logging and behaviour for nested TODO headlines.
+   TODO lists is something org does well. Some basic options defined here,
+   like time-logging and behaviour for nested TODO headlines.
 
-   Also, I pasted a function from the info page: this automates the
-   change od the TODO state of a header with TODO children.
+   Also, I pasted a function from the info page: this automates the change
+   od the TODO state of a header with TODO children.
    
-   All configuration considering clocking and time-management in
-   general will be included here as well.
+   All configuration considering clocking and time-management in general
+   will be included here as well.
 
    #+begin_src emacs-lisp
    (use-package org
@@ -1864,29 +1853,32 @@ One note though, while trying to copy to a FAT32 device, I discovered that there
 
 ** Org capture
 
-   Org-capture lets you keep notes on the fly in an organized manner,
-   and without interrupting your current workflow.
+   Org-capture lets you keep notes on the fly in an organized manner, and
+   without interrupting your current workflow.
 
-   This is done by pre-defining capture templates, which are then
-   assigned to a shortcut key.
+   This is done by pre-defining capture templates, which are then assigned
+   to a shortcut key.
 
    The capture facility uses the 'org-directory' and the
-   'org-default-notes-file' to figure out where to store the notes, if
-   not specifically stated. These variables are defined in the
-   previous section.
+   'org-default-notes-file' to figure out where to store the notes, if not
+   specifically stated. These variables are defined in the previous
+   section.
 
-   Also, I implemented the idea presented [[https://www.youtube.com/watch?v=gjr9mP01oWE][here]] by Mike Zamansky
-   (apparently he got it from somewhere else too, but anyway). It is
-   about creating a new frame in org-capture mode and binding it to a
-   keybinding on your system. That way you don't have to focus back to
-   emacs if you want to take a note, say, while in your browser.
+   Also, I implemented the idea presented [[https://www.youtube.com/watch?v=gjr9mP01oWE][here]] by Mike Zamansky (apparently
+   he got it from somewhere else too, but anyway). It is about creating a
+   new frame in org-capture mode and binding it to a keybinding on your
+   system. That way you don't have to focus back to emacs if you want to
+   take a note, say, while in your browser.
    
-   My note-taking skills are bad at best, so I haven't put much stuff in here. I have some defaults that I rarely use, and some templates commented out, that I decided to be not useful, but I keep them for reference.
+   My note-taking skills are bad at best, so I haven't put much stuff in
+   here. I have some defaults that I rarely use, and some templates
+   commented out, that I decided to be not useful, but I keep them for
+   reference.
 
    My templates include:
 
-   1. Todo: Specify a TODO headline in the default file, under the
-      headline "Tasks". -- from the defaults
+   1. Todo: Specify a TODO headline in the default file, under the headline
+      "Tasks". -- from the defaults
    2. Journal: A journal entry in the file "journal.org". I rarely use
       this. -- from the defaults
    3. Darkroom log: My darkroom progress notepad. Also logs time.
@@ -1950,10 +1942,10 @@ One note though, while trying to copy to a FAT32 device, I discovered that there
 
 ** Org agenda
 
-   Org agenda is what it says on the lid... It offers an overview of
-   todos, appointments etc from your files in 'org-directory'. Of
-   course, what you see is fully customizable. It also offers
-   integration with the diary (see next section).
+   Org agenda is what it says on the lid... It offers an overview of todos,
+   appointments etc from your files in 'org-directory'. Of course, what you
+   see is fully customizable. It also offers integration with the diary
+   (see next section).
 
    #+begin_src emacs-lisp
    (use-package org-agenda
@@ -2055,15 +2047,13 @@ One note though, while trying to copy to a FAT32 device, I discovered that there
   If you do not know what LaTeX is, just skip this section. It's OK.
 
   The most serious package to manage LaTeX documents, except from the
-  defaults, is AUCTeX. It's functionality is not fully explored by me,
-  so here I will put just some default configuration taken from the
-  info page.
+  defaults, is AUCTeX. It's functionality is not fully explored by me, so
+  here I will put just some default configuration taken from the info page.
 
-  I will put as well as a function that I wrote while using the
-  default LaTeX package. This allows for the LaTeX compiler (in my
-  case XeLaTeX) to run automatically when a LaTeX document is saved.
-  Maybe this particular issue is covered by some AUCTeX mechanism that
-  I don't know of.
+  I will put as well as a function that I wrote while using the default
+  LaTeX package. This allows for the LaTeX compiler (in my case XeLaTeX) to
+  run automatically when a LaTeX document is saved. Maybe this particular
+  issue is covered by some AUCTeX mechanism that I don't know of.
 
   #+begin_src emacs-lisp
   (use-package tex
@@ -2085,34 +2075,34 @@ One note though, while trying to copy to a FAT32 device, I discovered that there
 
 * TERMINAL EMULATOR
 
-  The lack of a decent terminal emulator inside of emacs always
-  bothered me. I wouldn't think to use it as my default terminal
-  emulator, but it could be useful at times where switching from emacs
-  to another window could interrupt your workflow.
+  The lack of a decent terminal emulator inside of emacs always bothered
+  me. I wouldn't think to use it as my default terminal emulator, but it
+  could be useful at times where switching from emacs to another window
+  could interrupt your workflow.
 
   Well, it seems the search is over: enter vterm!
 
-  Vterm is an emacs port of the libvterm library. Without being 100%
-  sure, this is a library implementing all the functionality of a
-  terminal emulator, but without being tied to a specific frontend.
-  According to the github page, it is still in alpha so some buggy
-  behaviour should be expected (they also note that, due to its
-  involvement in some low-level operations, if it breaks, it breaks
-  badly -- free interpretation), however, after building from source
-  and using it, it works almost flawlessly. It even manages terminal
-  applications (like mpv) or even ncurses applications (like nmtui).
+  Vterm is an emacs port of the libvterm library. Without being 100% sure,
+  this is a library implementing all the functionality of a terminal
+  emulator, but without being tied to a specific frontend. According to the
+  github page, it is still in alpha so some buggy behaviour should be
+  expected (they also note that, due to its involvement in some low-level
+  operations, if it breaks, it breaks badly -- free interpretation),
+  however, after building from source and using it, it works almost
+  flawlessly. It even manages terminal applications (like mpv) or even
+  ncurses applications (like nmtui).
 
-  A drawback (minor one really) is that one part of the configuration
-  is done in your shell's config file (in my case zsh), and it consist
-  mostly of some cryptic functions and bits of code that you are
-  supposed to copy-paste from their github. These would handle some of
-  the functionality, like prompt-tracking. As of yet, I haven't fully
-  configured the shell side, mainly because of a lack of
-  understanding. For now I can live without prompt-tracking, though.
+  A drawback (minor one really) is that one part of the configuration is
+  done in your shell's config file (in my case zsh), and it consist mostly
+  of some cryptic functions and bits of code that you are supposed to
+  copy-paste from their github. These would handle some of the
+  functionality, like prompt-tracking. As of yet, I haven't fully
+  configured the shell side, mainly because of a lack of understanding. For
+  now I can live without prompt-tracking, though.
 
   Overall, I have a very good experience with it. I will always need a
-  terminal emulator outside of emacs, but I will try to use vterm as
-  much as I can.
+  terminal emulator outside of emacs, but I will try to use vterm as much
+  as I can.
 
 ** Vterm -- basics
 
@@ -2148,9 +2138,9 @@ One note though, while trying to copy to a FAT32 device, I discovered that there
 
 * WINDOW MANAGEMENT
 
-  Moving around windows efficiently is very important in emacs. In
-  here I define some functions to help with that, also with the
-  rearrangement of windows in a frame.
+  Moving around windows efficiently is very important in emacs. In here I
+  define some functions to help with that, also with the rearrangement of
+  windows in a frame.
 
 ** Basics -- extra functions and bindings
 
@@ -2217,8 +2207,8 @@ One note though, while trying to copy to a FAT32 device, I discovered that there
 
 ** Ace window
 
-   Ace-window allows to switch between windows using a hint key.
-   Useful when working with lots of windows and frames.
+   Ace-window allows to switch between windows using a hint key. Useful
+   when working with lots of windows and frames.
 
    #+begin_src emacs-lisp
    (use-package ace-window
@@ -2234,7 +2224,7 @@ One note though, while trying to copy to a FAT32 device, I discovered that there
 
 ** Winner mode
 
-   Winner mode allows to restore a previous window confoguration.
+   Winner mode allows to restore a previous window configuration.
 
    #+begin_src emacs-lisp
    (use-package winner
@@ -2281,28 +2271,28 @@ One note though, while trying to copy to a FAT32 device, I discovered that there
 
    #+end_src
 
-** TODO TODO list [0/2]
+** TODO TODO list [1/2]
 
 *** TODO Tidy up config
 
     Some defined functions that I won't use, one large code block that
     should be split for readability etc...
 
-*** TODO Winner mode
+*** DONE Winner mode
+    CLOSED: [2020-05-01 Fri 12:42]
 
-    Winner mode can keep a history of window states. It could be
-    really useful.
+    Winner mode can keep a history of window states. It could be really
+    useful.
 
 * FILES AND BUFFERS NAVIGATION
 
-  I think of a buffer as a sort of container in emacs. Each opened
-  window shows the contents of a buffer, which may or may not be
-  assocciated with a file. A buffer not assocciated with a file can be
-  saved as one.
+  I think of a buffer as a sort of container in emacs. Each opened window
+  shows the contents of a buffer, which may or may not be assocciated with
+  a file. A buffer not assocciated with a file can be saved as one.
 
-  Here are some basic configuration about the way emacs handles files
-  and buffers. It mostly consists of my custom bindings, but any other
-  relevant config will be placed here as well.
+  Here are some basic configuration about the way emacs handles files and
+  buffers. It mostly consists of my custom bindings, but any other relevant
+  config will be placed here as well.
 
   #+begin_src emacs-lisp
   (use-package emacs
@@ -2593,38 +2583,41 @@ One note though, while trying to copy to a FAT32 device, I discovered that there
       ("C-x M-D" . darkroom-tentative-mode))
     #+end_src
 
+* BETTER DEFAULTS
+
+  Some interface changes that make more sense. Also, some misc options
+  that don't fit anywhere else.
+   
+  #+begin_src emacs-lisp
+  (use-package emacs
+    :init
+    (setq inhibit-splash-screen t)	; no splash screen
+    (setq initial-scratch-message nil)	; scratch buffer starts empty
+    (tool-bar-mode -1)			; no toolbar...
+    (menu-bar-mode -1)			; no menu bar...
+    (scroll-bar-mode -1)			; and no scrollbar!
+    (fset 'yes-or-no-p 'y-or-n-p)		; type "y" instead of "yes"
+    (setq default-directory "~/")		; start from $HOME
+    (setq custom-file "~/.emacs.d/custom.el") ; use separate custom file
+    (load custom-file)			    ; load it too
+    (setq backup-directory-alist
+	  `(("." . "~/.emacs.d/backups"))) ; all backups in the same place
+    (setq backup-by-copying t)		 ; at some point this was important
+    (setq help-window-select t)		; always focus help windows
+    (setq browse-url-browser-function
+	  'browse-url-xdg-open)		; use the default browser
+    (setq vc-follow-symlinks t)		; don't ask me to follow symlinks
+    :hook
+    ((help-mode Custom-mode) . visual-line-mode)
+    :bind
+    (:map special-event-map
+	  ("M-SPC" . ignore)))		; ignore my changing layouts key
+  #+end_src
+
 * LOOKS AND FEELS
 
-  By default emacs looks ugly! Let's see what we can do about this...
-
-** Better defaults
-
-   Some interface changes that make more sense. Also, some misc options
-   that don't fit anywhere else.
-   
-   #+begin_src emacs-lisp
-   (use-package emacs
-     :init
-     (setq inhibit-splash-screen t)	; no splash screen
-     (setq initial-scratch-message nil)	; scratch buffer starts empty
-     (tool-bar-mode -1)			; no toolbar...
-     (menu-bar-mode -1)			; no menu bar...
-     (scroll-bar-mode -1)			; and no scrollbar!
-     (fset 'yes-or-no-p 'y-or-n-p)		; type "y" instead of "yes"
-     (setq default-directory "~/")		; start from $HOME
-     (setq custom-file "~/.emacs.d/custom.el") ; use separate custom file
-     (load custom-file)			    ; load it too
-     (setq backup-directory-alist
-	   `(("." . "~/.emacs.d/backups"))) ; all backups in the same place
-     (setq backup-by-copying t)		 ; at some point this was important
-     (setq help-window-select t)		; always focus help windows
-     (setq browse-url-browser-function
-	   'browse-url-xdg-open)		; use the default browser
-     (setq vc-follow-symlinks t)		; don't ask me to follow symlinks
-     :bind
-     (:map special-event-map
-	   ("M-SPC" . ignore)))		; ignore my changing layouts key
-   #+end_src
+  As we said before, it's all about the bling. Aesthetic choices wich are
+  occasionaly functional.
 
 ** Theme
 
@@ -2720,6 +2713,7 @@ One note though, while trying to copy to a FAT32 device, I discovered that there
 * EXTRA BITS OF FUNCTIONALITY
 
   Bits and chunks of useful stuff.
+  
 ** Which key
 
    When starting to type a keybinding, it provides a "cheatsheet" with all
@@ -2804,813 +2798,260 @@ One note though, while trying to copy to a FAT32 device, I discovered that there
      :ensure t)
    #+end_src
 
-* DONE OLD CONFIGS [13/13]
-** DONE INTERFACE [14/14]
-*** DONE Try packages
-    CLOSED: [2020-05-01 Fri 06:13]
-
-    #+begin_src emacs-lisp
-    ;;(use-package try
-    ;;  :ensure t)
-    #+end_src
-    
-*** DONE Defaults
-    CLOSED: [2020-05-01 Fri 03:55]
-
-    #+begin_src emacs-lisp
-     ;; (setq inhibit-splash-screen t)       	;; disable the splash screen
-     ;; (setq initial-scratch-message nil)   	;; disable scratch message
-     ;; (tool-bar-mode -1)                   	;; all bars off
-     ;; (menu-bar-mode -1)
-     ;; (scroll-bar-mode -1)
-     ;; (blink-cursor-mode -1)
-     ;; (column-number-mode 1)               	;; show cursor position
-    ;; (global-visual-line-mode t)          	;; visual line mode everywhere
-     ;; (global-hl-line-mode t)              	;; highlight active line
-     ;; (fset 'yes-or-no-p 'y-or-n-p)        	;; ask me for y or n
-     ;; (setq default-directory (file-name-as-directory (getenv "HOME"))) ;; change the default directory to $HOME
-     ;; (setq select-enable-clipboard t)				  ;; use the clipboard for yanking
-     ;; (setq save-interprogram-paste-before-kill t)
-     ;; (setq help-window-select t)	       ;; always focus on help windows
-     ;; (setq sentence-end-double-space nil)   ;; better sentence navigation
-     ;; (delete-selection-mode 1)	       ;; typing deletes selected text
-     ;; (set-language-environment "UTF-8")     ;; always use UTF-8 encoding
-     ;; (set-default-coding-systems 'utf-8)
-     ;; (setq browse-url-browser-function 'browse-url-xdg-open) ;; open with default browser
-     ;; (setq vc-follow-symlinks t) ;; don't ask when visiting symlinks
-     ;; (define-key special-event-map (kbd "M-SPC") 'ignore)			;; temporary fix, I use this key combination to switch layouts stystem-wise, but emacs intercepts the key presses
-    #+end_src
-
-*** DONE Enable some disabled features
-    CLOSED: [2020-04-30 Thu 04:31]
-
-    #+begin_src emacs-lisp
-    ;; (put 'downcase-region 'disabled nil) ;; binds to 'C-x C-l'
-    ;; (put 'upcase-region 'disabled nil) ;; binds to 'C-x C-u'
-    ;; (put 'narrow-to-region 'disabled nil) ;; binds to 'C-x n n'
-    #+end_src
-
-*** DONE Font size
-    CLOSED: [2020-04-30 Thu 05:13]
-
-    #+begin_src emacs-lisp
-    ;; (global-set-key (kbd "C-<next>") 'text-scale-increase)
-    ;; (global-set-key (kbd "C-<prior>") 'text-scale-decrease)
-    #+end_src
-
-*** REJECTED Line numbering
-    CLOSED: [2020-04-30 Thu 05:08]
-
-    #+begin_src emacs-lisp
-    ;; (display-line-numbers-mode t)
-
-    ;; (use-package linum-relative
-      ;; :ensure t
-      ;; :after org
-      ;; :init
-      ;; (setq linum-relative-current-symbol "")
-      ;; :bind ("C-x M-l" . linum-relative-toggle))
-    #+end_src
-
-*** DONE Darkroom mode
-    CLOSED: [2020-04-30 Thu 05:26]
-
-    A nice mode for reading and writing, similar to vim's goyo
-    Does it make sense to configure follow-mode here? Maybe.
-
-    #+begin_src emacs-lisp
-    ;; (use-package darkroom
-      ;; :ensure t
-      ;; :init
-      ;; (setq darkroom-text-scale-increase 0.8)
-      ;; :bind
-      ;; (("C-M-_" . darkroom-decrease-margins)
-       ;; ("C-x M-D" . darkroom-tentative-mode)))
-
-    ;; (global-set-key (kbd "C-x M-L") 'follow-mode)
-    #+end_src
-
-*** DONE Rainbow mode
-    CLOSED: [2020-04-30 Thu 05:21]
-
-    #+begin_src emacs-lisp
-    ;; (use-package rainbow-mode
-      ;; :ensure t
-      ;; :delight
-      ;; :hook prog-mode conf-mode)
-    #+end_src
-
-*** DONE Load theme
-    CLOSED: [2020-05-01 Fri 05:11]
-
-    #+begin_src emacs-lisp
-    ;; (use-package color-theme-sanityinc-tomorrow
-      ;; :ensure t)
-
-    ;; (color-theme-sanityinc-tomorrow--define-theme bright)
-    #+end_src
-
-*** DONE All the icons
-    CLOSED: [2020-05-01 Fri 05:59]
-Icons for emacs.
-#+begin_src emacs-lisp
-;; Note: After the first load, run `all-the-icons-install-fonts'
-(use-package all-the-icons
-  :ensure t
-  :delight)
-#+end_src
-
-#+begin_src emacs-lisp
-(add-to-list 'load-path "~/.source")
-(require 'font-lock+)
-#+end_src
-
-*** DONE Hide info from modeline (delight)
-    CLOSED: [2020-05-01 Fri 05:42]
-
-    Normally I use the =:delight= keyword of use package, here are the built-in modes that I want to omit.
-
-    #+begin_src emacs-lisp
-    ;; (use-package delight
-      ;; :ensure t
-      ;; :config
-      ;; (delight 'dired-mode "")
-      ;; (delight 'undo-tree-mode nil 'undo-tree)
-      ;; (delight 'visual-line-mode " ⏎" 'simple)
-      ;; (delight 'eldoc-mode nil 'eldoc)
-      ;; for some reason, I cannot set this in use-package declaration of smartparens
-      ;; (delight 'smartparens-mode " {⬄}" 'smartparens))
-    #+end_src
-
-This seems a reasonable way to change modeline info for major modes. Why use delight for that? It also seems to work better for, e.g, this case.
-
-    #+begin_src emacs-lisp
-    ;; (add-hook 'emacs-lisp-mode-hook
-	  ;; (lambda ()
-	    ;; (setq mode-name "ELisp")))
-    #+end_src
-    
-*** DONE Which key
-    CLOSED: [2020-05-01 Fri 06:16]
-
-    #+begin_src emacs-lisp
-    (use-package which-key
-      :ensure t
-      :delight
-      :config (which-key-mode))
-    #+end_src
-*** DONE Default files
-    CLOSED: [2020-05-01 Fri 06:09]
-
-    Change the way that emacs keeps backups, also some default files, like custom
-
-    #+begin_src emacs-lisp
-    ;; ;; use separate custom file
-    ;; (setq custom-file "~/.emacs.d/custom.el")
-    ;; (load custom-file)
-
-    ;; ;; backup files
-    ;; (setq backup-directory-alist `(("." . "~/.emacs.d/backups")))
-    ;; (setq backup-by-copying t) ;; this is to ensure all edited files keep their inodes
-    #+end_src
-*** DONE Emojis
-    CLOSED: [2020-05-01 Fri 06:01]
-
-    Display emojis!
-
-    #+begin_src emacs-lisp
-    ;;(use-package emojify
-    ;;  :ensure t)
-    #+end_src
-*** DONE Transparency
-    CLOSED: [2020-05-01 Fri 05:27]
-
-    Coz why not? Until I get bored with it. Or maybe make it toggle?
-    
-    UPDATE: It seems that there is some problems after all...
-
-    #+begin_src emacs-lisp
-    ;; (set-frame-parameter (selected-frame) 'alpha '(90 80))
-    #+end_src
-
-** DONE FUNCTIONALITY [9/9]
-*** DONE Whole buffer evaluation
-    CLOSED: [2020-05-01 Fri 03:30]
-
-    #+begin_src emacs-lisp
-    (global-set-key (kbd "C-x C-S-e") 'eval-buffer)
-    #+end_src
-
-*** DONE Toggle comments
-    CLOSED: [2020-04-30 Thu 04:36]
-
-    #+begin_src emacs-lisp
-    ;; (global-set-key (kbd "C-;") 'comment-line)
-    ;; (global-set-key (kbd "C-M-;") 'comment-or-uncomment-region)
-    #+end_src
-
-*** DONE Parentheses
-    CLOSED: [2020-05-01 Fri 03:23]
-
-    #+begin_src emacs-lisp
-    ;; (use-package smartparens-config
-    ;;   :ensure smartparens
-    ;;   ;; :delight ('smartparens-mode " \(\)" 'smartparens)
-    ;;   :init
-    ;;   (smartparens-global-mode 1)
-    ;;   (show-smartparens-global-mode 1)
-    ;;   (sp-local-pair 'emacs-lisp-mode "'" nil :actions nil)
-    ;;   :bind
-    ;;   ("M-s" . sp-splice-sexp))
-
-    ;; ;; (use-package rainbow-delimiters
-      ;; :ensure t
-      ;; :init
-      ;; (add-hook 'prog-mode-hook #'rainbow-delimiters-mode))
-
-    #+end_src
-
-*** DONE Expand region
-    CLOSED: [2020-04-30 Thu 19:02]
-
-    #+begin_src emacs-lisp
-    ;; (use-package expand-region
-    ;;   :ensure t
-    ;;   :bind
-    ;;   (("C-=" . er/expand-region)
-    ;;    ("C-c =" . er/expand-region)
-    ;;    ("C--" . er/contract-region)
-    ;;    ("C-c -" . er/contract-region)))
-    #+end_src
-
-*** REJECTED Smarter move to beginning of line
-    CLOSED: [2020-04-30 Thu 04:55]
-
-    Part of Prelude
-
-    #+begin_src emacs-lisp
-    ;; (defun smarter-move-beginning-of-line (arg)
-      ;; "Move point back to indentation of beginning of line.
-
-    ;; Move point to the first non-whitespace character on this line.
-    ;; If point is already there, move to the beginning of the line.
-    ;; Effectively toggle between the first non-whitespace character and
-    ;; the beginning of the line.
-
-    ;; If ARG is not nil or 1, move forward ARG - 1 lines first.  If
-    ;; point reaches the beginning or end of the buffer, stop there."
-      ;; (interactive "^p")
-      ;; (setq arg (or arg 1))
-
-      ;; Move lines first
-      ;; (when (/= arg 1)
-	;; (let ((line-move-visual nil))
-	  ;; (forward-line (1- arg))))
-
-      ;; (let ((orig-point (point)))
-	;; (back-to-indentation)
-	;; (when (= orig-point (point))
-	  ;; (move-beginning-of-line 1))))
-
-    ;; (global-set-key [remap move-beginning-of-line] 'smarter-move-beginning-of-line)
-    #+end_src
-
-    Kill the whole line
-
-    #+begin_src emacs-lisp
-    ;; (global-set-key (kbd "C-S-k") 'kill-whole-line)
-    #+end_src
-
-*** REJECTED Duplicate line
-    CLOSED: [2020-04-30 Thu 03:28]
-
-    #+begin_src emacs-lisp
-    ;; (defun duplicate-line()
-      ;; "Duplicates a line."
-      ;; (interactive)
-      ;; (move-beginning-of-line 1)
-      ;; (kill-line)
-      ;; (yank)
-      ;; (open-line 1)
-      ;; (next-line 1)
-      ;; (yank))
-
-    ;; (global-set-key (kbd "C-c d") 'duplicate-line)
-    #+end_src
-
-*** DONE Auto-evaluate init file
-    CLOSED: [2020-05-01 Fri 06:23]
-
-    Auto-evaluate the init.el file when saving this org file. A must have!
-
-    Got the general idea from https://www.reddit.com/r/emacs/comments/8hpyp5/tip_how_to_execute_a_bash_function_when_saving_a/
-
-    #+begin_src emacs-lisp
-
-    ;; (defun l/reload-emacs ()
-    ;;   "Reload the init file"
-    ;;   (interactive)
-    ;;   (load-file "~/.emacs.d/init.el"))
-
-    ;; (defun my/cmd-after-saved-file ()
-    ;;   "Evaluate the init file automatically"
-    ;;     (when (string= (buffer-file-name) (expand-file-name "~/.emacs.d/my-config.org"))
-    ;;       (l/reload-emacs)))
-
-    ;; (add-hook 'after-save-hook 'my/cmd-after-saved-file)
-
-    ;; ;; also makes sense to bind a "refresh" key, similar to the i3 config
-    ;; (global-set-key (kbd "C-M-S-r") 'l/reload-emacs)
-    #+end_src
-
-*** DONE Restart emacs
-    CLOSED: [2020-05-01 Fri 06:24]
-Restart emacs from within emacs (duh!)
-#+begin_src emacs-lisp
-;; (use-package restart-emacs
-  ;; :ensure t
-  ;; :bind ("C-M-S-e" . 'restart-emacs))
-
-#+end_src
-
-*** DONE Syntax highlighting for rc files
-    CLOSED: [2020-04-30 Thu 05:27]
-
-    #+begin_src emacs-lisp
-    ;; (add-to-list 'auto-mode-alist '("\\.*rc$" . conf-mode))
-    #+end_src
-
-** DONE FILES AND BUFFERS
-   CLOSED: [2020-04-29 Wed 13:32]
-
-   #+begin_src emacs-lisp
-   ;; (eval-after-load "evil"
-     ;; '(progn
-	;; (define-key evil-normal-state-map "\\" nil)
-	;; (define-key evil-normal-state-map "\\f" 'find-file)
-	;; (define-key evil-normal-state-map "\\f" 'helm-find-files)
-	;; (define-key evil-normal-state-map "\\b" 'switch-to-buffer)
-	;; (define-key evil-normal-state-map "\\," '(lambda () (interactive) (switch-to-buffer "*scratch*")))
-	;; (define-key evil-normal-state-map "\\<" 'switch-to-prev-buffer)
-	;; (define-key evil-normal-state-map "\\>" 'switch-to-next-buffer)
-	;; (define-key evil-normal-state-map "\\z" 'kill-current-buffer)
-	;; (define-key evil-normal-state-map "\\D" 'dired-jump)
-	;; other window
-	;; (define-key evil-normal-state-map "\\'" nil) ;;prefix
-	;; (define-key evil-normal-state-map "\\'f" 'find-file-other-window)
-	;; (define-key evil-normal-state-map "\\'b" 'switch-to-buffer-other-window)
-	;; (define-key evil-normal-state-map "\\'D" 'dired-other-window)))
-
-#+end_src
-
-** DONE WINDOW MANAGEMENT [6/6]
-*** DONE Windows movement and resizing
-    CLOSED: [2020-04-18 Sat 12:48]
-
-    #+begin_src emacs-lisp
-    ;; (windmove-default-keybindings) ;; use arrow keys ot navigate
-
-    ;; resize shortcuts
-    ;; (global-set-key (kbd "S-C-<left>") 'shrink-window-horizontally)
-    ;; (global-set-key (kbd "S-C-<right>") 'enlarge-window-horizontally)
-    ;; (global-set-key (kbd "S-C-<down>") 'shrink-window)
-    ;; (global-set-key (kbd "S-C-<up>") 'enlarge-window)
-    #+end_src
-
-*** DONE Ace-window
-    CLOSED: [2020-04-29 Wed 01:44]
-
-    Ace-window is a more efficient way to move between windows.
-
-    #+begin_src emacs-lisp
-    ;; (use-package ace-window
-      ;; :ensure t
-      ;; :init
-      ;; (setq aw-keys '(?h ?j ?k ?l ?a ?s ?d ?f ?g))
-      ;; :config
-      ;; (ace-window-display-mode 1)
-      ;; :bind
-      ;; (("C-x o" . ace-window)
-       ;; ("C-x M-o" . ace-swap-window)))
-    #+end_src
-
-*** DONE Split windows and follow
-    CLOSED: [2020-04-18 Sat 12:54]
-
-    The default behaviour after splitting a window is to stay in the initial window. I always want to go to the new one.
-
-    I don't remember from where I got this.
-
-    #+begin_src emacs-lisp
-    ;; (defun split-window-and-follow-below ()
-      ;; "Split and follow container horizontally."
-      ;; (interactive)
-      ;; (split-window-below)
-      ;; (balance-windows)
-      ;; (other-window 1))
-
-    ;; (defun split-window-and-follow-right ()
-      ;; "Split and follow container vertically."
-      ;; (interactive)
-      ;; (split-window-right)
-      ;; (balance-windows)
-      ;; (other-window 1))
-
-    ;; (global-set-key (kbd "C-x 2") 'split-window-and-follow-below)
-    ;; (global-set-key (kbd "C-x 3") 'split-window-and-follow-right)
-
-    #+end_src
-
-*** DONE Toggle window split
-    CLOSED: [2020-04-18 Sat 12:54]
-    
-    I don't remember from where I got this either...
-
-    #+begin_src emacs-lisp
-    ;; (defun toggle-window-split ()
-    ;;   "Switch between horizontal and vertical split when using two windows."
-    ;;   (interactive)
-    ;;   (if (= (count-windows) 2)
-    ;;       (let* ((this-win-buffer (window-buffer))
-    ;; 	     (next-win-buffer (window-buffer (next-window)))
-    ;; 	     (this-win-edges (window-edges (selected-window)))
-    ;; 	     (next-win-edges (window-edges (next-window)))
-    ;; 	     (this-win-2nd (not (and (<= (car this-win-edges)
-    ;; 					 (car next-win-edges))
-    ;; 				     (<= (cadr this-win-edges)
-    ;; 					 (cadr next-win-edges)))))
-    ;; 	     (splitter
-    ;; 	      (if (= (car this-win-edges)
-    ;; 		     (car (window-edges (next-window))))
-    ;; 		  'split-window-horizontally
-    ;; 		'split-window-vertically)))
-    ;; 	(delete-other-windows)
-    ;; 	(let ((first-win (selected-window)))
-    ;; 	  (funcall splitter)
-    ;; 	  (if this-win-2nd (other-window 1))
-    ;; 	  (set-window-buffer (selected-window) this-win-buffer)
-    ;; 	  (set-window-buffer (next-window) next-win-buffer)
-    ;; 	  (select-window first-win)
-    ;; 	  (if this-win-2nd (other-window 1))))))
-
-    ;; (global-set-key (kbd "C-x |") 'toggle-window-split)
-    #+end_src
-
-*** DONE Swap windows
-    CLOSED: [2020-04-18 Sat 12:49]
-
-    #+begin_src emacs-lisp
-    ;; (global-set-key (kbd "C-x \\") 'window-swap-states)
-    #+end_src
-
-*** DONE Evil window bindings
-    CLOSED: [2020-04-29 Wed 03:43]
-
-    Window functions with evil mode. Also some functions that make sense for me to be configured here, like buffer actions.
-
-    #+begin_src emacs-lisp
-    ;; (eval-after-load "evil"
-      ;; '(progn
-	 ;; (define-key evil-normal-state-map "\\" nil) ;; prefix
-	 ;; (define-key evil-normal-state-map "\\0" 'ace-delete-window)
-	 ;; (define-key evil-normal-state-map "\\q" 'delete-window)
-	 ;; (define-key evil-normal-state-map "\\Q" 'kill-buffer-and-window)
-	 ;; (define-key evil-normal-state-map "\\1" 'delete-other-windows)
-	 ;; for movement, it made more sense to use "gaming" keys (also because of the prefix key position)
-	 ; (define-key evil-normal-state-map "\\a" 'windmove-left)
-	 ;; (define-key evil-normal-state-map "\\s" 'windmove-down)
-	 ;; (define-key evil-normal-state-map "\\w" 'windmove-up)
-	 ;; (define-key evil-normal-state-map "\\d" 'windmove-right)
-	 ;; (define-key evil-normal-state-map "\\s" 'split-window-and-follow-right)
-	 ;; (define-key evil-normal-state-map "\\3" 'split-window-and-follow-right)
-	 ;; (define-key evil-normal-state-map "\\v" 'split-window-and-follow-below)
-	 ;; (define-key evil-normal-state-map "\\2" 'split-window-and-follow-below)
-	 ;; (define-key evil-normal-state-map "\\_" 'toggle-window-split)
-	 ;; (define-key evil-normal-state-map "\\-" 'window-swap-states)
-	 ;; (define-key evil-normal-state-map "\\\\" 'ace-window)
-	 ;; (define-key evil-normal-state-map "\\|" 'ace-swap-window)
-	 ;; (define-key evil-normal-state-map (kbd "M-H") 'shrink-window-horizontally)
-	 ;; (define-key evil-normal-state-map (kbd "M-L") 'enlarge-window-horizontally)
-	 ;; (define-key evil-normal-state-map (kbd "M-J") 'shrink-window)
-	 ;; (define-key evil-normal-state-map (kbd "M-K") 'enlarge-window)
-	 ;; (define-key evil-normal-state-map (kbd "M-+") 'balance-windows)
-	 ;; (define-key evil-normal-state-map "\\f" 'find-file)
-	 ;; (define-key evil-normal-state-map "\\f" 'helm-find-files)
-	 ;; (define-key evil-normal-state-map "\\b" 'switch-to-buffer)
-	 ;; (define-key evil-normal-state-map "\\," '(lambda () (interactive) (switch-to-buffer "*scratch*")))
-	 ;; (define-key evil-normal-state-map "\\<" 'switch-to-prev-buffer)
-	 ;; (define-key evil-normal-state-map "\\>" 'switch-to-next-buffer)
-	 ;; (define-key evil-normal-state-map "\\z" 'kill-current-buffer)
-	 ;; (define-key evil-normal-state-map "\\D" 'dired-jump)
-	 ;; other window
-	 ;; (define-key evil-normal-state-map "\\'" nil) ;;prefix
-	 ;; (define-key evil-normal-state-map "\\'f" 'find-file-other-window)
-	 ;; (define-key evil-normal-state-map "\\'b" 'switch-to-buffer-other-window)
-	 ;; (define-key evil-normal-state-map "\\'D" 'dired-other-window)))
-
-    #+end_src
-
-** DONE MULTIPLE CURSORS
-   CLOSED: [2020-04-30 Thu 14:14]
-
-   It seems that the mc package is not really needed. Maybe everything it does can be achieved by using replacement methods and/or macros. Not to mention vim's =:g= command, or helm-swoop.
-
-     #+begin_src emacs-lisp
-     ;; (use-package multiple-cursors
-     ;;   :ensure t
-     ;;   :bind
-     ;;   ("C-s-c C-s-c" . mc/edit-lines)
-     ;;   ("C->" . mc/mark-next-like-this)
-     ;;   ("C-<" . mc/mark-previous-like-this)
-     ;;   ("C-c C-<" . mc/mark-all-like-this)
-     ;;   ("C-<down-mouse-1>" . mc/add-cursor-on-click)
-     ;;   ("C-!" . mc/insert-numbers))
-
-     ;; (use-package mc-extras
-     ;;   :ensure t
-     ;;   :after multiple-cursors)
-
-     ;; (use-package ace-mc
-     ;;   :ensure t
-     ;;   :after mc-extras
-     ;;   :bind
-     ;;   ("C-c )" . ace-mc-add-multiple-cursors)
-     ;;   ("C-M-)" . ace-mc-add-single-cursor))
-     #+end_src
-
-** DONE DIRED [15/15]
-     CLOSED: [2020-04-11 Sat 04:56]
-***** DONE Dired-x
-      CLOSED: [2020-04-11 Sat 03:33]
-***** DONE Some useful functions [5/5]
-      CLOSED: [2020-04-11 Sat 02:23]
-    
-****** DONE Attatch marked files to email:
-       CLOSED: [2020-04-11 Sat 01:00]
-****** DONE Go to first/last directory:
-       CLOSED: [2020-04-11 Sat 00:51]
-****** DONE Sorting functions:
-       CLOSED: [2020-04-11 Sat 00:31]
-****** DONE Mark and move backwards:
-       CLOSED: [2020-04-11 Sat 00:53]
-****** DONE Narrow to marked files:
-       CLOSED: [2020-04-11 Sat 00:53]
-***** DONE Some useful (external) functions [5/5]
-      CLOSED: [2020-04-11 Sat 02:23]
-****** DONE Get subtitles:
-       CLOSED: [2020-04-11 Sat 01:11]
-****** DONE Get files size:
-       CLOSED: [2020-04-11 Sat 01:07]
-****** DONE Change desktop background:
-       CLOSED: [2020-04-11 Sat 01:12]
-****** DONE Unmount drives:
-       CLOSED: [2020-04-11 Sat 01:10]
-****** DONE Pack/Unpack:
-       CLOSED: [2020-04-11 Sat 01:10]
-***** DONE Dired custom maps
-      CLOSED: [2020-04-11 Sat 02:23]
-***** DONE Dired defaults
-      CLOSED: [2020-04-11 Sat 03:37]
-***** DONE Image dired
-      CLOSED: [2020-04-11 Sat 03:37]
-***** DONE Dired keybindings
-      CLOSED: [2020-04-11 Sat 03:37]
-***** DONE Evil dired bindings
-      CLOSED: [2020-04-11 Sat 02:49]
-***** DONE Dired subtree
-      CLOSED: [2020-04-11 Sat 04:28]
-***** DONE Peep dired
-      CLOSED: [2020-04-11 Sat 04:23]
-***** DONE Dired narrow
-      CLOSED: [2020-04-11 Sat 04:30]
-***** DONE Copying and pasting (and bookmarks)
-      CLOSED: [2020-04-11 Sat 04:50]
-***** DONE Wdired [2/2]
-      CLOSED: [2020-04-11 Sat 04:43]
-***** DONE Dired rainbow
-      CLOSED: [2020-04-11 Sat 04:53]
-***** DONE Dired icons
-      CLOSED: [2020-04-11 Sat 04:56]
-** DONE DIARY AND CALENDAR
-   CLOSED: [2020-04-15 Wed 02:34]
-** DONE VTERM
-   CLOSED: [2020-04-15 Wed 23:28]
-** DONE ORG-MODE [7/7]
-***** DONE Ensure org-plus-contrib
-      CLOSED: [2020-04-12 Sun 23:59]
-***** DONE Org-mode misc options
-      CLOSED: [2020-04-14 Tue 15:43]
-***** DONE Org-mode capture and agenda
-      CLOSED: [2020-04-14 Tue 14:28]
-***** DONE Org-capture templates
-      CLOSED: [2020-04-14 Tue 14:42]
-***** DONE Org-contacts
-      CLOSED: [2020-04-14 Tue 15:55]
-***** DONE org-msg
-      CLOSED: [2020-04-14 Tue 15:59]
-***** DONE org-general
-      CLOSED: [2020-04-13 Mon 00:20]
-** DONE LATEX
-   CLOSED: [2020-04-15 Wed 15:28]
-** DONE MU4E [13/13]
-   CLOSED: [2020-04-12 Sun 16:02]
-***** DONE mu4e basic setup
-      CLOSED: [2020-04-12 Sun 16:02]
-***** DONE mu4e (smtp setup)
-      CLOSED: [2020-04-11 Sat 21:24]
-***** DONE mu4e sync mail
-      CLOSED: [2020-04-11 Sat 23:21]
-***** DONE mu4e directories
-      CLOSED: [2020-04-12 Sun 01:25]
-***** DONE mu4e contexts
-      CLOSED: [2020-04-12 Sun 05:47]
-***** DONE mu4e bookmarks
-      CLOSED: [2020-04-12 Sun 13:47]
-***** DONE mu4e open directly in unread messages
-      CLOSED: [2020-04-12 Sun 05:58]
-***** DONE mu4e change split depending on window dimensions
-      CLOSED: [2020-04-12 Sun 15:53]
-***** DONE mu4e external notifications (for i3blocks)
-      CLOSED: [2020-04-12 Sun 15:52]
-***** DONE Contacts management
-      CLOSED: [2020-04-12 Sun 14:29]
-***** DONE mu4e general
-      CLOSED: [2020-04-12 Sun 13:44]
-** DONE CUSTOM FILE SHORTCUTS
-   CLOSED: [2020-04-29 Wed 16:51]
-
-     #+begin_src emacs-lisp
-
-     ;; create a prefix
-     ;; (define-prefix-command 'z-map)
-     ;; (global-set-key (kbd "C-x g") 'z-map)
-
-     ;; (define-key z-map (kbd "E") (lambda () (interactive) (find-file "~/.emacs.d/init.el")))
-     ;; (define-key z-map (kbd "e") (lambda () (interactive) (find-file "~/.emacs.d/my-config.org")))
-     ;; (define-key z-map (kbd "i") (lambda () (interactive) (find-file "~/.config/i3/i3.conf")))
-     ;; (define-key z-map (kbd "r") (lambda () (interactive) (find-file "~/.config/ranger/rc.conf")))
-     ;; (define-key z-map (kbd "x") (lambda () (interactive) (find-file "~/.Xresources")))
-     ;; (define-key z-map (kbd "z") (lambda () (interactive) (find-file "~/.zshrc")))
-     ;; (define-key z-map (kbd "h") (lambda () (interactive) (find-file "~/")))
-     ;; (define-key z-map (kbd "P") (lambda () (interactive) (find-file "~/Pictures/")))
-     ;; (define-key z-map (kbd "p") (lambda () (interactive) (find-file "~/.personal/")))
-     ;; (define-key z-map (kbd "C") (lambda () (interactive) (find-file "~/.config/")))
-     ;; (define-key z-map (kbd "D") (lambda () (interactive) (find-file "~/Downloads/")))
-     ;; (define-key z-map (kbd "d") (lambda () (interactive) (find-file "~/Documents/")))
-     ;; (define-key z-map (kbd "!") (lambda () (interactive) (find-file "~/.source/dotfiles/")))
-     ;; (define-key z-map (kbd "S") (lambda () (interactive) (find-file "~/.local/bin/")))
-     ;; (define-key z-map (kbd "RET") 'vterm)
-     ;; (define-key z-map (kbd "M-<RET>") 'vterm-other-window)
-     #+end_src
- 
-** DONE GAMES
-   CLOSED: [2020-05-01 Fri 06:30]
-***** SNAKE
-    
-      #+begin_src emacs-lisp
-      ;; (eval-after-load "evil"
-      ;;   '(progn
-      ;;      (evil-set-initial-state 'snake-mode 'normal)
-      ;;      (evil-define-key 'normal snake-mode-map
-      ;;        "h" 'snake-move-left
-      ;;        "j" 'snake-move-down
-      ;;        "k" 'snake-move-up
-      ;;        "l" 'snake-move-right
-      ;;        "p" 'snake-pause-game
-      ;;        "q" 'quit-window
-      ;;        "N" 'snake-start-game)))
-      #+end_src
-***** 2048
-
-      #+begin_src emacs-lisp
-      ;; (use-package 2048-game
-	;; :ensure t)
-      #+end_src
-
-
-
 * REJECTED REJECTED PACKAGES
-  CLOSED: [2020-04-16 Thu 03:50]
-** REJECTED mu4e open in headers of specific account
-   CLOSED: [2020-04-12 Sun 06:03]
 
-   #+begin_src emacs-lisp
-   ;; (defun mu4e-open-in-headers (account)
-     ;; "Open mu4e in account's Inbox"
-     ;; (interactive)
-     ;; (mu4e~start)
-     ;; (if (get-buffer "*mu4e-headers*" )
-	 ;; (switch-to-buffer "*mu4e-headers*"))
-     ;; (mu4e-headers-search (concat "maildir:/" account "/Inbox")))
-   #+end_src
-
-** REJECTED PDF TOOLS
-   CLOSED: [2020-04-16 Thu 01:31]
-
-     Pdf-tools cannot handle an update.
-     #+begin_src emacs-lisp
-       ;; (use-package pdf-tools
-	 ;; :ensure t
-	 ;; :pin manual ;; don't reinstall on updates
-	 ;; :init
-	 ;; (pdf-tools-install))
-
-       ;; (add-to-list 'load-path "~/.source/pdf-tools")
-       ;; (require 'pdf-tools)
-       ;; (eval-after-load "pdf-tools"
-	 ;; (pdf-tools-install))
-     #+end_src
+  These are packages and bits of functionality that where rejected, however
+  I will keep them here for future reference.
 
 ** REJECTED HELM
    CLOSED: [2020-04-12 Sun 05:52]
 
-     Helm was my previous selection for navigation. I dropped it in
-     favour of ivy. It is very powerful, but for me, really hard to
-     customize.
+   Helm is a powerful completion framework, but I rejected it for ivy.
+   The main reason is that I wanted to add custom functionality which was
+   not easy to do with helm.
+   
+   Ivy is also powerful and it feels more intuitive, both to use and to
+   customize.
+    
+*** Basics
+    #+begin_src emacs-lisp
+    (use-package helm-config
+      :disabled
+      ;; :ensure helm
+      :delight helm-mode
+      :defer 1
+      :init
+      (setq helm-follow-mode-persistent t)
+      (setq  helm-split-window-inside-p t)
+      :config
+      (helm-mode 1)
+      :bind
+      ("M-x" . helm-M-x)
+      ("C-x C-f" . helm-find-files)
+      ("M-y" . helm-show-kill-ring)
+      ([remap switch-to-buffer] . helm-buffers-list))
+    #+end_src
 
-     I will keep my configuration here, disabled, in case I ever need it
-     again.
+*** Helm-swoop
+    #+begin_src emacs-lisp
+    (use-package helm-swoop
+      :disabled
+      ;; :ensure t
+      :after helm evil
+      :init
+      (setq helm-swoop-speed-or-color t)
+      ;; pre-input disabled or marked word
+      (setq helm-swoop-pre-input-function
+	  (lambda ()
+	    (if mark-active
+		(buffer-substring-no-properties (mark) (point)) "")))
+      :bind
+      ("M-i" . 'helm-swoop)
+      ("C-M-i" . 'helm-multi-swoop)
+      ("M-I" . 'helm-swoop-back-to-last-point)
+      (:map helm-swoop-map
+	    ("M-i" . 'helm-multi-swoop-all-from-helm-swoop))
+      (:map isearch-mode-map
+	    ("M-i" . 'helm-swoop-from-isearch))
+      (:map evil-motion-state-map
+	    ("M-i" . 'helm-swoop-from-evil-search)))
 
-***** Basics
-     #+begin_src emacs-lisp
-     (use-package helm-config
-       :disabled
-       :ensure helm
-       :delight helm-mode
-       :defer 1
-       :init
-       (setq helm-follow-mode-persistent t)
-       (setq  helm-split-window-inside-p t)
-       :config
-       (helm-mode 1)
-       :bind
-       ("M-x" . helm-M-x)
-       ("C-x C-f" . helm-find-files)
-       ("M-y" . helm-show-kill-ring)
-       ([remap switch-to-buffer] . helm-buffers-list))
-     #+end_src
-
-***** Helm-swoop
-      #+begin_src emacs-lisp
-      (use-package helm-swoop
-	:disabled
-	:ensure t
-	:after helm evil
-	:init
-	(setq helm-swoop-speed-or-color t)
-	;; pre-input disabled or marked word
-	(setq helm-swoop-pre-input-function
-	    (lambda ()
-	      (if mark-active
-		  (buffer-substring-no-properties (mark) (point)) "")))
-	:bind
-	("M-i" . 'helm-swoop)
-	("C-M-i" . 'helm-multi-swoop)
-	("M-I" . 'helm-swoop-back-to-last-point)
-	(:map helm-swoop-map
-	      ("M-i" . 'helm-multi-swoop-all-from-helm-swoop))
-	(:map isearch-mode-map
-	      ("M-i" . 'helm-swoop-from-isearch))
-	(:map evil-motion-state-map
-	      ("M-i" . 'helm-swoop-from-evil-search)))
-
-      #+end_src
-** REJECTED Renaming functions
-   CLOSED: [2020-04-11 Sat 03:59]
+    #+end_src
+** REJECTED PDF TOOLS
+   CLOSED: [2020-04-16 Thu 01:31]
+   
+   
+   Pdf-tools cannot handle an update. It is really frustrating, because,
+   when it works, it works great, but I had too many problems each time I
+   performed an update of the package. It broke EVERY SINGLE TIME and it
+   broke so bad that it dragged emacs with it. I tried using the =:pin=
+   keyword in the use-package declaration but finally I decided to simply
+   build it from source. Still, every time an update was performed, I had
+   to rebuild the whole package. Finally I got tired of trying, so I
+   settled for the default emacs doc-view, or with external viewing. It's a
+   pity really!
+    
    #+begin_src emacs-lisp
-   ;; (defun l/evil-wdired-append-to-filename ()
-     ;; "Renaming helper for `wdired'. Append to filename before the extension."
-     ;; (interactive)
-     ;; (move-end-of-line nil)
-     ;; (search-backward ".")
-     ;; (evil-insert 1))
+   (use-package pdf-tools
+     :disabled
+     ;; :ensure t
+     :pin manual ; don't reinstall on updates
+     :init
+     (pdf-tools-install))
 
-   ;; (defun l/evil-wdired-change-filename ()
-     ;; "Renaming helper for `wdired'. Change the filename but keep the extension."
-     ;; (interactive)
-     ;; (move-end-of-line nil)
-     ;; (search-backward ".")
-     ;; (kill-region 1 (point))
-     ;; (evil-insert 1))
-
-   ;; (defun l/evil-wdired-change-extension ()
-     ;; "Renaming helper for `wdired'. Change file's extension."
-     ;; (interactive)
-     ;; (move-end-of-line nil)
-     ;; (set-mark-command nil)
-     ;; (search-backward ".")
-     ;; (forward-char)
-     ;; (kill-region (point) (mark))
-     ;; (evil-insert 1))
+   ;; the manual way - build from source
+   (use-package emacs
+     :disabled
+     :config
+     (add-to-list 'load-path "~/.source/pdf-tools")
+     (require 'pdf-tools)
+     (eval-after-load "pdf-tools"
+       (pdf-tools-install)))
    #+end_src
 
-** REJECTED Start mu4e
-   CLOSED: [2020-04-12 Sun 14:56]
+** REJECTED LINUM RELATIVE
+   CLOSED: [2020-04-30 Thu 05:08]
 
-Auto start mu4e on emacs startup
+   I just ended up never using relative line numbers. I experienced some
+   buggy behaviour anyway, so I just dropped it.
+   
+   #+begin_src emacs-lisp
+   (use-package linum-relative
+     :disabled
+     ;; :ensure t
+     :after org
+     :init
+     (setq linum-relative-current-symbol "")
+     :bind ("C-x M-l" . linum-relative-toggle))
+   #+end_src
 
-    #+begin_src emacs-lisp
-    ;; (global-set-key (kbd "C-x m") 'mu4e)
-    ;; (mu4e~start)
-    ;; (mu4e-update-mail-and-index t)
-    #+end_src
+** REJECTED Smarter move to beginning of line
+   CLOSED: [2020-04-30 Thu 04:55]
+
+   Part of Prelude. Useful function, but I can live without it. Maybe I
+   will revisit it at some point.
+
+   NOTE TO SELF: I think I tweaked it a little bit at some point to use it
+   with visual-line-mode and it didn't work so well. Keep that in mind.
+
+   #+begin_src emacs-lisp
+   (use-package emacs
+     :disabled
+     :config
+     (defun smarter-move-beginning-of-line (arg)
+       "Move point back to indentation of beginning of line.
+
+   Move point to the first non-whitespace character on this line.
+   If point is already there, move to the beginning of the line.
+   Effectively toggle between the first non-whitespace character and
+   the beginning of the line.
+
+   If ARG is not nil or 1, move forward ARG - 1 lines first.  If
+   point reaches the beginning or end of the buffer, stop there."
+       (interactive "^p")
+       (setq arg (or arg 1))
+    
+       Move lines first
+       (when (/= arg 1)
+	 (let ((line-move-visual nil))
+	   (forward-line (1- arg))))
+    
+       (let ((orig-point (point)))
+	 (back-to-indentation)
+	 (when (= orig-point (point))
+	   (move-beginning-of-line 1))))
+
+     (global-set-key [remap move-beginning-of-line] 'smarter-move-beginning-of-line))
+   #+end_src
+
+** REJECTED Duplicate line
+   CLOSED: [2020-04-30 Thu 03:28]
+
+   Since I started to use evil-mode, I no longer used this function.
+   
+   #+begin_src emacs-lisp
+   (use-package emacs
+     :disabled
+     :config
+     (defun duplicate-line()
+       "Duplicates a line."
+       (interactive)
+       (move-beginning-of-line 1)
+       (kill-line)
+       (yank)
+       (open-line 1)
+       (next-line 1)
+       (yank))
+
+     (global-set-key (kbd "C-c d") 'duplicate-line))
+   #+end_src
+
+** REJECTED Split windows and follow
+   CLOSED: [2020-04-18 Sat 12:54]
+
+   The reason of these functions is to always focus the newly created
+   window. It makes sense, but I try to get used to the default behaviour,
+   which is to retain focus on the current window, and it is not so bad.
+   So, I am disabling these until further notice.
+   
+   #+begin_src emacs-lisp
+   (use-package emacs
+     :disabled
+     :config
+     (defun split-window-and-follow-below ()
+       "Split and follow container horizontally."
+       (interactive)
+       (split-window-below)
+       (balance-windows)
+       (other-window 1))
+  
+     (defun split-window-and-follow-right ()
+       "Split and follow container vertically."
+       (interactive)
+       (split-window-right)
+       (balance-windows)
+       (other-window 1))
+  
+     (global-set-key (kbd "C-x 2") 'split-window-and-follow-below)
+     (global-set-key (kbd "C-x 3") 'split-window-and-follow-right)
+   )
+   #+end_src
+
+** REJECTED mu4e open in headers of specific account
+   CLOSED: [2020-04-12 Sun 06:03]
+
+   Back when I didn't grasp the logic behind mu4e, I used this function to
+   replicate what was normal for me at the time, which is to open your
+   Inbox when you receive an email. I later discovered the joy of managing
+   all of my accounts together and replaced this function with viewing the
+   unread messages alltogether.
+   
+   #+begin_src emacs-lisp
+   (use-package mu4e
+     :disabled
+     :config
+     (defun mu4e-open-in-headers (account)
+       "Open mu4e in account's Inbox"
+       (interactive)
+       (mu4e~start)
+       (if (get-buffer "*mu4e-headers*" )
+	   (switch-to-buffer "*mu4e-headers*"))
+       (mu4e-headers-search (concat "maildir:/" account "/Inbox"))))
+   #+end_src
+
+** REJECTED Renaming functions (Wdired)
+   CLOSED: [2020-04-11 Sat 03:59]
+
+   I don't remember how exactly I intended to use these, but it finally
+   didn't make much sense to me. Maybe I will revisit this idea.
+  
+   #+begin_src emacs-lisp
+   (use-package wdired
+     :disabled
+     :config
+     (defun l/evil-wdired-append-to-filename ()
+       "Renaming helper for `wdired'. Append to filename before the extension."
+       (interactive)
+       (move-end-of-line nil)
+       (search-backward ".")
+       (evil-insert 1))
+  
+     (defun l/evil-wdired-change-filename ()
+       "Renaming helper for `wdired'. Change the filename but keep the extension."
+       (interactive)
+       (move-end-of-line nil)
+       (search-backward ".")
+       (kill-region 1 (point))
+       (evil-insert 1))
+  
+     (defun l/evil-wdired-change-extension ()
+       "Renaming helper for `wdired'. Change file's extension."
+       (interactive)
+       (move-end-of-line nil)
+       (set-mark-command nil)
+       (search-backward ".")
+       (forward-char)
+       (kill-region (point) (mark))
+       (evil-insert 1))
+   )
+   #+end_src

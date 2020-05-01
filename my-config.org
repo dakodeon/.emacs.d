@@ -6,32 +6,122 @@
 
 * INTRODUCTION
 
-Emacs configuration managed with org-mode and use-package.
+  This document is both my personal configuration for Emacs and the
+  documentation for it at the same time, with the use of some org-mode
+  magic. That is the ability to include code snippets in the document (the
+  blocks defined by the =#+begin_src emacs-lisp= and =#+end_src= tags) and
+  then, by calling =org-babel-load-file= from [[file:init.el][my init.el file]], write those
+  in a .el file and load this file.
 
-The code snippets below are loaded by =init.el=, which also loads
-=use-package=.
+  I decided to write the whole configuration using only =use-package=
+  declarations. This gives a cleaner config, with more concise syntax,
+  while at the same time keeping track and maintaining all the packages
+  that I use. The =:ensure= keyword will fetch a package from the repos if
+  it is missing.
 
-** TODO Attempting a more concise documentation
-  - Start by loading frameworks like evil and general (avoid writing
-    eval-after-load all the time.)
-  - Use :general use-package delcaration to specify leader keys and the
-    :general keyword in all other packages. (maybe)
-  - Generalise the use of use package, for consistency
+  When configuring general emacs options, I use =emacs= as a package name.
+  Also note the omission of the =:ensure= keyword on those packages as well
+  as on others that are parts of emacs by default, like [[DIRED][dired]] or [[ORG MODE][org]].
 
+** The contents of the init.el file
+
+   This file is normally where emacs reads its configuration from. In a
+   configuration like this, however, it does three things:
+
+   1. Sets up the =package= package and the =package-archives=
+   2. Bootstraps =use-package=. If it is not installed, it installs it.
+   3. Calls =org-babel-load-file= pointing to this file.
+
+** Some notes about emacs, vim and everything in between (evil-mode)
+
+   Here is my story getting into Linux, Emacs, Vim, TUIs, TTYs, SSH and the
+   likes... And how all this built up to go full dark side (enter
+   evil-mode).
+
+   I was introduced to Emacs by [[https://iani.github.io/][Iannis Zannos]], Professor of Computer Music
+   in the Audio Visual Arts departemnet of the Ionian University, around
+   2011-12. At the time I did not even understand what this strange beast
+   of a program actually is, but, reluctantly, I started using it, learning
+   the basic motions and keeping some basic notes with it. It took me a
+   long time to even be mildly adequate with it, even now, almost ten years
+   later. It is the first time that I manage to be this organized in my
+   configuration, and I'm not even "there", at least not all the way.
+
+   It was around the same time (2011-12) that I finally made the jump to
+   Linux, dual-booting Windows 7 and Linux Mint. Finally, I got to a point
+   when I was feeling "at home" in Linux and, if not for the "necessary
+   evils" of Adobe Photoshop and Lightroom, I would not even bother to run
+   Windows. The last major breakthrough in my pilgrimage to Linux Land was
+   the discovery of the tiling window managers, specifically [[https://i3wm.org/][i3wm]], by
+   watching the content of [[https://lukesmith.xyz/][Luke Smith]] on YouTube. It was revelatory! Not
+   long after, I switched completely to i3 and never looked back. Alongside
+   with i3, I was introduced to all those beautiful terminal based
+   applications that rely mostly on vim keybindings.
+
+   Vim bindings... Modal editing... What an interesting feature! Although
+   at this point in time I had already made some projects using Emacs and
+   the Linux terminal (SSH and Raspberry Pi, yay!), I felt that there is
+   something elegant about modal editing, something that I was missing from
+   my experience with the, rather counter-intuitive, Emacs keybindings.
+   Having said that, I just couldn't take the step and drop Emacs for Vim,
+   and, considering the vim keys, I rarely used them. Even in i3, I moslty
+   used the arrow keys, like some primitive caveman.
+
+   But then something happened that would change all that... My laptop
+   keyboard broke! It was still functional, it is still my main machine
+   btw, but something very specific have failed: the left arrow key! That's
+   right, now I was obliged to use vim keys and, boy, was it challenging!
+   In the end, however, they won me over, even to the point that I started
+   accidentally hitting vim keys in Emacs and filling the line with h or
+   l... The best teacher is a handicap as they say. Well, I do not actually
+   know if they say it, if not I call dibs on it!
+
+   So: enter the next step, the final turn to the dark side, the beginning
+   of the end, the best of two worlds and the answer to which is better,
+   Emacs or Vim: Evil-mode! It has happened before, first with Emacs, then
+   with Linux, then with i3: you try it, you don't quite get it, you try it
+   again and, time over time, you accept it and make it part of your life.
+
+   Well, that's it, more or less. In the last year or so, I started
+   seriously incorporating Emacs into my (digital) life: I wrote my thesis
+   in LaTeX in Emacs, I started using mu4e as my day-to-day email client, I
+   started using org-capture... It is an ongoing process and I really enjoy
+   it! Really helpful in this matter was the content by [[https://cestlaz.github.io/][Mike Zamansky]],
+   which pushed me to start writing my config in org-mode with use-package
+   declarations, also to dwelve into mu4e configuration, and, more
+   recently, the content put up by [[https://protesilaos.com/][Protesilaos Stavrou]], which expanded on
+   the aforementioned org-mode/use-package "alliance" and helped me with a
+   lot of obscure issues and functionality lurking into the dark corners of
+   Emacs...
+
+   Although not being a melodramatic vimmer, I feel obliged to quote the
+   introduction of the [[https://github.com/hlissner/doom-emacs][doom-emacs]] README page:
+
+   /It is a story as old as time. A stubborn, shell-dwelling, and
+   melodramatic vimmer—envious of the features of modern text
+   editors—spirals into despair before he succumbs to the dark side. This
+   is his config./
 
 * GENERAL
 
   General provides a universal way of binding keys, which integrates both
   define-key and evil-define-key. It also offers a way to immitate vim's
-  leader key functionality, both locally and globally. This is great for
-  someone who uses evil, as bindings can be a mess.
+  leader key functionality. It also provides a keyword for use-package
+  declarations, which, as it seems, is the only way to define evil keys in
+  a graceful manner in use-package.
 
-  It is supposed to provide a key for use-package (:general), which can be
-  used for per-package configuration. That way I can define all leaders in
-  general's declaration and then assign key chords in a per-package basis.
+  I decided not to use it for all my keys, but only for my evil bindings,
+  although it would make for a more consistent syntax, because I prefered
+  the syntax of the default =:bind= keyword. I might rethink about this.
 
-  I haven't really played around with this package, so I am not sure if I
-  will keep it around.
+  One thing that I decided not to use at all is the
+  =general-create-definer= that functions essentially as a vim leader key.
+  The reason is that I did not need an extra way to define stuff while I
+  could eventually do everything that I wanted by defining a prefix command
+  and assigning it to the evil-normal keymap. I might have missed some
+  crazy-awesome feature of this way of defining, but, up until now, I don't
+  feel that I miss anything. This is what the [[POOR MAN'S LEADER KEYS]]
+  section later on is all about.
   
    #+begin_src emacs-lisp
    (use-package general
@@ -236,7 +326,7 @@ The code snippets below are loaded by =init.el=, which also loads
 	  ("X" . find-xresources)))
   #+end_src
 
-* "POOR MAN'S" LEADER KEYS
+* POOR MAN'S LEADER KEYS
 
   This is my own, rather crude, attempt to immitate vim's leader key
   functionality, just by defining prefix commands and assigning them to the
@@ -2597,7 +2687,6 @@ One note though, while trying to copy to a FAT32 device, I discovered that there
     (menu-bar-mode -1)			; no menu bar...
     (scroll-bar-mode -1)			; and no scrollbar!
     (fset 'yes-or-no-p 'y-or-n-p)		; type "y" instead of "yes"
-    (setq default-directory "~/")		; start from $HOME
     (setq custom-file "~/.emacs.d/custom.el") ; use separate custom file
     (load custom-file)			    ; load it too
     (setq backup-directory-alist

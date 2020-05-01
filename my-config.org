@@ -38,11 +38,6 @@ The code snippets below are loaded by =init.el=, which also loads
      :after evil
      :bind
      ("C-h G" . 'general-describe-keybindings))
-     ;; :config
-     ;; (general-create-definer evil-leader
-       ;; :prefix "SPC")
-     ;; (general-create-definer evil-leader-org
-       ;; :prefix "SPC o"))
    #+end_src
    
 ** TODO TODO list [0/2]
@@ -107,6 +102,8 @@ The code snippets below are loaded by =init.el=, which also loads
       :ensure t
       :init
       (setq evil-move-cursor-back nil)
+      (setq evil-move-beyond-eol t)
+      (setq evil-respect-visual-line-mode t)
       (setq evil-want-C-u-scroll t)
       (setq evil-want-fine-undo t)
       (setq evil-normal-state-cursor 'box)
@@ -132,24 +129,13 @@ The code snippets below are loaded by =init.el=, which also loads
 	  (around emacs-state-instead-of-insert-state activate)
 	"Emacs instead of Insert."
 	(evil-emacs-state))
-      ;; -- leader key -- SPC is my leader key
-      (define-prefix-command 'leader)
-      (define-key evil-normal-state-map " " leader)
       :bind
       (:map evil-normal-state-map
-	    ("j" . 'evil-next-visual-line)
-	    ("k" . 'evil-previous-visual-line)
-	    ("^" . 'evil-beginning-of-visual-line)
-	    ("g^" . 'evil-first-non-blank-of-visual-line)
-	    ("$" . 'evil-end-of-visual-line)
-	    ;; ("g ^" . 'evil-beginning-of-line)
-	    ("g$" . 'evil-end-of-line)
-	    ([down] . 'evil-next-visual-line)
-	    ([up] . 'evil-previous-visual-line)
+	    ("g^" . 'evil-first-non-blank)
 	    ("C-S-o" . 'evil-jump-forward)
 	    ("*" . nil) ;;prefix
-	    ("*w" . 'evil-search-word-forward)
-	    :map evil-emacs-state-map
+	    ("*w" . 'evil-search-word-forward))
+      (:map evil-emacs-state-map
 	    ([escape] . 'evil-normal-state)))
      #+end_src
 
@@ -178,6 +164,127 @@ The code snippets below are loaded by =init.el=, which also loads
     command. It would be useful to dwelve into this so that I can
     manipulate it and customize it some more.
 
+* IMPORTANT LOCATIONS
+
+  Here are some places that I often visit. Finding these files or
+  directories will happen via a custom keymap, accessible both
+  globally and in dired.
+
+  The list of locations will be stored in a variable and then some
+  functions will use this variable to access these locations.
+
+  #+begin_src emacs-lisp
+  (use-package emacs
+    :config
+    (defvar l/locations
+      '((home . "~/")
+	(pictures-dir . "~/Pictures/")
+	(music-dir . "~/Music/")
+	(video-dir . "~/Videos/")
+	(documents-dir . "~/Documents/")
+	(downloads-dir . "~/Downloads/")
+	(media-dir . "/media/")
+	(personal-dir . "~/.personal")
+	(dotfiles-dir . "~/.source/dotfiles/")
+	(emacs-dir . "~/.emacs.d/")
+	(config-dir . "~/.config/")
+	(scripts-dir . "~/.local/bin/")
+	;;files
+	(emacs-conf . "~/.emacs.d/my-config.org")
+	(emacs-init . "~/.emacs.d/init.el")
+      (i3-conf . "~/.config/i3/i3.conf")
+      (ranger-conf . "~/.config/ranger/rc.conf")
+      (zshrc . "~/.config/zsh/.zshrc")
+      (xresources . "~/.Xresources"))
+      "All the useful locations, files and directories.")
+
+    ;; functions for each and every one of them...
+    (defun find-home () (interactive) (find-file (cdr (assq 'home l/locations))))
+    (defun find-pictures-dir () (interactive) (find-file (cdr (assq 'pictures-dir l/locations))))
+    (defun find-music-dir () (interactive) (find-file (cdr (assq 'music-dir l/locations))))
+    (defun find-video-dir () (interactive) (find-file (cdr (assq 'video-dir l/locations))))
+    (defun find-documents-dir () (interactive) (find-file (cdr (assq 'documents-dir l/locations))))
+    (defun find-downloads-dir () (interactive) (find-file (cdr (assq 'downloads-dir l/locations))))
+    (defun find-media-dir () (interactive) (find-file (cdr (assq 'media-dir l/locations))))
+    (defun find-personal-dir () (interactive) (find-file (cdr (assq 'personal-dir l/locations))))
+    (defun find-dotfiles-dir () (interactive) (find-file (cdr (assq 'dotfiles-dir l/locations))))
+    (defun find-emacs-dir () (interactive) (find-file (cdr (assq 'emacs-dir l/locations))))
+    (defun find-config-dir () (interactive) (find-file (cdr (assq 'config-dir l/locations))))
+    (defun find-scripts-dir () (interactive) (find-file (cdr (assq 'scripts-dir l/locations))))
+    (defun find-emacs-conf () (interactive) (find-file (cdr (assq 'emacs-conf l/locations))))
+    (defun find-emacs-init () (interactive) (find-file (cdr (assq 'emacs-init l/locations))))
+    (defun find-i3-conf () (interactive) (find-file (cdr (assq 'i3-conf l/locations))))
+    (defun find-ranger-conf () (interactive) (find-file (cdr (assq 'ranger-conf l/locations))))
+    (defun find-zshrc () (interactive) (find-file (cdr (assq 'zshrc l/locations))))
+    (defun find-xresources () (interactive) (find-file (cdr (assq 'xresources l/locations))))
+
+    ;; the keymap
+    (define-prefix-command 'locations-map)
+    :bind
+    ("C-x g" . locations-map)
+    (:map locations-map
+	  ("h" . find-home)
+	  ("P" . find-pictures-dir)
+	  ("V" . find-video-dir)
+	  ("M" . find-music-dir)
+	  ("d" . find-documents-dir)
+	  ("D" . find-downloads-dir)
+	  ("m" . find-media-dir)
+	  ("p" . find-personal-dir)
+	  ("!" . find-dotfiles-dir)
+	  ("E" . find-emacs-dir)
+	  ("C" . find-config-dir)
+	  ("S" . find-scripts-dir)
+	  ("e" . find-emacs-conf)
+	  ("i" . find-i3-conf)
+	  ("z" . find-zshrc)
+	  ("X" . find-xresources)))
+  #+end_src
+
+* "POOR MAN'S" LEADER KEYS
+
+  This is my own, rather crude, attempt to immitate vim's leader key
+  functionality, just by defining prefix commands and assigning them
+  to the evil-normal-state-map.
+
+  I decided not to use any external packages for this task (like
+  [[GENERAL][General]]), as I don't want to mess with extra definitions and such.
+  Also, what I need is really basic.
+
+  Here are the definitions of the keymaps, they are populated later in
+  the document in their relevant parts.
+
+  As for now, there are three leader keys:
+
+  1. Main leader key, it will be assigned to =SPC=
+  2. Org leader key, it will be assigned to =*= in org-mode only
+  3. Other window leader key, it will be assigned to =o= as a part of
+     the main leader key (eg. =SPC f= will call =find-file=, while
+     =SPC o f= will call =find-file-other-window=)
+
+  #+begin_src emacs-lisp
+  (use-package emacs
+    :config
+    (define-prefix-command 'leader)
+    (define-prefix-command 'leader-org)
+    (define-prefix-command 'otherwin)
+    (define-prefix-command 'cal-agenda)
+
+    ;; (eval-after-load "evil"
+      ;; (evil-define-key 'normal org-mode-map "*" leader-org))
+
+    :general
+    (:keymaps 'org-mode-map :states 'normal
+	      "*" 'leader-org)
+    (:states '(normal visual)
+	     "SPC" 'leader)
+    :bind
+    (:map leader
+	  ("o" . otherwin)
+	  ("c" . cal-agenda)
+	  ("g" . locations-map)))
+  #+end_src
+
 * AUTOCOMPLETE
 
   This is just a generic autocompletion framework. I haven't tweaked
@@ -190,7 +297,7 @@ The code snippets below are loaded by =init.el=, which also loads
    #+begin_src emacs-lisp
    (use-package auto-complete
      :ensure t
-     :delight (auto-complete-mode " ⋯")
+     :delight
      :init
      (ac-config-default)
      (global-auto-complete-mode t)
@@ -346,18 +453,16 @@ The code snippets below are loaded by =init.el=, which also loads
 			     (let ((engine (replace-regexp-in-string " +.*$" "" x)))
 			       (shell-command (concat "surfraw " engine " " (shell-quote-argument text)))))
 		   :caller 'l/ivy-surfraw)))
-
-     (eval-after-load "evil"
-       '(progn
-	  (evil-define-key 'normal org-mode-map "**" 'counsel-outline)))
      (ivy-mode 1)
      :bind
-     (("M-x" . counsel-M-x)
+     ("M-x" . counsel-M-x)
      ("C-h f" . counsel-describe-function)
      ("C-h v" . counsel-describe-variable)
      ("C-c f" . l/counsel-fzf)
      ("C-c g" . counsel-rg)
-     ("C-c b" . l/ivy-surfraw)))
+     ("C-c b" . l/ivy-surfraw)
+     (:map leader-org
+	   ("*" . counsel-outline)))
    #+end_src
    
 ** Other functionality
@@ -498,6 +603,7 @@ The code snippets below are loaded by =init.el=, which also loads
   
   #+begin_src emacs-lisp
   (use-package dired
+    :delight ""
     :init
     (setq dired-dwim-target t)
     (setq dired-listing-switches "-Alh") ;; human-readable sizes, also omit . and ..
@@ -624,8 +730,8 @@ The code snippets below are loaded by =init.el=, which also loads
    Although the use of ls switches can be very useful for diferent
    sorting options, dired by default does not provide this kind of
    functionality. Here I define some functions to switch between
-   sorting by name, by date, by size, by extension, and grouping of
-   directories first as a toggle on top of the other switches.
+   sorting by name, by date, by size and by extension. Also, as toggle
+   functions grouping of directories first and reverse order.
 
    #+begin_src emacs-lisp
    (use-package dired
@@ -639,32 +745,32 @@ The code snippets below are loaded by =init.el=, which also loads
 	 (unless (string= sw switches)
 	   (dired-sort-other sw)
 	   (dired-goto-first-file))))
-  
+
      ;; callable functions
      ;; by name
      (defun l/dired-sort-by-name ()
        "Sort by name. Calls `l/dired-sort-by'."
        (interactive)
        (l/dired-sort-by "-Alh"))
-  
+
      ;; by date
      (defun l/dired-sort-by-date ()
        "Sort by date. Calls `l/dired-sort-by'."
        (interactive)
        (l/dired-sort-by "-Alht"))
-  
+
      ;; by size
      (defun l/dired-sort-by-size ()
        "Sort by size. Calls `l/dired-sort-by'."
        (interactive)
        (l/dired-sort-by "-AlhS"))
-  
+
      ;; by extension
      (defun l/dired-sort-by-ext ()
        "Sort by extension. Calls `l/dired-sort-by'."
        (interactive)
        (l/dired-sort-by "-AlhX"))
-  
+
      ;; toggle directories first
      (defun l/dired-sort-dirs-first ()
        "Toggles grouping directories first."
@@ -673,6 +779,16 @@ The code snippets below are loaded by =init.el=, which also loads
 	 (if (string-match-p (regexp-quote " --group-directories-first") switches)
 	     (setq switches (replace-regexp-in-string " --group-directories-first" "" switches))
 	   (setq switches (concat switches " --group-directories-first")))
+	 (dired-sort-other switches))
+       (dired-goto-first-file))
+
+     (defun l/dired-sort-toggle-reverse ()
+       "Toggles reverse ordering in dired buffer."
+       (interactive)
+       (let ((switches dired-actual-switches))
+	 (if (string-match-p (regexp-quote " --reverse") switches)
+	     (setq switches (replace-regexp-in-string " --reverse" "" switches))
+	   (setq switches (concat switches " --reverse")))
 	 (dired-sort-other switches))
        (dired-goto-first-file)))
    #+end_src
@@ -790,46 +906,6 @@ The code snippets below are loaded by =init.el=, which also loads
 	(shell-command cmd))))
   #+end_src
   
-** Custom maps
-
-   Here are declared two prefix commands with their bindings:
-
-   - l/dired-nav-map offers ranger-like shortcuts to directories.
-   - l/dired-my-ext-cmds includes keybindings for the functions that
-     call external programs.
-
-   #+begin_src emacs-lisp
-   (use-package dired
-     :config
-     ;; navigation map
-     (define-prefix-command 'l/dired-nav-map)
-
-     (general-def l/dired-nav-map
-       "h" (lambda () (interactive) (dired "~/"))
-       "D" (lambda () (interactive) (dired "~/Downloads/"))
-       "d" (lambda () (interactive) (dired "~/Documents/"))
-       "p" (lambda () (interactive) (dired "~/Pictures/")) 
-       "M" (lambda () (interactive) (dired "~/Music/"))  
-       "v" (lambda () (interactive) (dired "~/Videos/"))   
-       "m" (lambda () (interactive) (dired "/media"))    
-       "C" (lambda () (interactive) (dired "~/.config/"))  
-       "s" (lambda () (interactive) (dired "~/.local/bin/"))  
-       "E" (lambda () (interactive) (dired "~/.emacs.d/")) 
-       "!" (lambda () (interactive) (dired "~/.source/dotfiles/"))
-       "g" 'dired-goto-first-file)
-
-     ;; my external commands
-     (define-prefix-command 'l/dired-my-ext-cmds)
-
-     (general-def l/dired-my-ext-cmds
-       "s" 'l/get-subtitles
-       "?" 'dired-get-size
-       "B" 'l/change-desktop-background
-       "u" 'l/unmount-drive
-       "zz" 'l/atool-pack
-       "zx" 'l/atool-unpack))
-   #+end_src
-
 ** Keybindings
 
    In this section I define all the keybindings for dired. The list is
@@ -838,120 +914,134 @@ The code snippets below are loaded by =init.el=, which also loads
    #+begin_src emacs-lisp
    (use-package dired
      :config
-     ;; marking bindings -- prefix *
-     (define-prefix-command 'l/dired-mark-map)
-     (define-key l/dired-mark-map "*" 'dired-mark-executables)
-     (define-key l/dired-mark-map "/" 'dired-mark-directories)
-     (define-key l/dired-mark-map "@" 'dired-mark-symlinks)
-     (define-key l/dired-mark-map "%" 'dired-mark-files-regexp)
-     (define-key l/dired-mark-map "(" 'dired-mark-sexp)
-     (define-key l/dired-mark-map "." 'dired-mark-extension)
-     (define-key l/dired-mark-map "O" 'dired-mark-omitted)
-     (define-key l/dired-mark-map "c" 'dired-change-marks)
-     (define-key l/dired-mark-map "s" 'dired-mark-subdir-files)
-     (define-key l/dired-mark-map "?" 'dired-unmark-all-files)
-     (define-key l/dired-mark-map "!" 'dired-unmark-all-marks)
-     (define-key l/dired-mark-map "f" 'l/dired-narrow-to-marked-files)
-     ;; regexp bindings -- prefix %
-     (define-prefix-command 'l/dired-regexp-map)
-     (define-key l/dired-regexp-map "u" 'dired-upcase)
-     (define-key l/dired-regexp-map "l" 'dired-downcase)
-     (define-key l/dired-regexp-map "d" 'dired-flag-files-regexp)
-     (define-key l/dired-regexp-map "g" 'dired-mark-files-containing-regexp)
-     (define-key l/dired-regexp-map "m" 'dired-mark-files-regexp)
-     (define-key l/dired-regexp-map "C" 'dired-do-copy-regexp)
-     (define-key l/dired-regexp-map "H" 'dired-do-hardlink-regexp)
-     (define-key l/dired-regexp-map "R" 'dired-do-rename-regexp)
-     (define-key l/dired-regexp-map "S" 'dired-do-symlink-regexp)
-     (define-key l/dired-regexp-map "&" 'dired-flag-garbage-files)
-     ;; sorting keybindings -- prefix o
-     (define-prefix-command 'l/dired-sorting-map)
-     (define-key l/dired-sorting-map "o" 'l/dired-sort-by-name)
-     (define-key l/dired-sorting-map "d" 'l/dired-sort-by-date)
-     (define-key l/dired-sorting-map "s" 'l/dired-sort-by-size)
-     (define-key l/dired-sorting-map "x" 'l/dired-sort-by-ext)
-     (define-key l/dired-sorting-map "=" 'l/dired-sort-dirs-first)
-
-     (general-def 'normal dired-mode-map
-       "q" 'quit-window
-       ;; basic movement
-       "j" 'dired-next-line
-       "k" 'dired-previous-line
-       "h" 'dired-up-directory
-       "l" 'dired-find-file
-       ">" 'dired-next-dirline
-       "<" 'dired-prev-dirline
-       ;; here should be "gg" 'dired-goto-first-file, but it is in the
-       ;; nav-map
-       "G" 'dired-goto-last-file
-       ;; basic functions
-       "A" 'dired-do-find-regexp
-       "B" 'dired-do-byte-compile
-       "C" 'dired-do-copy
-       "D" 'dired-do-delete
-       ;; dired-do-chgrp
-       "H" 'dired-do-hardlink
-       "L" 'dired-do-load
-       "M" 'dired-do-chmod
-       "O" 'dired-do-chown
-       "P" 'dired-do-print
-       "Q" 'dired-do-find-regexp-and-replace
-       "R" 'dired-do-rename
-       "S" 'dired-do-symlink
-       "T" 'dired-do-touch
-       "Z" 'dired-do-compress
-       "c" 'dired-do-compress-to
-       "!" 'dired-do-shell-command
-       "&" 'dired-do-async-shell-command
-       "=" 'dired-diff
-       ;; regexp operations
-       "%" 'l/dired-regexp-map ;; prefix
-       ;; marks & flags
-       "U" 'dired-unmark-all-marks
-       "u" 'dired-unmark
-       "m" 'dired-mark
-       "n" 'l/dired-mark-backwards
-       "t" 'dired-toggle-marks
-       "d" 'dired-flag-file-deletion
-       "x" 'dired-do-flagged-delete
-       (kbd "* <delete>") 'dired-unmark-backward
-       (kbd "<delete>") 'dired-unmark-backward
-       "*" 'l/dired-mark-map ;; prefix
-       ;; encryption-decryption (epa-dired)
-       ";d" 'epa-dired-do-decrypt
-       ";v" 'epa-dired-do-verify
-       ";s" 'epa-dired-do-sign
-       ";e" 'epa-dired-do-encrypt
-       ;; unsorted
-       "X" 'l/dired-my-ext-cmds
-       "z" 'dired-omit-mode
-       "g" 'l/dired-nav-map
-       "gr" 'revert-buffer
-       "gR" 'dired-do-redisplay
-       "I" 'dired-maybe-insert-subdir
-       "i" 'dired-toggle-read-only
-       "J" 'dired-goto-file
-       "K" 'dired-do-kill-lines
-       "a" 'dired-find-alternate-file
-       "gy" 'dired-show-file-type
-       "Y" 'dired-copy-filename-as-kill
-       "+" 'dired-create-directory
-       (kbd "S-<return>") 'dired-find-file-other-window
-       (kbd "RET") 'dired-find-file
-       (kbd "M-<return>") 'browse-url-of-dired-file
-       ;; sorting
-       "o" 'l/dired-sorting-map ;; prefix -- was dired-sort-toggle-or-edit
-       "(" 'dired-hide-details-mode
-       "?" 'dired-summary)
+     ;; defining separate maps for different sets of functions
+     ;; Helps keeping tidier config
+     (define-prefix-command 'l/dired-mark-map) ;; will bind to *
+     (define-prefix-command 'l/dired-regexp-map) ;; will bind to %
+     (define-prefix-command 'l/dired-sorting-map) ;; will bind to o
+     (define-prefix-command 'l/dired-my-ext-cmds) ;; will bind to X
 
      (add-hook 'dired-mode-hook 'evil-normalize-keymaps)
+  
+     :general
+     (:keymaps 'dired-mode-map :states 'normal
+	       "q" 'quit-window
+	       ;; basic movement
+	       "j" 'dired-next-line
+	       "k" 'dired-previous-line
+	       "h" 'dired-up-directory
+	       "l" 'dired-find-file
+	       ">" 'dired-next-dirline
+	       "<" 'dired-prev-dirline
+	       "gg" 'dired-goto-first-file
+	       "G" 'dired-goto-last-file
+	       ;; basic functions
+	       "A" 'dired-do-find-regexp
+	       "B" 'dired-do-byte-compile
+	       "C" 'dired-do-copy
+	       "D" 'dired-do-delete
+	       ;; dired-do-chgrp
+	       "H" 'dired-do-hardlink
+	       "L" 'dired-do-load
+	       "M" 'dired-do-chmod
+	       "O" 'dired-do-chown
+	       "P" 'dired-do-print
+	       "Q" 'dired-do-find-regexp-and-replace
+	       "R" 'dired-do-rename
+	       "S" 'dired-do-symlink
+	       "T" 'dired-do-touch
+	       "Z" 'dired-do-compress
+	       "c" 'dired-do-compress-to
+	       "!" 'dired-do-shell-command
+	       "&" 'dired-do-async-shell-command
+	       "=" 'dired-diff
+	       ;; regexp operations
+	       "%" 'l/dired-regexp-map ;; prefix
+	       ;; marks & flags
+	       "U" 'dired-unmark-all-marks
+	       "u" 'dired-unmark
+	       "m" 'dired-mark
+	       "n" 'l/dired-mark-backwards
+	       "t" 'dired-toggle-marks
+	       "d" 'dired-flag-file-deletion
+	       "x" 'dired-do-flagged-delete
+	       (kbd "<delete>") 'dired-unmark-backward
+	       "*" 'l/dired-mark-map ;; prefix
+	       ;; encryption-decryption (epa-dired)
+	       ";d" 'epa-dired-do-decrypt
+	       ";v" 'epa-dired-do-verify
+	       ";s" 'epa-dired-do-sign
+	       ";e" 'epa-dired-do-encrypt
+	       ;; unsorted
+	       "X" 'l/dired-my-ext-cmds
+	       "gr" 'revert-buffer
+	       "gR" 'dired-do-redisplay
+	       "I" 'dired-maybe-insert-subdir
+	       "i" 'dired-toggle-read-only
+	       "J" 'dired-goto-file
+	       "K" 'dired-do-kill-lines
+	       "a" 'dired-find-alternate-file
+	       "gy" 'dired-show-file-type
+	       "Y" 'dired-copy-filename-as-kill
+	       "+" 'dired-create-directory
+	       (kbd "S-<return>") 'dired-find-file-other-window
+	       (kbd "RET") 'dired-find-file
+	       (kbd "M-<return>") 'browse-url-of-dired-file
+	       ;; sorting
+	       "o" 'l/dired-sorting-map ;; prefix -- was dired-sort-toggle-or-edit
+	       "(" 'dired-hide-details-mode
+	       "?" 'dired-summary)
+
      :bind
+     (:map leader
+	   ("D" . dired))
+     (:map otherwin
+	   ("D" . dired-other-window))
      (:map dired-mode-map
 	   ("G" . revert-buffer)
 	   ("g" . l/dired-nav-map)
 	   ("C-x M-." . compose-attach-marked-files)
 	   ("M-<" . dired-goto-first-file)
-	   ("M->" . dired-goto-last-file)))
+	   ("M->" . dired-goto-last-file))
+     (:map l/dired-mark-map
+	   ("*" . dired-mark-executables)
+	   ("/" . dired-mark-directories)
+	   ("@" . dired-mark-symlinks)
+	   ("%" . dired-mark-files-regexp)
+	   ("(" . dired-mark-sexp)
+	   ("." . dired-mark-extension)
+	   ("O" . dired-mark-omitted)
+	   ("c" . dired-change-marks)
+	   ("s" . dired-mark-subdir-files)
+	   ("?" . dired-unmark-all-files)
+	   ("!" . dired-unmark-all-marks)
+	   ("f" . l/dired-narrow-to-marked-files)
+	   ("<delete>" . dired-unmark-backward))
+     (:map l/dired-regexp-map
+	   ("u" . dired-upcase)
+	   ("l" . dired-downcase)
+	   ("d" . dired-flag-files-regexp)
+	   ("g" . dired-mark-files-containing-regexp)
+	   ("m" . dired-mark-files-regexp)
+	   ("C" . dired-do-copy-regexp)
+	   ("H" . dired-do-hardlink-regexp)
+	   ("R" . dired-do-rename-regexp)
+	   ("S" . dired-do-symlink-regexp)
+	   ("&" . dired-flag-garbage-files))
+     (:map l/dired-sorting-map
+	   ("o" . l/dired-sort-by-name)
+	   ("d" . l/dired-sort-by-date)
+	   ("s" . l/dired-sort-by-size)
+	   ("x" . l/dired-sort-by-ext)
+	   ("D" . l/dired-sort-dirs-first)
+	   ("R" . l/dired-sort-toggle-reverse))
+     (:map l/dired-my-ext-cmds
+	   ("s" . l/get-subtitles)
+	   ("?" . dired-get-size)
+	   ("B" . l/change-desktop-background)
+	   ("u" . l/unmount-drive)
+	   ("zz" . l/atool-pack)
+	   ("zx" . l/atool-unpack)))
 
 
    #+end_src
@@ -970,9 +1060,6 @@ The code snippets below are loaded by =init.el=, which also loads
    (use-package dired-x
      :delight dired-omit-mode
      :after dired
-     :bind
-     (:map dired-mode-map
-	   ("z" . 'dired-omit-mode))
      :init
      (setq dired-omit-verbose nil)
      :config
@@ -981,7 +1068,18 @@ The code snippets below are loaded by =init.el=, which also loads
      (setq dired-omit-extensions
 	   (append dired-omit-extensions '("xmp" "srt" "sub")))
 
-     (add-hook 'dired-mode-hook 'dired-omit-mode))
+     (add-hook 'dired-mode-hook 'dired-omit-mode)
+
+     :general
+     (:keymaps 'dired-mode-map :states 'normal
+	       "z" 'dired-omit-mode)
+     :bind
+     (:map dired-mode-map
+	   ("z" . 'dired-omit-mode))
+     (:map leader
+	   ("d" . dired-jump))
+     (:map otherwin
+	   ("d" . dired-jump-other-window)))
    #+end_src
 
 ** Wdired
@@ -1032,40 +1130,41 @@ The code snippets below are loaded by =init.el=, which also loads
        (interactive)
        (dired-goto-first-file)
        (peep-dired-display-file-other-window))
-  
+
      (defun l/peep-dired-goto-last-file ()
        "Go to last file line and peep there. Uses `dired-goto-last-file'"
        (interactive)
        (dired-goto-last-file)
        (peep-dired-display-file-other-window))
-  
+
      (defun l/peep-dired-mark-backwards ()
        "Mark and peep backwards."
        (interactive)
        (l/dired-mark-backwards)
        (peep-dired-display-file-other-window))
-  
-     ;; evil bindings
-     (general-def 'normal peep-dired-mode-map
-       "C-j" 'peep-dired-scroll-page-down
-       "C-k" 'peep-dired-scroll-page-up
-       "j" 'peep-dired-next-file
-       "<down>" 'peep-dired-next-file
-       "k" 'peep-dired-prev-file
-       "<up>" 'peep-dired-prev-file
-       "h" 'peep-dired-up-directory
-       "<left>" 'peep-dired-up-directory
-       "l" 'peep-dired-find-file
-       "<right>" 'peep-dired-find-file
-       ">" 'peep-dired-next-dirline
-       "<" 'peep-dired-prev-dirline
-       "g g" 'l/peep-dired-goto-first-file
-       "G" 'l/peep-dired-goto-last-file
-       "C-SPC" 'l/peep-dired-mark-backwards)
-     (general-def 'normal dired-mode-map
-       "p" 'peep-dired)
 
      (add-hook 'peep-dired-hook 'evil-normalize-keymaps)
+  
+     :general
+     (:keymaps 'peep-dired-mode-map :states 'normal
+	       "C-j" 'peep-dired-scroll-page-down
+	       "C-k" 'peep-dired-scroll-page-up
+	       "j" 'peep-dired-next-file
+	       "<down>" 'peep-dired-next-file
+	       "k" 'peep-dired-prev-file
+	       "<up>" 'peep-dired-prev-file
+	       "h" 'peep-dired-up-directory
+	       "<left>" 'peep-dired-up-directory
+	       "l" 'peep-dired-find-file
+	       "<right>" 'peep-dired-find-file
+	       ">" 'peep-dired-next-dirline
+	       "<" 'peep-dired-prev-dirline
+	       "g g" 'l/peep-dired-goto-first-file
+	       "G" 'l/peep-dired-goto-last-file
+	       "C-SPC" 'l/peep-dired-mark-backwards)
+     (:keymaps 'dired-mode-map :states 'normal
+	       "p" 'peep-dired)
+
      :bind
      (:map dired-mode-map
 	   ("p" . 'peep-dired)))
@@ -1087,9 +1186,9 @@ The code snippets below are loaded by =init.el=, which also loads
     (use-package dired-subtree
       :ensure t
       :after dired
-      :config
-      (general-def 'normal dired-mode-map
-	"TAB" 'dired-subtree-toggle))
+      :general
+      (:keymaps 'dired-mode-map :states 'normal
+		"TAB" 'dired-subtree-toggle))
     #+end_src
 
 *** Dired narrow
@@ -1104,9 +1203,9 @@ The code snippets below are loaded by =init.el=, which also loads
       :after dired
       :init
       (setq dired-narrow-exit-when-one-left t)
-      :config
-      (general-def 'normal dired-mode-map
-	"f" 'dired-narrow)
+      :general
+      (:keymaps 'dired-mode-map :states 'normal
+		"f" 'dired-narrow)
       :bind
       (:map dired-mode-map
 	    ("f" . 'dired-narrow)))
@@ -1142,16 +1241,16 @@ The code snippets below are loaded by =init.el=, which also loads
 	(interactive)
 	(dired-ranger-bookmark-visit dired-ranger-bookmark-LRU))
 
-      ;; evil keybindings
-      (general-def 'normal dired-mode-map
-	"y" nil ;; prefix
-	"yy" 'dired-ranger-copy
-	"yP" 'dired-ranger-move
-	"yp" 'dired-ranger-paste
-	"`" nil ;; prefix
-	"``" 'l/dired-ranger-bookmark-visit-LRU
-	"`v" 'dired-ranger-bookmark-visit
-	"`m" 'dired-ranger-bookmark))
+      :general
+      (:keymaps 'dired-mode-map :states 'normal
+		"y" nil ;; prefix
+		"yy" 'dired-ranger-copy
+		"yP" 'dired-ranger-move
+		"yp" 'dired-ranger-paste
+		"`" nil ;; prefix
+		"``" 'l/dired-ranger-bookmark-visit-LRU
+		"`v" 'dired-ranger-bookmark-visit
+		"`m" 'dired-ranger-bookmark))
     #+end_src
 
 *** Dired rsync
@@ -1176,10 +1275,10 @@ One note though, while trying to copy to a FAT32 device, I discovered that there
 			      nil nil nil 'file-directory-p)))
 	  (dired-rsync dest)))
 
-      ;; evil keybindings
-      (general-def 'normal dired-mode-map
-	"rr" 'dired-rsync
-	"rf" 'l/dired-rsync-to-FAT32))
+      :general
+      (:keymaps 'dired-mode-map :states 'normal
+		"rr" 'dired-rsync
+		"rf" 'l/dired-rsync-to-FAT32))
     #+end_src
 
 ** Some bling!
@@ -1586,9 +1685,13 @@ One note though, while trying to copy to a FAT32 device, I discovered that there
 		:key ?w)))    ;; TODO: fetch messages of the last x minutes
 
      ;; keybindings for the functions defined here --maybe move those at the end?
-     (define-key leader "m" 'l/mu4e-open-unread)
-     (general-def 'normal mu4e-main-mode-map "g'" 'l/mu4e-fetch-last-received-msg)
-     (general-def 'normal mu4e-headers-mode-map "g'" 'l/mu4e-fetch-last-received-msg))
+     ;; (define-key leader "m" 'l/mu4e-open-unread)
+     :general
+     (:states 'normal :keymaps '(mu4e-main-mode-map mu4e-headers-mode-map)
+	      "g'" 'l/mu4e-fetch-last-received-msg)
+     :bind
+     (:map leader
+	   ("m" . l/mu4e-open-unread)))
    #+end_src
    
 *** Mu4e -- actions
@@ -1699,8 +1802,10 @@ One note though, while trying to copy to a FAT32 device, I discovered that there
 
   #+begin_src emacs-lisp
   (use-package org
+    :delight ""
     :ensure org-plus-contrib
     :init
+    (setq org-M-RET-may-split-line '((default . nil)))
     ;; apparently some packages from org-plus-contrib must be manually
     ;; required
     (require 'org-tempo)
@@ -1716,12 +1821,12 @@ One note though, while trying to copy to a FAT32 device, I discovered that there
 	  org-confirm-babel-evaluate nil
 	  org-edit-src-content-indentation 0
 	  org-src-window-setup 'current-window)
-    :config
-    (define-prefix-command 'leader-org)
-    (define-key leader-org "p" 'org-set-property)
-    (define-key leader "o" 'leader-org)
     :bind
-    (("C-c l" . org-store-link)))
+    ("C-c l" . org-store-link)
+    (:map org-mode-map
+	  ("RET" . org-return-indent))
+    (:map leader-org
+	  ("p" . org-set-property)))
   #+end_src
 
 ** Org TODOs
@@ -1754,7 +1859,7 @@ One note though, while trying to copy to a FAT32 device, I discovered that there
 
      (add-hook 'org-after-todo-statistics-hook 'org-summary-todo)
      :bind
-     (("C-c C-x C-z" . org-resolve-clocks)))
+     ("C-c C-x C-z" . org-resolve-clocks))
    #+end_src
 
 ** Org capture
@@ -1840,7 +1945,7 @@ One note though, while trying to copy to a FAT32 device, I discovered that there
        (select-frame-by-name "capture")
        (delete-other-windows))
      :bind
-     (("C-c c" . org-capture)))
+     ("C-c c" . org-capture))
    #+end_src
 
 ** Org agenda
@@ -1856,7 +1961,9 @@ One note though, while trying to copy to a FAT32 device, I discovered that there
      :init
      (setq org-agenda-include-diary t)
      :bind
-     (("C-c a" . org-agenda)))
+     ("C-c a" . org-agenda)
+     (:map cal-agenda
+	   ("a" . org-agenda)))
    #+end_src
 
 ** Other tools
@@ -1909,17 +2016,12 @@ One note though, while trying to copy to a FAT32 device, I discovered that there
     :config
     (setq diary-number-of-entries 7)
     (add-hook 'after-init-hook 'diary)
-    ;; (define-key leader "c" 'calendar)
-    ;; (define-key leader "d" 'diary)
-    ;; (evil-leader 'normal
-      ;; "c" 'calendar
-      ;; "d" 'diary)
     :bind
-    (("C-x c c" . calendar)
-     ("C-x c d" . diary)
-     :map leader
-     ("c" . calendar)
-     ("d" . diary)))
+    ("C-x c c" . calendar)
+    ("C-x c d" . diary)
+    (:map cal-agenda
+	  ("c" . calendar)
+	  ("d" . diary)))
   #+end_src
 
 ** TODO TODO list [0/5]
@@ -2016,15 +2118,19 @@ One note though, while trying to copy to a FAT32 device, I discovered that there
 
    #+begin_src emacs-lisp
    (use-package vterm
+     :delight ""
      :load-path "~/.source/emacs-libvterm"
      :init
      (setq vterm-kill-buffer-on-exit t
 	   vterm-clear-scrollback t)
      :config
-     (evil-set-initial-state 'vterm 'emacs)
+     (evil-set-initial-state 'vterm-mode 'emacs)
      (evil-set-initial-state 'vterm-copy-mode 'normal)
-     (define-key leader (kbd "x <RET>") 'vterm)
-     (define-key leader (kbd "x o <RET>") 'vterm-other-window))
+     :bind
+     (:map leader
+	   ("<RET>" . vterm))
+     (:map otherwin
+	   ("<RET>" . vterm-other-window)))
    #+end_src
 
 ** TODO TODO list [0/2]
@@ -2100,13 +2206,13 @@ One note though, while trying to copy to a FAT32 device, I discovered that there
 
     (global-set-key (kbd "C-x |") 'toggle-window-split)
     :bind
-    (("S-C-<left>" . shrink-window-horizontally) 
-     ("S-C-<right>" . enlarge-window-horizontally) 
-     ("S-C-<down>" . shrink-window) 
-     ("S-C-<up>" . enlarge-window)
-     ;; ("C-x 2" . split-window-and-follow-below)
-     ;; ("C-x 3" . split-window-and-follow-right)
-     ("C-x \\" . window-swap-states)))
+    ("S-C-<left>" . shrink-window-horizontally) 
+    ("S-C-<right>" . enlarge-window-horizontally) 
+    ("S-C-<down>" . shrink-window) 
+    ("S-C-<up>" . enlarge-window)
+    ;; ("C-x 2" . split-window-and-follow-below)
+    ;; ("C-x 3" . split-window-and-follow-right)
+    ("C-x \\" . window-swap-states))
   #+end_src
 
 ** Ace window
@@ -2122,10 +2228,23 @@ One note though, while trying to copy to a FAT32 device, I discovered that there
      :config
      (ace-window-display-mode 1)
      :bind
-     (("C-x S-o" . ace-window)
-      ("C-x M-S-o" . ace-swap-window)))
+     ("C-x S-o" . ace-window)
+     ("C-x M-S-o" . ace-swap-window))
    #+end_src
 
+** Winner mode
+
+   Winner mode allows to restore a previous window confoguration.
+
+   #+begin_src emacs-lisp
+   (use-package winner
+     :config
+     (winner-mode 1)
+     :bind
+     (:map leader
+	   ("J" . winner-undo)
+	   ("K" . winner-redo)))
+   #+end_src
 ** Custom bindings
 
    Here I define my custom bindings, using the "poor man's leader key"
@@ -2133,33 +2252,33 @@ One note though, while trying to copy to a FAT32 device, I discovered that there
 
    #+begin_src emacs-lisp
    (use-package emacs
-     :config
-     ;; these basics I want to have attatched to the main leader key
-     (define-key leader "h" 'windmove-left)
-     (define-key leader "j" 'windmove-down)
-     (define-key leader "k" 'windmove-up)
-     (define-key leader "l" 'windmove-right)
-     (define-key leader " " 'other-window)
-     (define-key leader (kbd "S-SPC") 'ace-window)
-     (define-key leader (kbd "S-C-SPC") 'ace-swap-window)
-     (define-key leader "0" 'delete-window)
-     (define-key leader "q" 'delete-window)
-     (define-key leader "Q" 'kill-buffer-and-window)
-     (define-key leader "1" 'delete-other-windows)
-     (define-key leader "s" 'split-window-right)
-     (define-key leader "3" 'split-window-right)
-     (define-key leader "v" 'split-window-below)
-     (define-key leader "2" 'split-window-below)
-     (define-key leader "|" 'window-swap-states)
-     (define-key leader "\\" 'toggle-window-split)
+     :bind
+     (:map leader
+	   ("h" . windmove-left)
+	   ("j" . windmove-down)
+	   ("k" . windmove-up)
+	   ("l" . windmove-right)
+	   ("SPC" . other-window)
+	   ("S-SPC" . ace-window)
+	   ("S-C-SPC" . ace-swap-window)
+	   ("0" . delete-window)
+	   ("q" . delete-window)
+	   ("Q" . kill-buffer-and-window)
+	   ("1" . delete-other-windows)
+	   ("s" . split-window-right)
+	   ("3" . split-window-right)
+	   ("v" . split-window-below)
+	   ("2" . split-window-below)
+	   ("|" . window-swap-states)
+	   ("\\" . toggle-window-split))
+     (:map evil-normal-state-map
+	   ;; resizing has it's own thing going on...
+	   ("M-H" . shrink-window-horizontally)
+	   ("M-L" . enlarge-window-horizontally)
+	   ("M-J" . shrink-window)
+	   ("M-K" . enlarge-window)
+	   ("M-+" . balance-windows))) ;; plus is the equal sign while holding shift
 
-     ;; resizing has it's own thing going on...
-     (define-key evil-normal-state-map (kbd "M-H") 'shrink-window-horizontally)
-     (define-key evil-normal-state-map (kbd "M-L") 'enlarge-window-horizontally)
-     (define-key evil-normal-state-map (kbd "M-J") 'shrink-window)
-     (define-key evil-normal-state-map (kbd "M-K") 'enlarge-window)
-     (define-key evil-normal-state-map (kbd "M-+") 'balance-windows) ;; plus is the equal sign while holding shift
-     )
    #+end_src
 
 ** TODO TODO list [0/2]
@@ -2174,87 +2293,282 @@ One note though, while trying to copy to a FAT32 device, I discovered that there
     Winner mode can keep a history of window states. It could be
     really useful.
 
-* TODO CONFIURATION [7/13]
-** TODO INTERFACE
-*** Try packages
+* FILES AND BUFFERS NAVIGATION
 
-    #+begin_src emacs-lisp
-    (use-package try
-      :ensure t)
-    #+end_src
-    
+  I think of a buffer as a sort of container in emacs. Each opened
+  window shows the contents of a buffer, which may or may not be
+  assocciated with a file. A buffer not assocciated with a file can be
+  saved as one.
+
+  Here are some basic configuration about the way emacs handles files
+  and buffers. It mostly consists of my custom bindings, but any other
+  relevant config will be placed here as well.
+
+  #+begin_src emacs-lisp
+  (use-package emacs
+    :bind
+    (:map leader
+	  ("f" . find-file)
+	  ("b" . switch-to-buffer)
+	  ("," . (lambda () (interactive)
+		   (switch-to-buffer "*scratch*")))
+	  ("H" . switch-to-prev-buffer)
+	  ("L" . switch-to-next-buffer)
+	  ("Z" . kill-current-buffer)
+	  ("z" . kill-buffer))
+    (:map otherwin
+	  ("f" . find-file-other-window)
+	  ("b" . switch-to-buffer-other-window)
+	  ("," . (lambda () (interactive)
+		   (switch-to-buffer-other-window "*scratch*")))))
+  #+end_src
+
+* TEXT EDITING
+
+  Well, this is the whole point, right? Right???
+
+  You know, sometimes the journey is the most important part...
+
+  Here are some configuration considering text editing and coding in
+  emacs.
+
+** Fill text
+
+   I used to be a fan of 'visual-line-mode' which breaks the text into
+   'visual lines', much like a WYSIWYG editor. It also changes the default
+   'beginning-of-line' and 'end-of-line' with 'beginning-of-visual-line'
+   and 'end-of-visual-line', but this causes more problems than it solves.
+   For instance, it messes up some functions that require the normal
+   functions' definitions, like org-mode's 'org-special-ctrl-a/e'. Also,
+   the configuration of evil-mode gets out of hand, as you have to redefine
+   some motions.
+
+   So, I decided to finally drop it and start using 'auto-fill-mode'. This
+   mode will automatically break the line after a specified number of
+   columns. The default number of columns was 70, I changed it to 75.
+
+   #+begin_src emacs-lisp
+   (use-package emacs
+     :delight auto-fill-function
+     :init
+     (setq-default fill-column 75)
+     :hook (text-mode . (lambda ()
+			  (turn-on-auto-fill)
+			  (setq adaptive-fill-mode t))))
+   #+end_src
+
+** Languages and encoding
+
+   Always use UTF-8. Also, set the default input method.
+
+   #+begin_src emacs-lisp
+   (use-package emacs
+     :config
+     (set-language-environment "UTF-8")
+     (set-default-coding-systems 'utf-8)
+     (setq default-input-method "greek"))
+   #+end_src
+
+** Text navigation/manipulation
+
+   Moving around and changing stuff!
+
 *** Defaults
 
-    #+begin_src emacs-lisp
-    (setq inhibit-splash-screen t)       	;; disable the splash screen
-    (setq initial-scratch-message nil)   	;; disable scratch message
-    (tool-bar-mode -1)                   	;; all bars off
-    (menu-bar-mode -1)
-    (scroll-bar-mode -1)
-    (blink-cursor-mode -1)
-    (column-number-mode 1)               	;; show cursor position
-    (global-visual-line-mode t)          	;; visual line mode everywhere
-    (global-hl-line-mode t)              	;; highlight active line
-    (fset 'yes-or-no-p 'y-or-n-p)        	;; ask me for y or n
-    (setq default-directory (file-name-as-directory (getenv "HOME"))) ;; change the default directory to $HOME
-    (setq select-enable-clipboard t)				  ;; use the clipboard for yanking
-    (setq save-interprogram-paste-before-kill t)
-    (setq help-window-select t)	       ;; always focus on help windows
-    (setq sentence-end-double-space nil)   ;; better sentence navigation
-    (delete-selection-mode 1)	       ;; typing deletes selected text
-    (set-language-environment "UTF-8")     ;; always use UTF-8 encoding
-    (set-default-coding-systems 'utf-8)
-    (setq browse-url-browser-function 'browse-url-xdg-open) ;; open with default browser
-    (setq vc-follow-symlinks t) ;; don't ask when visiting symlinks
-    (global-set-key (kbd "M-SPC") nil)			;; temporary fix, I use this key combination to switch layouts stystem-wise, but emacs intercepts the key presses
-    #+end_src
+   Various default options considering copying and pasting, text
+   replacement, sentence ending points and general text manipulation.
 
-*** Enable some disabled features
+   #+begin_src emacs-lisp
+   (use-package emacs
+     :config
+     ;; copying and pasting
+     (setq select-enable-clipboard t)
+     (setq save-interprogram-paste-before-kill t)
+     (delete-selection-mode 1)
+     ;; sentence ends with dot
+     (setq sentence-end-double-space nil)
 
-    #+begin_src emacs-lisp
-    (put 'downcase-region 'disabled nil) ;; binds to 'C-x C-l'
-    (put 'upcase-region 'disabled nil) ;; binds to 'C-x C-u'
-    (put 'narrow-to-region 'disabled nil) ;; binds to 'C-x n n'
-    #+end_src
+     ;; some useful disabled functions for text manipulation
+     (put 'downcase-region 'disabled nil) ;; binds to 'C-x C-l'
+     (put 'upcase-region 'disabled nil) ;; binds to 'C-x C-u'
+     (put 'narrow-to-region 'disabled nil) ;; binds to 'C-x n n'
+     :bind
+     ("C-S-k" . kill-whole-line)
+     ("C-x M-e" . eval-buffer)
+     ("C-;" . comment-line)
+     ("C-M-;" . comment-or-uncomment-region)
+     ("M-;" . comment-dwim))
+   #+end_src
 
-*** Font size
+*** Multiple cursors
 
-    #+begin_src emacs-lisp
-    (global-set-key (kbd "C-<next>") 'text-scale-increase)
-    (global-set-key (kbd "C-<prior>") 'text-scale-decrease)
-    #+end_src
+    A nice package for quick batch text processing in text chunks where
+    repeatedness makes it more practical than using a macro.
+    
+    Note: I don't know why, these packages could not load correctly
+    until I used the =:demand= keyword in their use-package
+    declarations Main package. Apparently they don't work well with
+    lazy loading.
 
-*** Line numbering
+**** Main
 
     #+begin_src emacs-lisp
-    ;; (display-line-numbers-mode t)
-
-    (use-package linum-relative
+    (use-package multiple-cursors
       :ensure t
-      :after org
-      :init
-      (setq linum-relative-current-symbol "")
-      :bind ("C-x M-l" . linum-relative-toggle))
-    #+end_src
-
-*** Darkroom mode
-
-    A nice mode for reading and writing, similar to vim's goyo
-    Does it make sense to configure follow-mode here? Maybe.
-
-    #+begin_src emacs-lisp
-    (use-package darkroom
-      :ensure t
-      :init
-      (setq darkroom-text-scale-increase 0.8)
+      :demand
+      :config
+      (define-prefix-command 'mc-leader)
       :bind
-      (("C-M-_" . darkroom-decrease-margins)
-       ("C-x M-D" . darkroom-tentative-mode)))
+      ("C-. C-e" . mc/edit-lines)
+      ("C->" . mc/mark-next-like-this)
+      ("C-<" . mc/mark-previous-like-this)
+      ("C-. C-<" . mc/mark-all-like-this)
+      ("C-<down-mouse-1>" . mc/add-cursor-on-click)
+      ("C-. C-! 1" . mc/insert-numbers)
+      ("C-. C-! a" . mc/insert-letters)
+      (:map leader
+	    ("." . mc-leader))
+      (:map mc-leader
+	    ("C-e" . mc/edit-lines)
+	    ("C-a" . mc/mark-all-like-this)
+	    ("!1" . mc/insert-numbers)
+	    ("!a" . mc/insert-letters)))
 
-    (global-set-key (kbd "C-x M-L") 'follow-mode)
+    #+end_src
+
+**** Extras
+
+     Extra functionality for the multiple cursors package.
+
+     #+begin_src emacs-lisp
+     (use-package mc-extras
+       :ensure t
+       :after multiple-cursors
+       :demand
+       :bind
+       (:map mc/keymap
+	     ("C-. C-d" . mc/remove-current-cursor)
+	     ("C-. C-k" . mc/remove-cursors-at-eol)
+	     ("C-. d" . mc/remove-duplicated-cursors)
+	     ("C-. C-o" . mc/remove-cursors-on-blank-lines)
+	     ("C-. ." . mc/move-to-column)))
+     #+end_src
+
+**** Ace-mc
+
+     Adds the functionality to add cursors in specific characters
+     conditionally.
+
+     #+begin_src emacs-lisp
+     (use-package ace-mc
+       :ensure t
+       :after mc-extras
+       :demand
+       :bind
+       ("C-. )" . ace-mc-add-multiple-cursors)
+       ("C-. C-)" . ace-mc-add-single-cursor)
+       (:map mc-leader
+	     (")" . ace-mc-add-multiple-cursors)
+	     ("C-)" . ace-mc-add-single-cursor)))
+     #+end_src
+
+*** Expand region
+
+    Useful tool. Marks text by semantic units.
+
+    #+begin_src emacs-lisp
+    (use-package expand-region
+      :ensure t
+      :init
+      (setq expand-region-subword-enabled t)
+      (setq expand-region-skip-whitespace t)
+      :bind
+      ("C-=" . er/expand-region)
+      ("C--" . er/contract-region))
+    #+end_src
+
+*** Smartparens
+
+    Smartparens inserts pairs of delimiters, like parentheses and quotes.
+    It also provides some useful functions for moving between delimiters.
+
+    #+begin_src emacs-lisp
+    (use-package smartparens
+      :delight " "
+      :init
+      (require 'smartparens-config)
+      :config
+      (smartparens-global-mode)
+      (show-smartparens-global-mode)
+      :general
+      (:states 'normal
+	       "%" nil
+	       "%%" 'evil-jump-item
+	       "%(" 'sp-backward-sexp
+	       "%)" 'sp-forward-sexp
+	       "%n" 'sp-next-sexp
+	       "%p" 'sp-previous-sexp
+	       "%j" 'sp-down-sexp
+	       "%k" 'sp-up-sexp
+	       "%h" 'sp-beginning-of-previous-sexp
+	       "%l" 'sp-beginning-of-next-sexp
+	       "%t" 'sp-transpose-sexp
+	       "%a" 'sp-forward-slurp-sexp
+	       "%A" 'sp-backward-slurp-sexp
+	       "%b" 'sp-forward-barf-sexp
+	       "%B" 'sp-backward-barf-sexp
+	       "%<" 'sp-split-sexp
+	       "%>" 'sp-join-sexp
+	       "%?" 'sp-rewrap-sexp
+	       )
+      :bind
+      ("M-s" . sp-splice-sexp)
+      ("M-," . sp-split-sexp)
+      ("M-." . sp-join-sexp)
+      ("M-?" . sp-rewrap-sexp))
+    #+end_src
+** Readability
+
+   Helpful visual attributes.
+
+*** Some defaults
+
+   #+begin_src emacs-lisp
+   (use-package emacs
+     :config
+     (blink-cursor-mode -1) ;; don't blink!
+     (column-number-mode 1) ;; show me where I am
+     (global-hl-line-mode t) ;; show me better!
+
+     ;; put rc files in conf-mode for syntax highlighting
+     (add-to-list 'auto-mode-alist '("\\.*rc$" . conf-mode))
+     :bind
+     ;; fonts size
+     ("C-<next>" . text-scale-increase)
+     ("C-<prior>" . text-scale-decrease)
+     ;; show line numbers
+     ("C-x l" . display-line-numbers-mode)
+     ;; follow-mode works well for long buffers
+     ("C-x M-l" . follow-mode))
+   #+end_src
+
+*** Rainbow delimiters
+
+    Different colors for parentheses pairs. Extremely useful for
+    (((emacs(((lisp)))))), if you know what I mean! So, we hook it to
+    prog-mode.
+
+    #+begin_src emacs-lisp
+    (use-package rainbow-delimiters
+      :ensure t
+      :init
+      (add-hook 'prog-mode-hook #'rainbow-delimiters-mode))
     #+end_src
 
 *** Rainbow mode
+
+    This minor mode shows the color of a color representing string. Useful
+    in configs.
 
     #+begin_src emacs-lisp
     (use-package rainbow-mode
@@ -2263,16 +2577,341 @@ One note though, while trying to copy to a FAT32 device, I discovered that there
       :hook prog-mode conf-mode)
     #+end_src
 
-*** Load theme
+*** Darkroom mode
+    
+    No, it has nothing to do with photography.
+
+    It is a nice mode for reading, though. It centers the text, scales it a
+    bit up and removes all visual distractions.
 
     #+begin_src emacs-lisp
-    (use-package color-theme-sanityinc-tomorrow
-      :ensure t)
-
-    (color-theme-sanityinc-tomorrow--define-theme bright)
+    (use-package darkroom
+      :ensure t
+      :init
+      (setq darkroom-text-scale-increase 0.8)
+      :bind
+      ("C-x M-D" . darkroom-tentative-mode))
     #+end_src
 
-*** All the icons
+* LOOKS AND FEELS
+
+  By default emacs looks ugly! Let's see what we can do about this...
+
+** Better defaults
+
+   Some interface changes that make more sense. Also, some misc options
+   that don't fit anywhere else.
+   
+   #+begin_src emacs-lisp
+   (use-package emacs
+     :init
+     (setq inhibit-splash-screen t)	; no splash screen
+     (setq initial-scratch-message nil)	; scratch buffer starts empty
+     (tool-bar-mode -1)			; no toolbar...
+     (menu-bar-mode -1)			; no menu bar...
+     (scroll-bar-mode -1)			; and no scrollbar!
+     (fset 'yes-or-no-p 'y-or-n-p)		; type "y" instead of "yes"
+     (setq default-directory "~/")		; start from $HOME
+     (setq custom-file "~/.emacs.d/custom.el") ; use separate custom file
+     (load custom-file)			    ; load it too
+     (setq backup-directory-alist
+	   `(("." . "~/.emacs.d/backups"))) ; all backups in the same place
+     (setq backup-by-copying t)		 ; at some point this was important
+     (setq help-window-select t)		; always focus help windows
+     (setq browse-url-browser-function
+	   'browse-url-xdg-open)		; use the default browser
+     (setq vc-follow-symlinks t)		; don't ask me to follow symlinks
+     :bind
+     (:map special-event-map
+	   ("M-SPC" . ignore)))		; ignore my changing layouts key
+   #+end_src
+
+** Theme
+
+   Now we look sexy!
+
+   I am not sure about the theme, so I will load some and choose afterwards.
+
+   #+begin_src emacs-lisp
+   (use-package modus-vivendi-theme
+     :ensure t)
+
+   (use-package gotham-theme
+     :ensure t)
+
+   (use-package darktooth-theme
+     :ensure t)
+
+     (load-theme 'modus-vivendi t)
+
+
+   #+end_src
+
+** Transparency
+
+   I did not know this existed! I tried it, it's fun, but I had some
+   problems with some flickering. I keep it here for reference and
+   occasional use.
+
+   #+begin_src emacs-lisp
+   (use-package emacs
+     :config
+     ;; (set-frame-parameter (selected-frame) 'alpha '(90 80))
+     )
+   #+end_src
+
+** Delight -- hide info from modeline
+
+   This is mainly used via the keyword in use-package declarations. What it
+   does is that it completely removes or changes the name of a mode in the
+   modeline.
+   
+   #+begin_src emacs-lisp
+   (use-package delight
+     :ensure t
+     :config
+     (delight 'undo-tree-mode nil 'undo-tree)
+     (delight 'eldoc-mode nil 'eldoc)
+     (delight 'visual-line-mode " ⏎" 'simple)
+     ;; I do not remember why I did this like that, but here is another way
+     (add-hook 'emacs-lisp-mode-hook
+	       (lambda () (setq mode-name ""))))
+   #+end_src
+
+** All the icons
+
+   Adds the capability to insert icons. Takes icons from various icon sets,
+   like fontAwesome, octicons, weathericons etc.
+
+   This is mainly used as a base for the 'all-the-icons-dired' package.
+
+   It has a generally buggy behaviour, with various icons overlapping and
+   swapping without reason.
+
+   Note: After the first load, run `all-the-icons-install-fonts'
+
+   #+begin_src emacs-lisp
+   (use-package all-the-icons
+     :ensure t
+     :delight)
+
+   #+end_src
+
+   I am not sure if I need this, I think I tried to fix the aforementioned
+   buggy behaviour of all-the-icons, but I don;t think it did much.
+
+   #+begin_src emacs-lisp
+   ;; (use-package font-lock+
+     ;; :load-path "~/.source")
+   #+end_src
+
+** Emoji display
+
+   By default emacs does not support emojis. Now it does!
+
+   I do not activate this mode by default, but it should be hooked where it
+   makes sense, eg. to the message view of mu4e.
+
+   #+begin_src emacs-lisp
+   (use-package emojify
+     :ensure t)
+   #+end_src
+
+* EXTRA BITS OF FUNCTIONALITY
+
+  Bits and chunks of useful stuff.
+** Which key
+
+   When starting to type a keybinding, it provides a "cheatsheet" with all
+   available options
+
+   #+begin_src emacs-lisp
+   (use-package which-key
+     :ensure t
+     :delight
+     :config
+     (which-key-mode))
+   #+end_src
+** Autoload configuration
+
+   I wrote a function to load the init file. I also added this function to
+   the after-save-hook so that it is run each time I save the current file.
+
+   #+begin_src emacs-lisp
+   (use-package emacs
+     :config
+     (defun l/reload-emacs ()
+       "Reload the init file"
+       (interactive)
+       (load-file "~/.emacs.d/init.el"))
+
+     (defun l/reload-emacs-on-save ()
+       "Evaluate the init file automatically"
+       (when (string= (buffer-file-name)
+		      (expand-file-name "~/.emacs.d/my-config.org"))
+	 (l/reload-emacs)))
+
+     (add-hook 'after-save-hook 'l/reload-emacs-on-save)
+     :bind
+     ("C-c r" . l/reload-emacs))
+   #+end_src
+** Restart emacs
+
+   Restart emacs in place.
+
+   #+begin_src emacs-lisp
+   (use-package restart-emacs
+     :ensure t
+     :bind
+     ("C-c C-S-r" . restart-emacs))
+   #+end_src
+
+** Try packages
+
+   Try before buy. With this package you can temporarily install a package.
+   It won't be there upon reopening emacs. Occasionally useful.
+
+   #+begin_src emacs-lisp
+   (use-package try
+     :ensure t)
+   #+end_src
+
+* GAMES
+
+  Emacs has games too!
+
+** Snake
+
+   #+begin_src emacs-lisp
+   (use-package snake
+     :config
+     (evil-set-initial-state 'snake-mode 'normal)
+     :general
+     (:states 'normal :keymaps 'snake-mode-map
+	      "h" 'snake-move-left
+	      "j" 'snake-move-down
+	      "k" 'snake-move-up
+	      "l" 'snake-move-right
+	      "p" 'snake-pause-game
+	      "q" 'quit-window
+	      "N" 'snake-start-game))
+   #+end_src
+
+** 2048
+
+   #+begin_src emacs-lisp
+   (use-package 2048-game
+     :ensure t)
+   #+end_src
+
+* DONE OLD CONFIGS [13/13]
+** DONE INTERFACE [14/14]
+*** DONE Try packages
+    CLOSED: [2020-05-01 Fri 06:13]
+
+    #+begin_src emacs-lisp
+    ;;(use-package try
+    ;;  :ensure t)
+    #+end_src
+    
+*** DONE Defaults
+    CLOSED: [2020-05-01 Fri 03:55]
+
+    #+begin_src emacs-lisp
+     ;; (setq inhibit-splash-screen t)       	;; disable the splash screen
+     ;; (setq initial-scratch-message nil)   	;; disable scratch message
+     ;; (tool-bar-mode -1)                   	;; all bars off
+     ;; (menu-bar-mode -1)
+     ;; (scroll-bar-mode -1)
+     ;; (blink-cursor-mode -1)
+     ;; (column-number-mode 1)               	;; show cursor position
+    ;; (global-visual-line-mode t)          	;; visual line mode everywhere
+     ;; (global-hl-line-mode t)              	;; highlight active line
+     ;; (fset 'yes-or-no-p 'y-or-n-p)        	;; ask me for y or n
+     ;; (setq default-directory (file-name-as-directory (getenv "HOME"))) ;; change the default directory to $HOME
+     ;; (setq select-enable-clipboard t)				  ;; use the clipboard for yanking
+     ;; (setq save-interprogram-paste-before-kill t)
+     ;; (setq help-window-select t)	       ;; always focus on help windows
+     ;; (setq sentence-end-double-space nil)   ;; better sentence navigation
+     ;; (delete-selection-mode 1)	       ;; typing deletes selected text
+     ;; (set-language-environment "UTF-8")     ;; always use UTF-8 encoding
+     ;; (set-default-coding-systems 'utf-8)
+     ;; (setq browse-url-browser-function 'browse-url-xdg-open) ;; open with default browser
+     ;; (setq vc-follow-symlinks t) ;; don't ask when visiting symlinks
+     ;; (define-key special-event-map (kbd "M-SPC") 'ignore)			;; temporary fix, I use this key combination to switch layouts stystem-wise, but emacs intercepts the key presses
+    #+end_src
+
+*** DONE Enable some disabled features
+    CLOSED: [2020-04-30 Thu 04:31]
+
+    #+begin_src emacs-lisp
+    ;; (put 'downcase-region 'disabled nil) ;; binds to 'C-x C-l'
+    ;; (put 'upcase-region 'disabled nil) ;; binds to 'C-x C-u'
+    ;; (put 'narrow-to-region 'disabled nil) ;; binds to 'C-x n n'
+    #+end_src
+
+*** DONE Font size
+    CLOSED: [2020-04-30 Thu 05:13]
+
+    #+begin_src emacs-lisp
+    ;; (global-set-key (kbd "C-<next>") 'text-scale-increase)
+    ;; (global-set-key (kbd "C-<prior>") 'text-scale-decrease)
+    #+end_src
+
+*** REJECTED Line numbering
+    CLOSED: [2020-04-30 Thu 05:08]
+
+    #+begin_src emacs-lisp
+    ;; (display-line-numbers-mode t)
+
+    ;; (use-package linum-relative
+      ;; :ensure t
+      ;; :after org
+      ;; :init
+      ;; (setq linum-relative-current-symbol "")
+      ;; :bind ("C-x M-l" . linum-relative-toggle))
+    #+end_src
+
+*** DONE Darkroom mode
+    CLOSED: [2020-04-30 Thu 05:26]
+
+    A nice mode for reading and writing, similar to vim's goyo
+    Does it make sense to configure follow-mode here? Maybe.
+
+    #+begin_src emacs-lisp
+    ;; (use-package darkroom
+      ;; :ensure t
+      ;; :init
+      ;; (setq darkroom-text-scale-increase 0.8)
+      ;; :bind
+      ;; (("C-M-_" . darkroom-decrease-margins)
+       ;; ("C-x M-D" . darkroom-tentative-mode)))
+
+    ;; (global-set-key (kbd "C-x M-L") 'follow-mode)
+    #+end_src
+
+*** DONE Rainbow mode
+    CLOSED: [2020-04-30 Thu 05:21]
+
+    #+begin_src emacs-lisp
+    ;; (use-package rainbow-mode
+      ;; :ensure t
+      ;; :delight
+      ;; :hook prog-mode conf-mode)
+    #+end_src
+
+*** DONE Load theme
+    CLOSED: [2020-05-01 Fri 05:11]
+
+    #+begin_src emacs-lisp
+    ;; (use-package color-theme-sanityinc-tomorrow
+      ;; :ensure t)
+
+    ;; (color-theme-sanityinc-tomorrow--define-theme bright)
+    #+end_src
+
+*** DONE All the icons
+    CLOSED: [2020-05-01 Fri 05:59]
 Icons for emacs.
 #+begin_src emacs-lisp
 ;; Note: After the first load, run `all-the-icons-install-fonts'
@@ -2286,31 +2925,33 @@ Icons for emacs.
 (require 'font-lock+)
 #+end_src
 
-*** Hide info from modeline (delight)
+*** DONE Hide info from modeline (delight)
+    CLOSED: [2020-05-01 Fri 05:42]
 
     Normally I use the =:delight= keyword of use package, here are the built-in modes that I want to omit.
 
     #+begin_src emacs-lisp
-    (use-package delight
-      :ensure t
-      :config
-      (delight 'dired-mode "")
-      (delight 'undo-tree-mode nil 'undo-tree)
-      (delight 'visual-line-mode " ⏎" 'simple)
-      (delight 'eldoc-mode nil 'eldoc)
+    ;; (use-package delight
+      ;; :ensure t
+      ;; :config
+      ;; (delight 'dired-mode "")
+      ;; (delight 'undo-tree-mode nil 'undo-tree)
+      ;; (delight 'visual-line-mode " ⏎" 'simple)
+      ;; (delight 'eldoc-mode nil 'eldoc)
       ;; for some reason, I cannot set this in use-package declaration of smartparens
-      (delight 'smartparens-mode " {⬄}" 'smartparens))
+      ;; (delight 'smartparens-mode " {⬄}" 'smartparens))
     #+end_src
 
 This seems a reasonable way to change modeline info for major modes. Why use delight for that? It also seems to work better for, e.g, this case.
 
     #+begin_src emacs-lisp
-    (add-hook 'emacs-lisp-mode-hook
-	  (lambda ()
-	    (setq mode-name "ELisp")))
+    ;; (add-hook 'emacs-lisp-mode-hook
+	  ;; (lambda ()
+	    ;; (setq mode-name "ELisp")))
     #+end_src
     
-*** Which key
+*** DONE Which key
+    CLOSED: [2020-05-01 Fri 06:16]
 
     #+begin_src emacs-lisp
     (use-package which-key
@@ -2318,28 +2959,31 @@ This seems a reasonable way to change modeline info for major modes. Why use del
       :delight
       :config (which-key-mode))
     #+end_src
-*** Default files
+*** DONE Default files
+    CLOSED: [2020-05-01 Fri 06:09]
 
     Change the way that emacs keeps backups, also some default files, like custom
 
     #+begin_src emacs-lisp
-    ;; use separate custom file
-    (setq custom-file "~/.emacs.d/custom.el")
-    (load custom-file)
+    ;; ;; use separate custom file
+    ;; (setq custom-file "~/.emacs.d/custom.el")
+    ;; (load custom-file)
 
-    ;; backup files
-    (setq backup-directory-alist `(("." . "~/.emacs.d/backups")))
-    (setq backup-by-copying t) ;; this is to ensure all edited files keep their inodes
+    ;; ;; backup files
+    ;; (setq backup-directory-alist `(("." . "~/.emacs.d/backups")))
+    ;; (setq backup-by-copying t) ;; this is to ensure all edited files keep their inodes
     #+end_src
-*** Emojis
+*** DONE Emojis
+    CLOSED: [2020-05-01 Fri 06:01]
 
     Display emojis!
 
     #+begin_src emacs-lisp
-    (use-package emojify
-      :ensure t)
+    ;;(use-package emojify
+    ;;  :ensure t)
     #+end_src
-*** Transparency
+*** DONE Transparency
+    CLOSED: [2020-05-01 Fri 05:27]
 
     Coz why not? Until I get bored with it. Or maybe make it toggle?
     
@@ -2349,106 +2993,113 @@ This seems a reasonable way to change modeline info for major modes. Why use del
     ;; (set-frame-parameter (selected-frame) 'alpha '(90 80))
     #+end_src
 
-** TODO FUNCTIONALITY
-*** Whole buffer evaluation
+** DONE FUNCTIONALITY [9/9]
+*** DONE Whole buffer evaluation
+    CLOSED: [2020-05-01 Fri 03:30]
 
     #+begin_src emacs-lisp
     (global-set-key (kbd "C-x C-S-e") 'eval-buffer)
     #+end_src
 
-*** Toggle comments
+*** DONE Toggle comments
+    CLOSED: [2020-04-30 Thu 04:36]
 
     #+begin_src emacs-lisp
-    (global-set-key (kbd "C-;") 'comment-line)
-    (global-set-key (kbd "C-M-;") 'comment-or-uncomment-region)
+    ;; (global-set-key (kbd "C-;") 'comment-line)
+    ;; (global-set-key (kbd "C-M-;") 'comment-or-uncomment-region)
     #+end_src
 
-*** Parentheses
+*** DONE Parentheses
+    CLOSED: [2020-05-01 Fri 03:23]
 
     #+begin_src emacs-lisp
-    (use-package smartparens-config
-      :ensure smartparens
-      ;; :delight ('smartparens-mode " \(\)" 'smartparens)
-      :init
-      (smartparens-global-mode 1)
-      (show-smartparens-global-mode 1)
-      (sp-local-pair 'emacs-lisp-mode "'" nil :actions nil)
-      :bind
-      ("M-s" . sp-splice-sexp))
+    ;; (use-package smartparens-config
+    ;;   :ensure smartparens
+    ;;   ;; :delight ('smartparens-mode " \(\)" 'smartparens)
+    ;;   :init
+    ;;   (smartparens-global-mode 1)
+    ;;   (show-smartparens-global-mode 1)
+    ;;   (sp-local-pair 'emacs-lisp-mode "'" nil :actions nil)
+    ;;   :bind
+    ;;   ("M-s" . sp-splice-sexp))
 
-    (use-package rainbow-delimiters
-      :ensure t
-      :init
-      (add-hook 'prog-mode-hook #'rainbow-delimiters-mode))
+    ;; ;; (use-package rainbow-delimiters
+      ;; :ensure t
+      ;; :init
+      ;; (add-hook 'prog-mode-hook #'rainbow-delimiters-mode))
 
     #+end_src
 
-*** Expand region
+*** DONE Expand region
+    CLOSED: [2020-04-30 Thu 19:02]
 
     #+begin_src emacs-lisp
-    (use-package expand-region
-      :ensure t
-      :bind
-      (("C-=" . er/expand-region)
-       ("C-c =" . er/expand-region)
-       ("C--" . er/contract-region)
-       ("C-c -" . er/contract-region)))
+    ;; (use-package expand-region
+    ;;   :ensure t
+    ;;   :bind
+    ;;   (("C-=" . er/expand-region)
+    ;;    ("C-c =" . er/expand-region)
+    ;;    ("C--" . er/contract-region)
+    ;;    ("C-c -" . er/contract-region)))
     #+end_src
 
-*** Smarter move to beginning of line
+*** REJECTED Smarter move to beginning of line
+    CLOSED: [2020-04-30 Thu 04:55]
 
     Part of Prelude
 
     #+begin_src emacs-lisp
-    (defun smarter-move-beginning-of-line (arg)
-      "Move point back to indentation of beginning of line.
+    ;; (defun smarter-move-beginning-of-line (arg)
+      ;; "Move point back to indentation of beginning of line.
 
-    Move point to the first non-whitespace character on this line.
-    If point is already there, move to the beginning of the line.
-    Effectively toggle between the first non-whitespace character and
-    the beginning of the line.
+    ;; Move point to the first non-whitespace character on this line.
+    ;; If point is already there, move to the beginning of the line.
+    ;; Effectively toggle between the first non-whitespace character and
+    ;; the beginning of the line.
 
-    If ARG is not nil or 1, move forward ARG - 1 lines first.  If
-    point reaches the beginning or end of the buffer, stop there."
-      (interactive "^p")
-      (setq arg (or arg 1))
+    ;; If ARG is not nil or 1, move forward ARG - 1 lines first.  If
+    ;; point reaches the beginning or end of the buffer, stop there."
+      ;; (interactive "^p")
+      ;; (setq arg (or arg 1))
 
       ;; Move lines first
-      (when (/= arg 1)
-	(let ((line-move-visual nil))
-	  (forward-line (1- arg))))
+      ;; (when (/= arg 1)
+	;; (let ((line-move-visual nil))
+	  ;; (forward-line (1- arg))))
 
-      (let ((orig-point (point)))
-	(back-to-indentation)
-	(when (= orig-point (point))
-	  (move-beginning-of-line 1))))
+      ;; (let ((orig-point (point)))
+	;; (back-to-indentation)
+	;; (when (= orig-point (point))
+	  ;; (move-beginning-of-line 1))))
 
-    (global-set-key [remap move-beginning-of-line] 'smarter-move-beginning-of-line)
+    ;; (global-set-key [remap move-beginning-of-line] 'smarter-move-beginning-of-line)
     #+end_src
 
     Kill the whole line
 
     #+begin_src emacs-lisp
-    (global-set-key (kbd "C-S-k") 'kill-whole-line)
+    ;; (global-set-key (kbd "C-S-k") 'kill-whole-line)
     #+end_src
 
-*** Duplicate line
+*** REJECTED Duplicate line
+    CLOSED: [2020-04-30 Thu 03:28]
 
     #+begin_src emacs-lisp
-    (defun duplicate-line()
-      "Duplicates a line."
-      (interactive)
-      (move-beginning-of-line 1)
-      (kill-line)
-      (yank)
-      (open-line 1)
-      (next-line 1)
-      (yank))
+    ;; (defun duplicate-line()
+      ;; "Duplicates a line."
+      ;; (interactive)
+      ;; (move-beginning-of-line 1)
+      ;; (kill-line)
+      ;; (yank)
+      ;; (open-line 1)
+      ;; (next-line 1)
+      ;; (yank))
 
-    (global-set-key (kbd "C-c d") 'duplicate-line)
+    ;; (global-set-key (kbd "C-c d") 'duplicate-line)
     #+end_src
 
-*** Auto-evaluate init file
+*** DONE Auto-evaluate init file
+    CLOSED: [2020-05-01 Fri 06:23]
 
     Auto-evaluate the init.el file when saving this org file. A must have!
 
@@ -2456,56 +3107,59 @@ This seems a reasonable way to change modeline info for major modes. Why use del
 
     #+begin_src emacs-lisp
 
-    (defun l/reload-emacs ()
-      "Reload the init file"
-      (interactive)
-      (load-file "~/.emacs.d/init.el"))
+    ;; (defun l/reload-emacs ()
+    ;;   "Reload the init file"
+    ;;   (interactive)
+    ;;   (load-file "~/.emacs.d/init.el"))
 
-    (defun my/cmd-after-saved-file ()
-      "Evaluate the init file automatically"
-	(when (string= (buffer-file-name) (expand-file-name "~/.emacs.d/my-config.org"))
-	  (l/reload-emacs)))
+    ;; (defun my/cmd-after-saved-file ()
+    ;;   "Evaluate the init file automatically"
+    ;;     (when (string= (buffer-file-name) (expand-file-name "~/.emacs.d/my-config.org"))
+    ;;       (l/reload-emacs)))
 
-    (add-hook 'after-save-hook 'my/cmd-after-saved-file)
+    ;; (add-hook 'after-save-hook 'my/cmd-after-saved-file)
 
-    ;; also makes sense to bind a "refresh" key, similar to the i3 config
-    (global-set-key (kbd "C-M-S-r") 'l/reload-emacs)
+    ;; ;; also makes sense to bind a "refresh" key, similar to the i3 config
+    ;; (global-set-key (kbd "C-M-S-r") 'l/reload-emacs)
     #+end_src
 
-*** Restart emacs
+*** DONE Restart emacs
+    CLOSED: [2020-05-01 Fri 06:24]
 Restart emacs from within emacs (duh!)
 #+begin_src emacs-lisp
-(use-package restart-emacs
-  :ensure t
-  :bind ("C-M-S-e" . 'restart-emacs))
+;; (use-package restart-emacs
+  ;; :ensure t
+  ;; :bind ("C-M-S-e" . 'restart-emacs))
 
 #+end_src
 
-*** Syntax highlighting for rc files
+*** DONE Syntax highlighting for rc files
+    CLOSED: [2020-04-30 Thu 05:27]
 
     #+begin_src emacs-lisp
-    (add-to-list 'auto-mode-alist '("\\.*rc$" . conf-mode))
+    ;; (add-to-list 'auto-mode-alist '("\\.*rc$" . conf-mode))
     #+end_src
 
-** TODO FILES AND BUFFERS
+** DONE FILES AND BUFFERS
+   CLOSED: [2020-04-29 Wed 13:32]
 
    #+begin_src emacs-lisp
-      (eval-after-load "evil"
-	'(progn
-	   (define-key evil-normal-state-map "\\" nil)
-	   (define-key evil-normal-state-map "\\f" 'find-file)
-	   ;; (define-key evil-normal-state-map "\\f" 'helm-find-files)
-	   (define-key evil-normal-state-map "\\b" 'switch-to-buffer)
-	   (define-key evil-normal-state-map "\\," '(lambda () (interactive) (switch-to-buffer "*scratch*")))
-	   (define-key evil-normal-state-map "\\<" 'switch-to-prev-buffer)
-	   (define-key evil-normal-state-map "\\>" 'switch-to-next-buffer)
-	   (define-key evil-normal-state-map "\\z" 'kill-current-buffer)
-	   (define-key evil-normal-state-map "\\D" 'dired-jump)
-	   ;; other window
-	   (define-key evil-normal-state-map "\\'" nil) ;;prefix
-	   (define-key evil-normal-state-map "\\'f" 'find-file-other-window)
-	   (define-key evil-normal-state-map "\\'b" 'switch-to-buffer-other-window)
-	   (define-key evil-normal-state-map "\\'D" 'dired-other-window)))
+   ;; (eval-after-load "evil"
+     ;; '(progn
+	;; (define-key evil-normal-state-map "\\" nil)
+	;; (define-key evil-normal-state-map "\\f" 'find-file)
+	;; (define-key evil-normal-state-map "\\f" 'helm-find-files)
+	;; (define-key evil-normal-state-map "\\b" 'switch-to-buffer)
+	;; (define-key evil-normal-state-map "\\," '(lambda () (interactive) (switch-to-buffer "*scratch*")))
+	;; (define-key evil-normal-state-map "\\<" 'switch-to-prev-buffer)
+	;; (define-key evil-normal-state-map "\\>" 'switch-to-next-buffer)
+	;; (define-key evil-normal-state-map "\\z" 'kill-current-buffer)
+	;; (define-key evil-normal-state-map "\\D" 'dired-jump)
+	;; other window
+	;; (define-key evil-normal-state-map "\\'" nil) ;;prefix
+	;; (define-key evil-normal-state-map "\\'f" 'find-file-other-window)
+	;; (define-key evil-normal-state-map "\\'b" 'switch-to-buffer-other-window)
+	;; (define-key evil-normal-state-map "\\'D" 'dired-other-window)))
 
 #+end_src
 
@@ -2656,31 +3310,32 @@ Restart emacs from within emacs (duh!)
 
     #+end_src
 
-** TODO MULTIPLE CURSORS
+** DONE MULTIPLE CURSORS
+   CLOSED: [2020-04-30 Thu 14:14]
 
-     It seems that the mc package is not really needed. Maybe everything it does can be achieved by using replacement methods and/or macros. Not to mention vim's =:g= command, or helm-swoop.
+   It seems that the mc package is not really needed. Maybe everything it does can be achieved by using replacement methods and/or macros. Not to mention vim's =:g= command, or helm-swoop.
 
      #+begin_src emacs-lisp
-     (use-package multiple-cursors
-       :ensure t
-       :bind
-       ("C-s-c C-s-c" . mc/edit-lines)
-       ("C->" . mc/mark-next-like-this)
-       ("C-<" . mc/mark-previous-like-this)
-       ("C-c C-<" . mc/mark-all-like-this)
-       ("C-<down-mouse-1>" . mc/add-cursor-on-click)
-       ("C-!" . mc/insert-numbers))
+     ;; (use-package multiple-cursors
+     ;;   :ensure t
+     ;;   :bind
+     ;;   ("C-s-c C-s-c" . mc/edit-lines)
+     ;;   ("C->" . mc/mark-next-like-this)
+     ;;   ("C-<" . mc/mark-previous-like-this)
+     ;;   ("C-c C-<" . mc/mark-all-like-this)
+     ;;   ("C-<down-mouse-1>" . mc/add-cursor-on-click)
+     ;;   ("C-!" . mc/insert-numbers))
 
-     (use-package mc-extras
-       :ensure t
-       :after multiple-cursors)
+     ;; (use-package mc-extras
+     ;;   :ensure t
+     ;;   :after multiple-cursors)
 
-     (use-package ace-mc
-       :ensure t
-       :after mc-extras
-       :bind
-       ("C-c )" . ace-mc-add-multiple-cursors)
-       ("C-M-)" . ace-mc-add-single-cursor))
+     ;; (use-package ace-mc
+     ;;   :ensure t
+     ;;   :after mc-extras
+     ;;   :bind
+     ;;   ("C-c )" . ace-mc-add-multiple-cursors)
+     ;;   ("C-M-)" . ace-mc-add-single-cursor))
      #+end_src
 
 ** DONE DIRED [15/15]
@@ -2781,59 +3436,55 @@ Restart emacs from within emacs (duh!)
       CLOSED: [2020-04-12 Sun 14:29]
 ***** DONE mu4e general
       CLOSED: [2020-04-12 Sun 13:44]
-** TODO CUSTOM FILE SHORTCUTS
+** DONE CUSTOM FILE SHORTCUTS
+   CLOSED: [2020-04-29 Wed 16:51]
 
      #+begin_src emacs-lisp
-     ;; (defun goto-file-or-dir (f)
-       ;; "Find the given file. If file is a directory, run dired"
-       ;; (if (file-directory-p f)
-	   ;; (helm-find-files-1 f)
-	 ;; (if (file-exists-p f)
-	     ;; (find-file f))))
 
      ;; create a prefix
-     (define-prefix-command 'z-map)
-     (global-set-key (kbd "C-x g") 'z-map)
+     ;; (define-prefix-command 'z-map)
+     ;; (global-set-key (kbd "C-x g") 'z-map)
 
-     (define-key z-map (kbd "E") (lambda () (interactive) (find-file "~/.emacs.d/init.el")))
-     (define-key z-map (kbd "e") (lambda () (interactive) (find-file "~/.emacs.d/my-config.org")))
-     (define-key z-map (kbd "i") (lambda () (interactive) (find-file "~/.config/i3/i3.conf")))
-     (define-key z-map (kbd "r") (lambda () (interactive) (find-file "~/.config/ranger/rc.conf")))
-     (define-key z-map (kbd "x") (lambda () (interactive) (find-file "~/.Xresources")))
-     (define-key z-map (kbd "z") (lambda () (interactive) (find-file "~/.zshrc")))
-     (define-key z-map (kbd "h") (lambda () (interactive) (find-file "~/")))
-     (define-key z-map (kbd "P") (lambda () (interactive) (find-file "~/Pictures/")))
-     (define-key z-map (kbd "p") (lambda () (interactive) (find-file "~/.personal/")))
-     (define-key z-map (kbd "C") (lambda () (interactive) (find-file "~/.config/")))
-     (define-key z-map (kbd "D") (lambda () (interactive) (find-file "~/Downloads/")))
-     (define-key z-map (kbd "d") (lambda () (interactive) (find-file "~/Documents/")))
-     (define-key z-map (kbd "!") (lambda () (interactive) (find-file "~/.source/dotfiles/")))
-     (define-key z-map (kbd "S") (lambda () (interactive) (find-file "~/.local/bin/")))
-     (define-key z-map (kbd "RET") 'vterm)
-     (define-key z-map (kbd "M-<RET>") 'vterm-other-window)
+     ;; (define-key z-map (kbd "E") (lambda () (interactive) (find-file "~/.emacs.d/init.el")))
+     ;; (define-key z-map (kbd "e") (lambda () (interactive) (find-file "~/.emacs.d/my-config.org")))
+     ;; (define-key z-map (kbd "i") (lambda () (interactive) (find-file "~/.config/i3/i3.conf")))
+     ;; (define-key z-map (kbd "r") (lambda () (interactive) (find-file "~/.config/ranger/rc.conf")))
+     ;; (define-key z-map (kbd "x") (lambda () (interactive) (find-file "~/.Xresources")))
+     ;; (define-key z-map (kbd "z") (lambda () (interactive) (find-file "~/.zshrc")))
+     ;; (define-key z-map (kbd "h") (lambda () (interactive) (find-file "~/")))
+     ;; (define-key z-map (kbd "P") (lambda () (interactive) (find-file "~/Pictures/")))
+     ;; (define-key z-map (kbd "p") (lambda () (interactive) (find-file "~/.personal/")))
+     ;; (define-key z-map (kbd "C") (lambda () (interactive) (find-file "~/.config/")))
+     ;; (define-key z-map (kbd "D") (lambda () (interactive) (find-file "~/Downloads/")))
+     ;; (define-key z-map (kbd "d") (lambda () (interactive) (find-file "~/Documents/")))
+     ;; (define-key z-map (kbd "!") (lambda () (interactive) (find-file "~/.source/dotfiles/")))
+     ;; (define-key z-map (kbd "S") (lambda () (interactive) (find-file "~/.local/bin/")))
+     ;; (define-key z-map (kbd "RET") 'vterm)
+     ;; (define-key z-map (kbd "M-<RET>") 'vterm-other-window)
      #+end_src
  
-** TODO GAMES
+** DONE GAMES
+   CLOSED: [2020-05-01 Fri 06:30]
 ***** SNAKE
     
       #+begin_src emacs-lisp
-      (eval-after-load "evil"
-	'(progn
-	   (evil-set-initial-state 'snake-mode 'normal)
-	   (evil-define-key 'normal snake-mode-map
-	     "h" 'snake-move-left
-	     "j" 'snake-move-down
-	     "k" 'snake-move-up
-	     "l" 'snake-move-right
-	     "p" 'snake-pause-game
-	     "q" 'quit-window
-	     "N" 'snake-start-game)))
+      ;; (eval-after-load "evil"
+      ;;   '(progn
+      ;;      (evil-set-initial-state 'snake-mode 'normal)
+      ;;      (evil-define-key 'normal snake-mode-map
+      ;;        "h" 'snake-move-left
+      ;;        "j" 'snake-move-down
+      ;;        "k" 'snake-move-up
+      ;;        "l" 'snake-move-right
+      ;;        "p" 'snake-pause-game
+      ;;        "q" 'quit-window
+      ;;        "N" 'snake-start-game)))
       #+end_src
 ***** 2048
 
       #+begin_src emacs-lisp
-      (use-package 2048-game
-	:ensure t)
+      ;; (use-package 2048-game
+	;; :ensure t)
       #+end_src
 
 

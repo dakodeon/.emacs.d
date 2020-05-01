@@ -13,7 +13,7 @@
   (package-refresh-contents)
   (package-install 'use-package))
 
-;; (setq use-package-debug t)
-;; (setq use-package-verbose t)
+(setq use-package-debug t)
+(setq use-package-verbose t)
 
 (org-babel-load-file (expand-file-name "~/.emacs.d/my-config.org"))

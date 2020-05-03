@@ -366,7 +366,7 @@
        ;; (evil-define-key 'normal org-mode-map "*" leader-org))
 
      :general
-     (:keymaps 'org-mode-map :states 'normal
+     (:keymaps 'org-mode-map :states '(normal visual)
 	       "*" 'leader-org)
      (:states '(normal visual)
 	      "SPC" 'leader)
@@ -1912,6 +1912,10 @@
 	   org-confirm-babel-evaluate nil
 	   org-edit-src-content-indentation 0
 	   org-src-window-setup 'current-window)
+     :general
+     (:keymaps 'org-mode-map :states '(normal visual)
+	       "^" 'org-beginning-of-line
+	       "$" 'org-end-of-line)
      :bind
      ("C-c l" . org-store-link)
      (:map org-mode-map
@@ -2093,6 +2097,77 @@
        :bind
        (:map mu4e-compose-mode-map ("M-c" . org-msg-edit-mode)))
      #+end_src
+
+*** Rebetika collection
+
+    I play rebetika. So, I keep a well-organized collection of rebetika
+    songs in mp3 format with well written ID3 tags and consice naming.
+
+    I also maintain a lyrics archive written in org-mode. In this file,
+    each header represents a song title, and all the other info (like
+    artist, coposer etc) are stored in properties.
+
+    It occured to me that this info is the same as the info stored in the
+    ID3 tags. So, why not use the ID3 tags to write the properties?
+
+    So, here is a function that does that. It uses a modified version of
+    counsel-fzf to locate the song and use it's tags to populate the
+    properties list of the current entry. Also, it checks if the title of
+    the song is the same as the header. If not, it replaces the header with
+    the correct title.
+
+    - Discovered features:
+      1. The function =process-lines=. It returns the output of a shell
+         command as a list. As a list!
+
+    #+begin_src emacs-lisp
+    (use-package emacs
+      :after org counsel
+      :config
+      (defun l/rebet-id3-tags-to-org-props ()
+	"For my rebetika lyrics archive, which is an org file. Reads id3 tags
+    from a selected mp3 file and converts them to org properties. Also, if the
+    title of the track is different from the org header, it replaces the header
+    with the title. Depends on ivy and counsel-fzf."
+	(interactive)
+	(let* ((song-data
+		(mapcar
+		 (lambda (x) (split-string x "="))
+		 (seq-remove
+		  (lambda (str) (string-match-p "FORMAT" str))
+		  (process-lines
+		   "ffprobe" "-loglevel" "error"
+		   "-show_entries"
+		   "format_tags=artist,composer,title,date,rhythm,dromos,tone"
+		   (ivy-read "Get props from:"
+			     #'counsel-fzf-function
+			     :initial-input
+			     (if mark-active
+				 (buffer-substring-no-properties (mark) (point)) "")
+			     :re-builder #'ivy--regex-fuzzy
+			     :dynamic-collection t
+			     :action (lambda (x) (eval x))
+			     :caller 'l/rebet-id3-tags-to-org-props))))))
+	  (outline-back-to-heading)
+	  (org-beginning-of-line)
+	  (let ((beg (point))
+		(title (nth 0 (cdr (assoc "TAG:title" song-data)))))
+	    (org-end-of-line)
+	    (if (not (string= title (buffer-substring-no-properties beg (point))))
+		(progn
+		  (delete-region beg (point))
+		  (insert title))))
+	  ;; set the properties. If no id3 tag is present, prompts for manual insertion
+	  (org-set-property "ΤΡΑΓΟΥΔΙΣΤΗΣ" (nth 0 (cdr (assoc "TAG:artist" song-data))))
+	  (org-set-property "ΣΥΝΘΕΤΗΣ" (nth 0 (cdr (assoc "TAG:composer" song-data))))
+	  (org-set-property "ΡΥΘΜΟΣ" (nth 0 (cdr (assoc "TAG:rhythm" song-data))))
+	  (org-set-property "ΔΡΟΜΟΣ" (nth 0 (cdr (assoc "TAG:dromos" song-data))))
+	  (org-set-property "ΤΟΝΟΣ" (nth 0 (cdr (assoc "TAG:tone" song-data))))
+	  (org-set-property "ΕΤΟΣ_ΗΧΟΓΡ" (nth 0 (cdr (assoc "TAG:date" song-data))))))
+      :bind
+      (:map leader-org
+	    ("rt" . l/rebet-id3-tags-to-org-props)))
+    #+end_src
 
 ** CALENDAR AND DIARY
 
@@ -2904,7 +2979,8 @@
 * REJECTED REJECTED PACKAGES
 
   These are packages and bits of functionality that where rejected, however
-  I will keep them here for future reference.
+  I will keep them here for future reference. They all have =:disabled= in
+  their =use-package= declarations.
 
 ** REJECTED HELM
    CLOSED: [2020-04-12 Sun 05:52]

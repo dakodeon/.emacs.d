@@ -97,14 +97,6 @@
    expanded on the aforementioned org-mode/use-package "alliance" and
    helped me with a lot of obscure issues and functionality lurking into
    the dark corners of Emacs...
-
-   Although not being a melodramatic vimmer, I feel obliged to quote the
-   introduction of the [[https://github.com/hlissner/doom-emacs][doom-emacs]] README page:
-
-   /It is a story as old as time. A stubborn, shell-dwelling, and/
-   /melodramatic vimmer—envious of the features of modern text/
-   /editors—spirals into despair before he succumbs to the dark side./
-   /This is his config./
     
 * THE ACTUAL CONFIGURATION
 
@@ -471,7 +463,9 @@
        root directory for a search (although I simplified it, as I still
        don't use counsel-rg). I also wrote a wrapper around the default
        function so that I can search for marked text if the region is
-       active.
+       active. I also added a modified version of the counsel-fzf function,
+       which returns the result as text. Useful when you want to find a
+       file name and use it for something else.
      - cousel-outline: Navigate an org file by searching it's headers. Also
        great! Just for customization's sake, I wrote an action to begin a
        fzf search with selected candidate, inspired by the way Prot handles
@@ -491,12 +485,38 @@
       :ensure t
       :delight
       :config
+
+      (defun l/counsel-fzf-as-text (&optional prompt dir)
+	"Calls a mini version of `counsel-fzf' which returns the full
+    path of the candidate as a string. PROMPT, if set is the prompt
+    argument. If DIR is set, it is used as the base directory for the
+    search, else `default-directory' is used."
+	(interactive)
+	(let* ((counsel--fzf-dir (if dir (expand-file-name dir)
+				   default-directory))
+	       (cand (ivy-read (or prompt ">>> ")
+			       #'counsel-fzf-function
+			       :require-match t
+			       :initial-input
+			       (if mark-active
+				   (buffer-substring-no-properties
+				    (region-beginning) (region-end)))
+			       :re-builder #'ivy--regex-fuzzy
+			       :dynamic-collection t
+			       :action nil
+			       :caller 'l/counsel-fzf-as-text)))
+	  ;; (if (string-match-p counsel--fzf-dir cand)
+	  (expand-file-name cand)
+	    ;; (expand-file-name (concat counsel--fzf-dir "/" cand)))
+	  ))
+
       (defun l/counsel-fzf ()
 	"Wraps around `counsel-fzf' to allow input from marked region."
 	(interactive)
 	(let (text)
 	  (if mark-active
-	      (setq text (buffer-substring-no-properties (region-beginning) (region-end))))
+	      (setq text (buffer-substring-no-properties
+			  (region-beginning) (region-end))))
 	  (counsel-fzf text)))
 
       ;; based on code by prot
@@ -513,7 +533,8 @@
     ;; from counsel-outline to fzf -- I should split these.
     (defun l/counsel-fzf-from-outline (arg)
       "Search for outline header with fzf."
-      (counsel-fzf (car (last (split-string (substring-no-properties (ivy-state-current ivy-last)) "/")))))
+      (counsel-fzf (car (last (split-string (substring-no-properties
+					     (ivy-state-current ivy-last)) "/")))))
 
     (ivy-add-actions 'counsel-outline
 		     '(("f" l/counsel-fzf-from-outline "search with fzf")))
@@ -538,9 +559,11 @@
 	    (setq text (read-string "What u wanna search? ")))
 	  (ivy-read "Select search engine: "
 		    (mapcar (lambda (entry) (car entry)) l/surfraw-elvi-list)
-		    :action (lambda (x)
-			      (let ((engine (replace-regexp-in-string " +.*$" "" x)))
-				(shell-command (concat "surfraw " engine " " (shell-quote-argument text)))))
+		    :action
+		    (lambda (x)
+		      (let ((engine (replace-regexp-in-string " +.*$" "" x)))
+			(shell-command
+			 (concat "surfraw " engine " " (shell-quote-argument text)))))
 		    :caller 'l/ivy-surfraw)))
       (ivy-mode 1)
       :bind
@@ -942,7 +965,7 @@
 		  (append (list "atool-pack" "*atool-pack*" "atool" "--explain" archive "-a") files))
 	   (switch-to-buffer-other-window "*atool-pack*")
 	   (special-mode))))
-  
+
      (defun l/atool-unpack ()
        "Use the `atool' program to unpack some archives."
        (interactive)
@@ -2098,76 +2121,177 @@
        (:map mu4e-compose-mode-map ("M-c" . org-msg-edit-mode)))
      #+end_src
 
-*** Rebetika collection
+*** My extensions
 
-    I play rebetika. So, I keep a well-organized collection of rebetika
-    songs in mp3 format with well written ID3 tags and consice naming.
+    Some pieces of functionality for org-mode that I put together. My grand
+    scheme is, of course, the Rebetika collection section.
 
-    I also maintain a lyrics archive written in org-mode. In this file,
-    each header represents a song title, and all the other info (like
-    artist, coposer etc) are stored in properties.
+**** Mark header
+     
+     This proves useful sometimes.
 
-    It occured to me that this info is the same as the info stored in the
-    ID3 tags. So, why not use the ID3 tags to write the properties?
+     #+begin_src emacs-lisp
+     (use-package emacs
+       :after org
+       :config
+       (defun l/org-mark-header ()
+	 "Goes back to the current header and marks it, without leading stars or
+     trailing elipses."
+	 (interactive)
+	 (outline-back-to-heading)
+	 (org-beginning-of-line)
+	 (push-mark (point) nil t)
+	 (org-end-of-line))
+       :bind
+       (:map leader-org
+	     ("<" . l/org-mark-header)))
 
-    So, here is a function that does that. It uses a modified version of
-    counsel-fzf to locate the song and use it's tags to populate the
-    properties list of the current entry. Also, it checks if the title of
-    the song is the same as the header. If not, it replaces the header with
-    the correct title.
+     #+end_src
+     
+**** Rebetika collection
 
-    - Discovered features:
-      1. The function =process-lines=. It returns the output of a shell
-         command as a list. As a list!
+      I play rebetika. So, I keep a well-organized collection of rebetika
+      songs in mp3 format with well written ID3 tags and consice naming.
 
-    #+begin_src emacs-lisp
-    (use-package emacs
-      :after org counsel
-      :config
-      (defun l/rebet-id3-tags-to-org-props ()
-	"For my rebetika lyrics archive, which is an org file. Reads id3 tags
-    from a selected mp3 file and converts them to org properties. Also, if the
-    title of the track is different from the org header, it replaces the header
-    with the title. Depends on ivy and counsel-fzf."
-	(interactive)
-	(let* ((song-data
-		(mapcar
-		 (lambda (x) (split-string x "="))
-		 (seq-remove
-		  (lambda (str) (string-match-p "FORMAT" str))
-		  (process-lines
-		   "ffprobe" "-loglevel" "error"
-		   "-show_entries"
-		   "format_tags=artist,composer,title,date,rhythm,dromos,tone"
-		   (ivy-read "Get props from:"
-			     #'counsel-fzf-function
-			     :initial-input
-			     (if mark-active
-				 (buffer-substring-no-properties (mark) (point)) "")
-			     :re-builder #'ivy--regex-fuzzy
-			     :dynamic-collection t
-			     :action (lambda (x) (eval x))
-			     :caller 'l/rebet-id3-tags-to-org-props))))))
-	  (outline-back-to-heading)
-	  (org-beginning-of-line)
-	  (let ((beg (point))
-		(title (nth 0 (cdr (assoc "TAG:title" song-data)))))
-	    (org-end-of-line)
-	    (if (not (string= title (buffer-substring-no-properties beg (point))))
-		(progn
-		  (delete-region beg (point))
-		  (insert title))))
-	  ;; set the properties. If no id3 tag is present, prompts for manual insertion
-	  (org-set-property "ΤΡΑΓΟΥΔΙΣΤΗΣ" (nth 0 (cdr (assoc "TAG:artist" song-data))))
-	  (org-set-property "ΣΥΝΘΕΤΗΣ" (nth 0 (cdr (assoc "TAG:composer" song-data))))
-	  (org-set-property "ΡΥΘΜΟΣ" (nth 0 (cdr (assoc "TAG:rhythm" song-data))))
-	  (org-set-property "ΔΡΟΜΟΣ" (nth 0 (cdr (assoc "TAG:dromos" song-data))))
-	  (org-set-property "ΤΟΝΟΣ" (nth 0 (cdr (assoc "TAG:tone" song-data))))
-	  (org-set-property "ΕΤΟΣ_ΗΧΟΓΡ" (nth 0 (cdr (assoc "TAG:date" song-data))))))
-      :bind
-      (:map leader-org
-	    ("rt" . l/rebet-id3-tags-to-org-props)))
-    #+end_src
+      I also maintain a lyrics archive written in org-mode. In this file,
+      each header represents a song title, and all the other info (like
+      artist, composer etc) are stored in properties.
+
+      It occured to me that this info is the same as the info stored in the
+      ID3 tags. So, why not use the ID3 tags to write the properties?
+
+      So, here is a function that does that. It uses a modified version of
+      counsel-fzf to locate the song and use it's tags to populate the
+      properties list of the current entry. Also, it checks if the title of
+      the song is the same as the header. If not, it replaces the header with
+      the correct title.
+
+      - Discovered features:
+	1. The function =process-lines=. It returns the output of a shell
+           command as a list. As a list!
+
+      #+begin_src emacs-lisp
+      (use-package emacs
+	:after org counsel
+	:config
+
+	(defvar l/lyrics-file "~/stixoi.org" "Where I keep my rebetika lyrics")
+	(defvar l/rebet-dirs-list '("~/Music/Ρεμπέτικα" "~/Downloads/youtube-downloads")
+	  "List with directories to search for rebetika songs.")
+
+	(defun l/rebet-id3-tags-to-org-props (&optional path)
+	  "Works only in my rebetika lyrics file, stored in `l/lyrics-file'.
+      Reads id3 tags from a selected mp3 file and converts them to org
+      properties. Also, if the title of the track is different from the
+      org header, it replaces the header with the title. If provided
+      with PATH, it acts on this file, if not it activates counsel-fzf.
+      Depends on ivy, counsel-fzf and ffprobe."
+	  (interactive)
+	  (unless (string= buffer-file-name (expand-file-name l/lyrics-file))
+	    (user-error "Error: Not in the lyrics file (%s)" l/lyrics-file))
+	  (let* ((process-environment
+		  (cons (concat "FZF_DEFAULT_COMMAND=find "
+				(mapconcat 'identity l/rebet-dirs-list " ")
+				" -name \"*.mp3\"")
+			process-environment))
+		 (track-path (if path (expand-file-name path)
+			       (l/counsel-fzf-as-text "Get props from:")))
+		 (song-data
+		  (mapcar
+		   (lambda (x) (split-string x "="))
+		   (seq-remove
+		    (lambda (str) (string-match-p "FORMAT" str))
+		    (process-lines
+		     "ffprobe" "-loglevel" "error"
+		     "-show_entries"
+		     "format_tags=artist,composer,title,date,rhythm,dromos,tone"
+		     track-path)))))
+	    (let ((head (cdr (assoc "ITEM" (org-entry-properties))))
+		  (title (nth 0 (cdr (assoc "TAG:title" song-data)))))
+	      (unless (string= head title)
+		(org-edit-headline title)))
+	    ;; set the properties. If no id3 tag is present, prompts for manual
+	    ;; insertion, except for the composer value, because the song might
+	    ;; not have a composer
+	    (org-set-property "ΤΡΑΓΟΥΔΙΣΤΗΣ" (nth 0 (cdr (assoc "TAG:artist" song-data))))
+	    (if (nth 0 (cdr (assoc "TAG:composer" song-data)))
+		(org-set-property "ΣΥΝΘΕΤΗΣ" (nth 0 (cdr (assoc "TAG:composer" song-data)))))
+	    (org-set-property "ΡΥΘΜΟΣ" (nth 0 (cdr (assoc "TAG:rhythm" song-data))))
+	    (org-set-property "ΔΡΟΜΟΣ" (nth 0 (cdr (assoc "TAG:dromos" song-data))))
+	    (org-set-property "ΤΟΝΟΣ" (nth 0 (cdr (assoc "TAG:tone" song-data))))
+	    (org-set-property "ΕΤΟΣ_ΗΧΟΓΡ" (nth 0 (cdr (assoc "TAG:date" song-data))))
+	    (if mark-active (deactivate-mark t))))
+
+	(defun l/rebet-org-props-to-id3-tags (&optional path)
+	  "Works only in my rebetika lyrics file, stored in `l/lyrics-file'.
+      Reads the properties of the current entry and uses those to set
+      the id3 tags of a selected mp3 track. If PATH is provided, it
+      acts on this file, else it calls counsel-fzf. Called with a
+      prefix argument, it also sets the title and renames the file.
+      Depends on ivy, counsel-fzf and mp3-tag-editor, a custom script
+      of my own."
+	  (interactive)
+	  (unless (string= buffer-file-name (expand-file-name l/lyrics-file))
+	    (user-error "Error: not in the lyrics file (%s)" l/lyrics-file))
+	  (let* ((process-environment
+		  (cons (concat "FZF_DEFAULT_COMMAND=find "
+				(mapconcat 'identity l/rebet-dirs-list " ")
+				" -name \"*.mp3\"")
+			process-environment))
+		 (title (cdr (assoc "ITEM" (org-entry-properties))))
+		 (composer (cdr (assoc "ΣΥΝΘΕΤΗΣ" (org-entry-properties))))
+		 (artist (cdr (assoc "ΤΡΑΓΟΥΔΙΣΤΗΣ" (org-entry-properties))))
+		 (rhythm (cdr (assoc "ΡΥΘΜΟΣ" (org-entry-properties))))
+		 (dromos (cdr (assoc "ΔΡΟΜΟΣ" (org-entry-properties))))
+		 (tone (cdr (assoc "ΤΟΝΟΣ" (org-entry-properties))))
+		 (year (cdr (assoc "ΕΤΟΣ_ΗΧΟΓΡ" (org-entry-properties))))
+		 (song (if path (expand-file-name path)
+			 (l/counsel-fzf-as-text "Give props to:")))
+		 (cmd (format
+		       "mp3-tag-editor -EX%s %s %s %s %s %s %s %s"
+		       (if current-prefix-arg
+			   (concat "R -t " (shell-quote-argument song-title)) "")
+		       (if composer (concat "-c " (shell-quote-argument composer)) "")
+		       (if artist (concat "-a " (shell-quote-argument artist)) "")
+		       (if rhythm (concat "-r " (shell-quote-argument rhythm)) "")
+		       (if dromos (concat "-d " (shell-quote-argument dromos)) "")
+		       (if tone (concat "-n " (shell-quote-argument tone)) "")
+		       (if year (concat "-y " (shell-quote-argument year)) "")
+		       (shell-quote-argument song))))
+	    (shell-command cmd)
+	    (if mark-active (deactivate-mark t))))
+
+	(defun l/rebet-id3-tags-to-org-props-and-back (&optional path)
+	  "Wrapper that runs sequentialy `l/rebet-id3-tags-to-org-props'
+      and `l/rebet-org-props-to-id3-tags' on a specified file. If PATH is
+      provided, it acts on this file, else it calls counsel-fzf."
+	  (interactive)
+	  (let* ((process-environment
+		  (cons (concat "FZF_DEFAULT_COMMAND=find "
+				(mapconcat 'identity l/rebet-dirs-list " ")
+				" -name \"*.mp3\"")
+			process-environment))
+		 (track-path (if path (expand-file-name path)
+			      (l/counsel-fzf-as-text "Props come and go:"))))
+	    (l/rebet-id3-tags-to-org-props track-path)
+	    (l/rebet-org-props-to-id3-tags track-path)))
+	:bind
+	(:map leader-org
+	      ("r<" . l/rebet-id3-tags-to-org-props)
+	      ("r>" . l/rebet-org-props-to-id3-tags)
+	      ("r*" . l/rebet-id3-tags-to-org-props-and-back)))
+      #+end_src
+
+****** TODO TODO list [0/2]
+
+******* TODO Pack things up
+
+	 Is it just me, or this actually looks like a minor mode?
+    
+******* TODO Fix behaviour of l/counsel-fzf-as-text
+
+	If there is initial input, but nothing is found, it fails with
+	error instead of letting you search with different string.
 
 ** CALENDAR AND DIARY
 

@@ -5,6 +5,9 @@
  ;; If there is more than one, they won't work right.
  '(amx-backend (quote auto))
  '(amx-save-file "~/.emacs.d/amx-items")
+ '(custom-safe-themes
+   (quote
+    ("79485bab8bb220562d4acd003e4b6f1c9005af41e91f81b7a0e89b7e3a301203" default)))
  '(default-input-method "greek")
  '(ivy-posframe-display-functions-alist
    (quote

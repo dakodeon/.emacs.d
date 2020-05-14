@@ -269,6 +269,7 @@
 	 (media-dir . "/media/")
 	 (personal-dir . "~/.personal")
 	 (dotfiles-dir . "~/.source/dotfiles/")
+	 (repos-dir . "~/.source/")
 	 (emacs-dir . "~/.emacs.d/")
 	 (config-dir . "~/.config/")
 	 (scripts-dir . "~/.local/bin/")
@@ -291,6 +292,7 @@
      (defun find-media-dir () (interactive) (find-file (cdr (assq 'media-dir l/locations))))
      (defun find-personal-dir () (interactive) (find-file (cdr (assq 'personal-dir l/locations))))
      (defun find-dotfiles-dir () (interactive) (find-file (cdr (assq 'dotfiles-dir l/locations))))
+     (defun find-repos-dir () (interactive) (find-file (cdr (assq 'repos-dir l/locations))))
      (defun find-emacs-dir () (interactive) (find-file (cdr (assq 'emacs-dir l/locations))))
      (defun find-config-dir () (interactive) (find-file (cdr (assq 'config-dir l/locations))))
      (defun find-scripts-dir () (interactive) (find-file (cdr (assq 'scripts-dir l/locations))))
@@ -315,6 +317,7 @@
 	   ("m" . find-media-dir)
 	   ("p" . find-personal-dir)
 	   ("!" . find-dotfiles-dir)
+	   ("@" . find-repos-dir)
 	   ("E" . find-emacs-dir)
 	   ("C" . find-config-dir)
 	   ("S" . find-scripts-dir)
@@ -385,8 +388,9 @@
       :init
       (ac-config-default)
       (global-auto-complete-mode t)
-      (setq ac-sources (append ac-sources '(ac-sources-filename)))
-      (setq ac-ignore-case nil))
+      (setq ac-ignore-case nil)
+      :config
+      (setq ac-sources (append ac-sources ac-source-filename ac-source-files-in-current-dir)))
     #+end_src
 
 *** TODO TODO list [0/1]
@@ -419,6 +423,7 @@
       :init
       (setq ivy-use-virtual-buffers t)
       (setq ivy-count-format "(%d/%d) ")
+      (setq ivy-use-selectable-prompt t)
       :config
       ;; better word and symbol yanking in the minibuffer
       ;; UPDATE: -- I just learned that M-n calls `ivy-next-history-element', which does exactly what I want,
@@ -2123,8 +2128,7 @@
 
 *** My extensions
 
-    Some pieces of functionality for org-mode that I put together. My grand
-    scheme is, of course, the Rebetika collection section.
+    Some pieces of functionality for org-mode that I put together.
 
 **** Mark header
      
@@ -2147,152 +2151,39 @@
 	     ("<" . l/org-mark-header)))
 
      #+end_src
+
+**** Org babel load this file
+
+     #+begin_src emacs-lisp
+     (use-package emacs
+       :after org
+       :config
+       (defun l/org-babel-load-this-file ()
+	 "Run `org-babel-load-file' on the current file"
+	 (interactive)
+	 (org-babel-load-file (buffer-file-name)))
+       :bind
+       (:map leader-org
+	     ("Bl" . l/org-babel-load-this-file)))
+     #+end_src
      
-**** Rebetika collection
+** REBET
 
-      I play rebetika. So, I keep a well-organized collection of rebetika
-      songs in mp3 format with well written ID3 tags and consice naming.
+   Manage my rebetiko collection.
 
-      I also maintain a lyrics archive written in org-mode. In this file,
-      each header represents a song title, and all the other info (like
-      artist, composer etc) are stored in properties.
-
-      It occured to me that this info is the same as the info stored in the
-      ID3 tags. So, why not use the ID3 tags to write the properties?
-
-      So, here is a function that does that. It uses a modified version of
-      counsel-fzf to locate the song and use it's tags to populate the
-      properties list of the current entry. Also, it checks if the title of
-      the song is the same as the header. If not, it replaces the header with
-      the correct title.
-
-      - Discovered features:
-	1. The function =process-lines=. It returns the output of a shell
-           command as a list. As a list!
-
-      #+begin_src emacs-lisp
-      (use-package emacs
-	:after org counsel
-	:config
-
-	(defvar l/lyrics-file "~/stixoi.org" "Where I keep my rebetika lyrics")
-	(defvar l/rebet-dirs-list '("~/Music/Ρεμπέτικα" "~/Downloads/youtube-downloads")
-	  "List with directories to search for rebetika songs.")
-
-	(defun l/rebet-id3-tags-to-org-props (&optional path)
-	  "Works only in my rebetika lyrics file, stored in `l/lyrics-file'.
-      Reads id3 tags from a selected mp3 file and converts them to org
-      properties. Also, if the title of the track is different from the
-      org header, it replaces the header with the title. If provided
-      with PATH, it acts on this file, if not it activates counsel-fzf.
-      Depends on ivy, counsel-fzf and ffprobe."
-	  (interactive)
-	  (unless (string= buffer-file-name (expand-file-name l/lyrics-file))
-	    (user-error "Error: Not in the lyrics file (%s)" l/lyrics-file))
-	  (let* ((process-environment
-		  (cons (concat "FZF_DEFAULT_COMMAND=find "
-				(mapconcat 'identity l/rebet-dirs-list " ")
-				" -name \"*.mp3\"")
-			process-environment))
-		 (track-path (if path (expand-file-name path)
-			       (l/counsel-fzf-as-text "Get props from:")))
-		 (song-data
-		  (mapcar
-		   (lambda (x) (split-string x "="))
-		   (seq-remove
-		    (lambda (str) (string-match-p "FORMAT" str))
-		    (process-lines
-		     "ffprobe" "-loglevel" "error"
-		     "-show_entries"
-		     "format_tags=artist,composer,title,date,rhythm,dromos,tone"
-		     track-path)))))
-	    (let ((head (cdr (assoc "ITEM" (org-entry-properties))))
-		  (title (nth 0 (cdr (assoc "TAG:title" song-data)))))
-	      (unless (string= head title)
-		(org-edit-headline title)))
-	    ;; set the properties. If no id3 tag is present, prompts for manual
-	    ;; insertion, except for the composer value, because the song might
-	    ;; not have a composer
-	    (org-set-property "ΤΡΑΓΟΥΔΙΣΤΗΣ" (nth 0 (cdr (assoc "TAG:artist" song-data))))
-	    (if (nth 0 (cdr (assoc "TAG:composer" song-data)))
-		(org-set-property "ΣΥΝΘΕΤΗΣ" (nth 0 (cdr (assoc "TAG:composer" song-data)))))
-	    (org-set-property "ΡΥΘΜΟΣ" (nth 0 (cdr (assoc "TAG:rhythm" song-data))))
-	    (org-set-property "ΔΡΟΜΟΣ" (nth 0 (cdr (assoc "TAG:dromos" song-data))))
-	    (org-set-property "ΤΟΝΟΣ" (nth 0 (cdr (assoc "TAG:tone" song-data))))
-	    (org-set-property "ΕΤΟΣ_ΗΧΟΓΡ" (nth 0 (cdr (assoc "TAG:date" song-data))))
-	    (if mark-active (deactivate-mark t))))
-
-	(defun l/rebet-org-props-to-id3-tags (&optional path)
-	  "Works only in my rebetika lyrics file, stored in `l/lyrics-file'.
-      Reads the properties of the current entry and uses those to set
-      the id3 tags of a selected mp3 track. If PATH is provided, it
-      acts on this file, else it calls counsel-fzf. Called with a
-      prefix argument, it also sets the title and renames the file.
-      Depends on ivy, counsel-fzf and mp3-tag-editor, a custom script
-      of my own."
-	  (interactive)
-	  (unless (string= buffer-file-name (expand-file-name l/lyrics-file))
-	    (user-error "Error: not in the lyrics file (%s)" l/lyrics-file))
-	  (let* ((process-environment
-		  (cons (concat "FZF_DEFAULT_COMMAND=find "
-				(mapconcat 'identity l/rebet-dirs-list " ")
-				" -name \"*.mp3\"")
-			process-environment))
-		 (title (cdr (assoc "ITEM" (org-entry-properties))))
-		 (composer (cdr (assoc "ΣΥΝΘΕΤΗΣ" (org-entry-properties))))
-		 (artist (cdr (assoc "ΤΡΑΓΟΥΔΙΣΤΗΣ" (org-entry-properties))))
-		 (rhythm (cdr (assoc "ΡΥΘΜΟΣ" (org-entry-properties))))
-		 (dromos (cdr (assoc "ΔΡΟΜΟΣ" (org-entry-properties))))
-		 (tone (cdr (assoc "ΤΟΝΟΣ" (org-entry-properties))))
-		 (year (cdr (assoc "ΕΤΟΣ_ΗΧΟΓΡ" (org-entry-properties))))
-		 (song (if path (expand-file-name path)
-			 (l/counsel-fzf-as-text "Give props to:")))
-		 (cmd (format
-		       "mp3-tag-editor -EX%s %s %s %s %s %s %s %s"
-		       (if current-prefix-arg
-			   (concat "R -t " (shell-quote-argument song-title)) "")
-		       (if composer (concat "-c " (shell-quote-argument composer)) "")
-		       (if artist (concat "-a " (shell-quote-argument artist)) "")
-		       (if rhythm (concat "-r " (shell-quote-argument rhythm)) "")
-		       (if dromos (concat "-d " (shell-quote-argument dromos)) "")
-		       (if tone (concat "-n " (shell-quote-argument tone)) "")
-		       (if year (concat "-y " (shell-quote-argument year)) "")
-		       (shell-quote-argument song))))
-	    (shell-command cmd)
-	    (if mark-active (deactivate-mark t))))
-
-	(defun l/rebet-id3-tags-to-org-props-and-back (&optional path)
-	  "Wrapper that runs sequentialy `l/rebet-id3-tags-to-org-props'
-      and `l/rebet-org-props-to-id3-tags' on a specified file. If PATH is
-      provided, it acts on this file, else it calls counsel-fzf."
-	  (interactive)
-	  (let* ((process-environment
-		  (cons (concat "FZF_DEFAULT_COMMAND=find "
-				(mapconcat 'identity l/rebet-dirs-list " ")
-				" -name \"*.mp3\"")
-			process-environment))
-		 (track-path (if path (expand-file-name path)
-			      (l/counsel-fzf-as-text "Props come and go:"))))
-	    (l/rebet-id3-tags-to-org-props track-path)
-	    (l/rebet-org-props-to-id3-tags track-path)))
-	:bind
-	(:map leader-org
-	      ("r<" . l/rebet-id3-tags-to-org-props)
-	      ("r>" . l/rebet-org-props-to-id3-tags)
-	      ("r*" . l/rebet-id3-tags-to-org-props-and-back)))
-      #+end_src
-
-****** TODO TODO list [0/2]
-
-******* TODO Pack things up
-
-	 Is it just me, or this actually looks like a minor mode?
-    
-******* TODO Fix behaviour of l/counsel-fzf-as-text
-
-	If there is initial input, but nothing is found, it fails with
-	error instead of letting you search with different string.
-
+   #+begin_src emacs-lisp
+   (use-package rebet
+     :load-path "~/.source/rebet"
+     :after counsel org dired
+     :demand
+     :config
+     (setq rebet-dirs-list `(,rebet-default-dir "~/Downloads/youtube-downloads"))
+     :bind
+     (:map leader-org
+	   ("r<" . rebet-tags-to-props)
+	   ("r>" . rebet-props-to-tags)
+	   ("r*" . rebet-tags-to-props-and-back)))
+   #+end_src
 ** CALENDAR AND DIARY
 
    This one can work very well alongside the agenda. Only some basic
@@ -2306,6 +2197,8 @@
 	   calendar-view-diary-initially-flag t
 	   calendar-mark-diary-entries-flag t)
      (calendar-set-date-style 'european)
+     (add-to-list 'auto-mode-alist
+		  `(,(expand-file-name diary-file) . diary-mode))
      :config
      (setq diary-number-of-entries 7)
      (add-hook 'after-init-hook 'diary)
@@ -2919,6 +2812,16 @@
    As we said before, it's all about the bling. Aesthetic choices wich are
    occasionaly functional.
 
+*** Font
+
+    Load a font, duh!
+    
+    #+begin_src emacs-lisp
+    (use-package emacs
+      :config
+      (add-to-list 'default-frame-alist
+		   '(font . "Iosevka Nerd Font Mono-10")))
+    #+end_src
 *** Theme
 
     Now we look sexy!
@@ -3100,6 +3003,33 @@
       :ensure t)
     #+end_src
 
+* DISCOVERED FEATURES
+
+  I decided to start keeping a log of useful features that I discovered
+  while writing this configuration, or elisp in general.
+
+** process-lines                                                      :shell:
+
+   The function =process-lines= returns the result of a shell command as a
+   list, separated by line.
+
+   First used in the =rebet= package.
+
+** user-error                                                :error:feedback:
+
+   The =user-error= function allows to break out of a function signaling an
+   error. Useful for checks with feedback concerning the reason of failure.
+
+   First used in the =rebet= package
+
+** symbol plists                                :plists:properties:variables:
+   
+   The ability to define properties for symbols without setting them as
+   variable seems like an approach to objective programming, which might be
+   useful in some applications.
+
+   First used in the =rebet= package.
+   
 * REJECTED REJECTED PACKAGES
 
   These are packages and bits of functionality that where rejected, however
@@ -3358,3 +3288,4 @@
        (evil-insert 1))
    )
    #+end_src
+

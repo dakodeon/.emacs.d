@@ -1,11 +1,10 @@
 #+TITLE: My Emacs configuration
 #+AUTHOR: dakodeon
-#+EMAIL: dakodeon@hotmail.com
 
 #+TODO: TODO WORKING | DONE REJECTED
 
 * INTRODUCTION
-  
+
 ** Overview
 
    This document is both my personal configuration for Emacs and the
@@ -97,17 +96,17 @@
    expanded on the aforementioned org-mode/use-package "alliance" and
    helped me with a lot of obscure issues and functionality lurking into
    the dark corners of Emacs...
-    
+
 * THE ACTUAL CONFIGURATION
 
   Enough babbling!
-  
+
 ** EVIL
 
    Evil mode is the Extensible VI Layer for Emacs. It is the basis of my
    Emacs build, so various keys will be defined having that in mind. I
    still define normal Emacs keys, but not for everything.
-   
+
    I also use Evil collection. This is a package with preconfigured
    evil-bindings for many emacs packages, like mu4e and org-mode. I dont
    enable evil collection for all packages. For example, I define custom
@@ -142,7 +141,7 @@
       (setq evil-move-cursor-back nil)
       (setq evil-move-beyond-eol t)
       (setq evil-respect-visual-line-mode t)
-      (setq evil-want-C-u-scroll t)
+      (setq evil-want-C-u-scroll nil)
       (setq evil-want-fine-undo t)
       (setq evil-normal-state-cursor 'box)
       (setq evil-emacs-state-cursor 'bar)
@@ -222,7 +221,7 @@
    crazy-awesome feature of this way of defining, but, up until now, I don't
    feel that I miss anything. This is what the [[POOR MAN'S LEADER KEYS]]
    section later on is all about.
-  
+
     #+begin_src emacs-lisp
     (use-package general
       :ensure t
@@ -230,7 +229,7 @@
       :bind
       ("C-h G" . 'general-describe-keybindings))
     #+end_src
-   
+
 *** TODO TODO list [0/2]
 
 **** TODO General's general usage
@@ -263,6 +262,7 @@
        '((home . "~/")
 	 (pictures-dir . "~/Pictures/")
 	 (music-dir . "~/Music/")
+	 (rebet-dir . "~/Music/Ρεμπέτικα/")
 	 (video-dir . "~/Videos/")
 	 (documents-dir . "~/Documents/")
 	 (downloads-dir . "~/Downloads/")
@@ -286,6 +286,7 @@
      (defun find-home () (interactive) (find-file (cdr (assq 'home l/locations))))
      (defun find-pictures-dir () (interactive) (find-file (cdr (assq 'pictures-dir l/locations))))
      (defun find-music-dir () (interactive) (find-file (cdr (assq 'music-dir l/locations))))
+     (defun find-rebet-dir () (interactive) (find-file (cdr (assq 'rebet-dir l/locations))))
      (defun find-video-dir () (interactive) (find-file (cdr (assq 'video-dir l/locations))))
      (defun find-documents-dir () (interactive) (find-file (cdr (assq 'documents-dir l/locations))))
      (defun find-downloads-dir () (interactive) (find-file (cdr (assq 'downloads-dir l/locations))))
@@ -312,6 +313,7 @@
 	   ("P" . find-pictures-dir)
 	   ("V" . find-video-dir)
 	   ("M" . find-music-dir)
+	   ("R" . find-rebet-dir)
 	   ("d" . find-documents-dir)
 	   ("D" . find-downloads-dir)
 	   ("m" . find-media-dir)
@@ -399,10 +401,10 @@
 
      After browsing the web, I found out that the autocomplete package is in
      fact unmaintained. So, it makes more and more sense to try company.
-     
+ 
 ** NAVIGATION WITH IVY
 *** Ivy-mode
-    
+
      Ivy is a narrowing and completion fraqmework for emacs. I switched to
      it from helm, because it was a lot easier to customize.
 
@@ -457,7 +459,7 @@
       ("M-s" . l/ivy-yank-symbol)))
     #+end_src
 *** Counsel
-    
+
      Counsel is essentially the frontend of ivy. It packs all the useful
      ivy-enriched commands.
 
@@ -484,7 +486,7 @@
        though. I also took an extra step (just for the bling!) and took the
        elvi's descriptions and passed them to ivy-rich (see next section).
 
-    
+
     #+begin_src emacs-lisp
     (use-package counsel
       :ensure t
@@ -581,16 +583,16 @@
       (:map leader-org
 	    ("*" . counsel-outline)))
     #+end_src
-   
+
 *** Other functionality
- 
+
      Here is some extra packages for ivy/counsel/swiper:
 
 ***** AMX
 
       AMX is a rating system for selection candidates. Most rated
       candidates are more likely to appear fisrt when using ivy.
-    
+
      #+begin_src emacs-lisp
      (use-package amx
        :ensure t
@@ -652,7 +654,7 @@
 *** TODO TODO list [0/6]
 
 **** TODO Swiper
-    
+
      I haven't touch this yet, but I should. It is very useful.
 
 **** TODO Pack l/ivy-surfraw
@@ -695,7 +697,7 @@
    I customized dired up to the point that I am very happy with the workflow
    achieved. This is a really long config, so I guess it is best to document
    it along the way.
-  
+
 *** Defaults
 
     Here I define some defaults for dired. These include the default ls
@@ -716,7 +718,7 @@
     instead (note -- I know I should just advise the function, not
     completely redefine it, but at the time I was not familiar enough with
     advising. I might look into it soon).
-  
+
    #+begin_src emacs-lisp
    (use-package dired
      :delight ""
@@ -769,7 +771,7 @@
 *** Some basic customization
 
     Some tweaks of basic behaviour that I felt were missing:
-   
+
     - The default behaviour when moving to the beginning / end of the buffer
       is to treat it like a normal buffer, instead I wanted to move to the
       first / last line in the file list. I found these code snippets code
@@ -930,7 +932,7 @@
    - l/change-desktop-background: uses feh, a minimal image viewer, to set
      the desktop background with the file at point. Provides a menu with
      different fits.
-    
+
    #+begin_src emacs-lisp
    (use-package dired
      :config
@@ -1017,7 +1019,7 @@
 	 (setq cmd (concat cpcmd " && " fehcmd))
 	 (shell-command cmd))))
    #+end_src
-  
+
 *** Keybindings
 
     In this section I define all the keybindings for dired. The list is
@@ -1034,7 +1036,7 @@
       (define-prefix-command 'l/dired-my-ext-cmds) ;; will bind to X
 
       (add-hook 'dired-mode-hook 'evil-normalize-keymaps)
-  
+
       :general
       (:keymaps 'dired-mode-map :states 'normal
 		"q" 'quit-window
@@ -1237,7 +1239,7 @@
       :after dired
       :init
       (setq peep-dired-cleanup-eagerly t)
-      (setq peep-dired-ignored-extensions '("mkv" "mp4" "avi" "mov" "mp3" "wav" "iso"))
+      (setq peep-dired-ignored-extensions '("mkv" "mp4" "avi" "mov" "wav" "iso"))
       :config
       ;; custom dired functions customized further for peep. Maybe use advice?
       (defun l/peep-dired-goto-first-file ()
@@ -1259,7 +1261,7 @@
 	(peep-dired-display-file-other-window))
 
       (add-hook 'peep-dired-hook 'evil-normalize-keymaps)
-  
+
       :general
       (:keymaps 'peep-dired-mode-map :states 'normal
 		"C-j" 'peep-dired-scroll-page-down
@@ -1368,7 +1370,7 @@
      #+end_src
 
 **** Dired rsync
-    
+
      Rsync functionality for dired. Really useful for BIG files, as it does not freeze emacs while busy. Progress is also shown in the modeline.
 
  One note though, while trying to copy to a FAT32 device, I discovered that there is some problem concerning the permissions. This has nothing to do with dired or emacs, it is a rsync thing. The workaround is to choose different flags for the rsync command, so I wrote a function to do this.
@@ -1446,14 +1448,28 @@
        :config
        (add-hook 'dired-mode-hook 'all-the-icons-dired-mode))
      #+end_src
-    
+
+**** Cursor and line truncation
+
+     Just make it feel less like a text editor
+
+     #+begin_src emacs-lisp
+     (use-package emacs
+       :after dired
+       :config
+       (add-hook 'dired-mode-hook
+		 (lambda ()
+		   (setq-local cursor-type nil)
+		   (setq-local truncate-lines t))))
+     #+end_src
+
 *** TODO TODO list [0/2]
 
 **** TODO Fix/organize keybindings [0/3]
 
      This implementation is a massive improvement, but my keybindings are
      still all over the place.
-    
+
 ***** TODO Evil-collection dired bindings
 
       See [[TODO Dired evil collection][this]] similar concern on evil-collection.
@@ -1476,7 +1492,7 @@
      Like my mp3-rename-script
 
 ** MU4E EMAIL CLIENT
-  
+
    I use mu4e to manage my emails. mu4e is the emacs front-end for the
    program 'mu' so installing mu on your system brings also mu4e. Depending
    on your system, you might have to build it yourself, e.g from git. Then,
@@ -1492,7 +1508,7 @@
      executable mbsync). I use the latter. Sending email is also provided by
      a different package: the smtp and message packages that are built-in
      within emacs.
-  
+
      So: the steps to manage and send emails through emacs are:
 
      1. mbsync downloads the emails
@@ -1551,7 +1567,7 @@
      ;; don't forget to provide the code in the end of the file!
      (provide 'mu4e-sensitive)
      #+end_example
-    
+
      A little explanation about this format: it is an associative array
      whose car is the account's nickname (i.e the name of the context)
      and whose cdr is again an associative array with key-value pairs
@@ -1609,7 +1625,7 @@
        :hook
        (message-mode . visual-line-mode))
      #+end_src
-    
+
 **** Mu4e -- base settings
 
      The 'main course'. If it goes all together it will be a very big code
@@ -1812,7 +1828,7 @@
       (:map leader
 	    ("m" . l/mu4e-open-unread)))
     #+end_src
-   
+
 **** Mu4e -- actions
 
      Actions are pre-defined actions you can run on a mail message, either
@@ -1857,7 +1873,7 @@
      to activate, thus interchanging the split-view value. Instead, I now
      defined an extra function which is called only when opening a message
      from the headers view.
-    
+
      The other is to update my external mail notifications (I use i3blocks
      and dunst for that) by sending the required signal to i3blocks. This is
      run as a hook after updating the index as well as when viewing a
@@ -1912,7 +1928,7 @@
 *** Basic configuration
 
     Defining some defaults. General behaviour etc.
-   
+
     An important thing here is the ensurance of 'org-plus-contrib'. This
     library is not a part of the main org package, but expands org-mode in a
     lot of useful ways.
@@ -1940,6 +1956,12 @@
 	   org-confirm-babel-evaluate nil
 	   org-edit-src-content-indentation 0
 	   org-src-window-setup 'current-window)
+     :config
+     (defun l/org-edit-src-code-other-window ()
+       "Open code-block for editing in other window"
+       (interactive)
+       (let ((org-src-window-setup 'other-window))
+	 (org-edit-src-code)))
      :general
      (:keymaps 'org-mode-map :states '(normal visual)
 	       "^" 'org-beginning-of-line
@@ -1959,7 +1981,7 @@
 
     Also, I pasted a function from the info page: this automates the change
     od the TODO state of a header with TODO children.
-   
+
     All configuration considering clocking and time-management in general
     will be included here as well.
 
@@ -2003,7 +2025,7 @@
     new frame in org-capture mode and binding it to a keybinding on your
     system. That way you don't have to focus back to emacs if you want to
     take a note, say, while in your browser.
-   
+
     My note-taking skills are bad at best, so I haven't put much stuff in
     here. I have some defaults that I rarely use, and some templates
     commented out, that I decided to be not useful, but I keep them for
@@ -2037,7 +2059,7 @@
 	       "* %U :darkroom:%^g\n%?" :clock-in t)
 
 	      ("r" "Rempetika lyrics" entry (file+headline "~/stixoi.org" "Στίχοι ρεμπέτικα")
-	       "* %^{ΤΙΤΛΟΣ}\n%^{ΤΡΑΓΟΥΔΙΣΤΗΣ}p%^{ΣΥΝΘΕΤΗΣ}p%^{ΡΥΘΜΟΣ}p%^{ΔΡΟΜΟΣ}p%^{ΤΟΝΟΣ}p\n%x")
+	       "* %^{ΤΙΤΛΟΣ}\n%^{ΤΡΑΓΟΥΔΙΣΤΗΣ}p%^{ΣΥΝΘΕΤΗΣ}p\n%x")
 
 	      ;; ("B" "Web purchase" entry (file+headline "web-stuff.org" "Purchases")
 	      ;;  "* ORDERED %^{item desc.}\n\n%x\n\nEst. delivery: %?\n\nOrder placed on: %U")
@@ -2086,6 +2108,9 @@
       :after org
       :init
       (setq org-agenda-include-diary t)
+      (setq org-agenda-start-on-weekday nil)
+      (setq org-agenda-start-day "-3d")
+      (setq org-agenda-span 10)
       :bind
       ("C-c a" . org-agenda)
       (:map cal-agenda
@@ -2131,7 +2156,7 @@
     Some pieces of functionality for org-mode that I put together.
 
 **** Mark header
-     
+ 
      This proves useful sometimes.
 
      #+begin_src emacs-lisp
@@ -2166,24 +2191,7 @@
        (:map leader-org
 	     ("Bl" . l/org-babel-load-this-file)))
      #+end_src
-     
-** REBET
-
-   Manage my rebetiko collection.
-
-   #+begin_src emacs-lisp
-   (use-package rebet
-     :load-path "~/.source/rebet"
-     :after counsel org dired
-     :demand
-     :config
-     (setq rebet-dirs-list `(,rebet-default-dir "~/Downloads/youtube-downloads"))
-     :bind
-     (:map leader-org
-	   ("r<" . rebet-tags-to-props)
-	   ("r>" . rebet-props-to-tags)
-	   ("r*" . rebet-tags-to-props-and-back)))
-   #+end_src
+ 
 ** CALENDAR AND DIARY
 
    This one can work very well alongside the agenda. Only some basic
@@ -2201,7 +2209,8 @@
 		  `(,(expand-file-name diary-file) . diary-mode))
      :config
      (setq diary-number-of-entries 7)
-     (add-hook 'after-init-hook 'diary)
+     ;; (add-hook 'after-init-hook 'diary)
+     ;; (add-to-list after-make-frame-functions 'diary)
      :bind
      ("C-x c c" . calendar)
      ("C-x c d" . diary)
@@ -2236,6 +2245,40 @@
      Easier said than done, coz I should first be familiar with
      org-agenda itself...
 
+** REBET
+
+   Manage my rebetiko collection.
+
+   #+begin_src emacs-lisp
+   (use-package rebet
+     :load-path "~/.source/rebet"
+     :after counsel org dired
+     :demand
+     :config
+     (setq rebet-dirs-list `(,rebet-default-dir "~/Downloads/youtube-downloads"))
+     :general
+     (:keymaps 'dired-mode-map :states 'normal
+	       "##" 'rebet-dired-tags
+	       "#*" 'rebet-dired-tag-to-all)
+     :bind
+     (:map leader-org
+	   ("#<" . rebet-tags-to-props)
+	   ("#>" . rebet-props-to-tags)
+	   ("##" . rebet-tags-to-props-and-back)))
+   #+end_src
+
+** ID3-MODE
+
+   Really interesting package, if I was able to understand it, I would
+   definitely use it in my rebet package... For now, it is really useful
+   for peep, as it displays the mp3 file as a list of ID3 tags!
+
+   #+begin_src emacs-lisp
+   (use-package id3
+     :load-path "~/.source/id3.el"
+     :init
+     (setq auto-mode-alist (cons '("\\.mp3" . id3-mode) auto-mode-alist)))
+   #+end_src
 ** LaTeX
 
    If you do not know what LaTeX is, just skip this section. It's OK.
@@ -2263,7 +2306,7 @@
        (when (eq major-mode 'latex-mode)
 	 (when (memq this-command '(save-buffer))
 	   (shell-command-to-string (format "xelatex %s" buffer-file-name)))))
-  
+
      (add-hook 'after-save-hook #'latex-save-compile))
    #+end_src
 
@@ -2338,66 +2381,66 @@
 
 *** Basics -- extra functions and bindings
 
-   #+begin_src emacs-lisp
-   (use-package emacs
-     :config
-     ;; (windmove-default-keybindings) ;; this allows for navigation
-     ;; using Shift+arrows. I never use it
+    #+begin_src emacs-lisp
+    (use-package emacs
+      :config
+      ;; (windmove-default-keybindings) ;; this allows for navigation
+      ;; using Shift+arrows. I never use it
 
-     ;; the default behaviour is to create a new window and stay on the
-     ;; same. I wanted to always switch to the new window.
-     (defun split-window-and-follow-below ()
-       "Split and follow container horizontally."
-       (interactive)
-       (split-window-below)
-       (balance-windows)
-       (other-window 1))
+      ;; the default behaviour is to create a new window and stay on the
+      ;; same. I wanted to always switch to the new window.
+      (defun split-window-and-follow-below ()
+	"Split and follow container horizontally."
+	(interactive)
+	(split-window-below)
+	(balance-windows)
+	(other-window 1))
 
-     (defun split-window-and-follow-right ()
-       "Split and follow container vertically."
-       (interactive)
-       (split-window-right)
-       (balance-windows)
-       (other-window 1))
+      (defun split-window-and-follow-right ()
+	"Split and follow container vertically."
+	(interactive)
+	(split-window-right)
+	(balance-windows)
+	(other-window 1))
 
-     ;; a useful feature introduced here: change from a vertical split to
-     ;; a horizontal split. Works only for two windows.
-     (defun toggle-window-split ()
-       "Switch between horizontal and vertical split when using two windows."
-       (interactive)
-       (if (= (count-windows) 2)
-	   (let* ((this-win-buffer (window-buffer))
-		  (next-win-buffer (window-buffer (next-window)))
-		  (this-win-edges (window-edges (selected-window)))
-		  (next-win-edges (window-edges (next-window)))
-		  (this-win-2nd (not (and (<= (car this-win-edges)
-					      (car next-win-edges))
-					  (<= (cadr this-win-edges)
-					      (cadr next-win-edges)))))
-		  (splitter
-		   (if (= (car this-win-edges)
-			  (car (window-edges (next-window))))
-		       'split-window-horizontally
-		     'split-window-vertically)))
-	     (delete-other-windows)
-	     (let ((first-win (selected-window)))
-	       (funcall splitter)
-	       (if this-win-2nd (other-window 1))
-	       (set-window-buffer (selected-window) this-win-buffer)
-	       (set-window-buffer (next-window) next-win-buffer)
-	       (select-window first-win)
-	       (if this-win-2nd (other-window 1))))))
+      ;; a useful feature introduced here: change from a vertical split to
+      ;; a horizontal split. Works only for two windows.
+      (defun toggle-window-split ()
+	"Switch between horizontal and vertical split when using two windows."
+	(interactive)
+	(if (= (count-windows) 2)
+	    (let* ((this-win-buffer (window-buffer))
+		   (next-win-buffer (window-buffer (next-window)))
+		   (this-win-edges (window-edges (selected-window)))
+		   (next-win-edges (window-edges (next-window)))
+		   (this-win-2nd (not (and (<= (car this-win-edges)
+					       (car next-win-edges))
+					   (<= (cadr this-win-edges)
+					       (cadr next-win-edges)))))
+		   (splitter
+		    (if (= (car this-win-edges)
+			   (car (window-edges (next-window))))
+			'split-window-horizontally
+		      'split-window-vertically)))
+	      (delete-other-windows)
+	      (let ((first-win (selected-window)))
+		(funcall splitter)
+		(if this-win-2nd (other-window 1))
+		(set-window-buffer (selected-window) this-win-buffer)
+		(set-window-buffer (next-window) next-win-buffer)
+		(select-window first-win)
+		(if this-win-2nd (other-window 1))))))
 
-     (global-set-key (kbd "C-x |") 'toggle-window-split)
-     :bind
-     ("S-C-<left>" . shrink-window-horizontally) 
-     ("S-C-<right>" . enlarge-window-horizontally) 
-     ("S-C-<down>" . shrink-window) 
-     ("S-C-<up>" . enlarge-window)
-     ;; ("C-x 2" . split-window-and-follow-below)
-     ;; ("C-x 3" . split-window-and-follow-right)
-     ("C-x \\" . window-swap-states))
-   #+end_src
+      (global-set-key (kbd "C-x |") 'toggle-window-split)
+      :bind
+      ("S-C-<left>" . shrink-window-horizontally) 
+      ("S-C-<right>" . enlarge-window-horizontally) 
+      ("S-C-<down>" . shrink-window) 
+      ("S-C-<up>" . enlarge-window)
+      ;; ("C-x 2" . split-window-and-follow-below)
+      ;; ("C-x 3" . split-window-and-follow-right)
+      ("C-x \\" . window-swap-states))
+    #+end_src
 
 *** Ace window
 
@@ -2494,6 +2537,7 @@
      (:map leader
 	   ("f" . find-file)
 	   ("b" . switch-to-buffer)
+	   ("B" . ibuffer)
 	   ("," . (lambda () (interactive)
 		    (switch-to-buffer "*scratch*")))
 	   ("H" . switch-to-prev-buffer)
@@ -2503,6 +2547,7 @@
      (:map otherwin
 	   ("f" . find-file-other-window)
 	   ("b" . switch-to-buffer-other-window)
+	   ("B" . ibuffer-other-window)
 	   ("," . (lambda () (interactive)
 		    (switch-to-buffer-other-window "*scratch*")))))
    #+end_src
@@ -2559,36 +2604,36 @@
 
 **** Defaults
 
-    Various default options considering copying and pasting, text
-    replacement, sentence ending points and general text manipulation.
+     Various default options considering copying and pasting, text
+     replacement, sentence ending points and general text manipulation.
 
-    #+begin_src emacs-lisp
-    (use-package emacs
-      :config
-      ;; copying and pasting
-      (setq select-enable-clipboard t)
-      (setq save-interprogram-paste-before-kill t)
-      (delete-selection-mode 1)
-      ;; sentence ends with dot
-      (setq sentence-end-double-space nil)
+     #+begin_src emacs-lisp
+     (use-package emacs
+       :config
+       ;; copying and pasting
+       (setq select-enable-clipboard t)
+       (setq save-interprogram-paste-before-kill t)
+       (delete-selection-mode 1)
+       ;; sentence ends with dot
+       (setq sentence-end-double-space nil)
 
-      ;; some useful disabled functions for text manipulation
-      (put 'downcase-region 'disabled nil) ;; binds to 'C-x C-l'
-      (put 'upcase-region 'disabled nil) ;; binds to 'C-x C-u'
-      (put 'narrow-to-region 'disabled nil) ;; binds to 'C-x n n'
-      :bind
-      ("C-S-k" . kill-whole-line)
-      ("C-x M-e" . eval-buffer)
-      ("C-;" . comment-line)
-      ("C-M-;" . comment-or-uncomment-region)
-      ("M-;" . comment-dwim))
-    #+end_src
+       ;; some useful disabled functions for text manipulation
+       (put 'downcase-region 'disabled nil) ;; binds to 'C-x C-l'
+       (put 'upcase-region 'disabled nil) ;; binds to 'C-x C-u'
+       (put 'narrow-to-region 'disabled nil) ;; binds to 'C-x n n'
+       :bind
+       ("C-S-k" . kill-whole-line)
+       ("C-x M-e" . eval-buffer)
+       ("C-;" . comment-line)
+       ("C-M-;" . comment-or-uncomment-region)
+       ("M-;" . comment-dwim))
+     #+end_src
 
 **** Multiple cursors
 
      A nice package for quick batch text processing in text chunks where
      repeatedness makes it more practical than using a macro.
-    
+
      Note: I don't know why, these packages could not load correctly
      until I used the =:demand= keyword in their use-package
      declarations Main package. Apparently they don't work well with
@@ -2596,29 +2641,29 @@
 
 ***** Main
 
-     #+begin_src emacs-lisp
-     (use-package multiple-cursors
-       :ensure t
-       :demand
-       :config
-       (define-prefix-command 'mc-leader)
-       :bind
-       ("C-. C-e" . mc/edit-lines)
-       ("C->" . mc/mark-next-like-this)
-       ("C-<" . mc/mark-previous-like-this)
-       ("C-. C-<" . mc/mark-all-like-this)
-       ("C-<down-mouse-1>" . mc/add-cursor-on-click)
-       ("C-. C-! 1" . mc/insert-numbers)
-       ("C-. C-! a" . mc/insert-letters)
-       (:map leader
-	     ("." . mc-leader))
-       (:map mc-leader
-	     ("C-e" . mc/edit-lines)
-	     ("C-a" . mc/mark-all-like-this)
-	     ("!1" . mc/insert-numbers)
-	     ("!a" . mc/insert-letters)))
+      #+begin_src emacs-lisp
+      (use-package multiple-cursors
+	:ensure t
+	:demand
+	:config
+	(define-prefix-command 'mc-leader)
+	:bind
+	("C-. C-e" . mc/edit-lines)
+	("C->" . mc/mark-next-like-this)
+	("C-<" . mc/mark-previous-like-this)
+	("C-. C-<" . mc/mark-all-like-this)
+	("C-<down-mouse-1>" . mc/add-cursor-on-click)
+	("C-. C-! 1" . mc/insert-numbers)
+	("C-. C-! a" . mc/insert-letters)
+	(:map leader
+	      ("." . mc-leader))
+	(:map mc-leader
+	      ("C-e" . mc/edit-lines)
+	      ("C-a" . mc/mark-all-like-this)
+	      ("!1" . mc/insert-numbers)
+	      ("!a" . mc/insert-letters)))
 
-     #+end_src
+      #+end_src
 
 ***** Extras
 
@@ -2717,24 +2762,24 @@
 
 **** Some defaults
 
-    #+begin_src emacs-lisp
-    (use-package emacs
-      :config
-      (blink-cursor-mode -1) ;; don't blink!
-      (column-number-mode 1) ;; show me where I am
-      (global-hl-line-mode t) ;; show me better!
+     #+begin_src emacs-lisp
+     (use-package emacs
+       :config
+       (blink-cursor-mode -1) ;; don't blink!
+       (column-number-mode 1) ;; show me where I am
+       (global-hl-line-mode t) ;; show me better!
 
-      ;; put rc files in conf-mode for syntax highlighting
-      (add-to-list 'auto-mode-alist '("\\.*rc$" . conf-mode))
-      :bind
-      ;; fonts size
-      ("C-<next>" . text-scale-increase)
-      ("C-<prior>" . text-scale-decrease)
-      ;; show line numbers
-      ("C-x l" . display-line-numbers-mode)
-      ;; follow-mode works well for long buffers
-      ("C-x M-l" . follow-mode))
-    #+end_src
+       ;; put rc files in conf-mode for syntax highlighting
+       (add-to-list 'auto-mode-alist '("\\.*rc$" . conf-mode))
+       :bind
+       ;; fonts size
+       ("C-<next>" . text-scale-increase)
+       ("C-<prior>" . text-scale-decrease)
+       ;; show line numbers
+       ("C-x l" . display-line-numbers-mode)
+       ;; follow-mode works well for long buffers
+       ("C-x M-l" . follow-mode))
+     #+end_src
 
 **** Rainbow delimiters
 
@@ -2762,7 +2807,7 @@
      #+end_src
 
 **** Darkroom mode
-    
+
      No, it has nothing to do with photography.
 
      It is a nice mode for reading, though. It centers the text, scales it a
@@ -2781,7 +2826,7 @@
 
    Some interface changes that make more sense. Also, some misc options
    that don't fit anywhere else.
-   
+
    #+begin_src emacs-lisp
    (use-package emacs
      :init
@@ -2815,12 +2860,14 @@
 *** Font
 
     Load a font, duh!
-    
+
     #+begin_src emacs-lisp
     (use-package emacs
       :config
       (add-to-list 'default-frame-alist
-		   '(font . "Iosevka Nerd Font Mono-10")))
+		   '(font . "mononoki Nerd Font-10")
+		   ;; '(font . "Iosevka Nerd Font Mono-10")
+		   ))
     #+end_src
 *** Theme
 
@@ -2838,7 +2885,7 @@
     (use-package darktooth-theme
       :ensure t)
 
-      (load-theme 'modus-vivendi t)
+    (load-theme 'modus-vivendi t)
 
 
     #+end_src
@@ -2861,7 +2908,7 @@
     This is mainly used via the keyword in use-package declarations. What it
     does is that it completely removes or changes the name of a mode in the
     modeline.
-   
+
     #+begin_src emacs-lisp
     (use-package delight
       :ensure t
@@ -2898,7 +2945,7 @@
 
     #+begin_src emacs-lisp
     ;; (use-package font-lock+
-      ;; :load-path "~/.source")
+    ;; :load-path "~/.source")
     #+end_src
 
 *** Emoji display
@@ -2918,7 +2965,7 @@
 ** EXTRA BITS OF FUNCTIONALITY
 
    Bits and chunks of useful stuff.
-  
+
 *** Which key
 
     When starting to type a keybinding, it provides a "cheatsheet" with all
@@ -2931,10 +2978,9 @@
       :config
       (which-key-mode))
     #+end_src
-*** Autoload configuration
+*** Reload configuration
 
-    I wrote a function to load the init file. I also added this function to
-    the after-save-hook so that it is run each time I save the current file.
+    Defining keybinding for reloading emacs configuration.
 
     #+begin_src emacs-lisp
     (use-package emacs
@@ -2943,14 +2989,7 @@
 	"Reload the init file"
 	(interactive)
 	(load-file "~/.emacs.d/init.el"))
-
-      (defun l/reload-emacs-on-save ()
-	"Evaluate the init file automatically"
-	(when (string= (buffer-file-name)
-		       (expand-file-name "~/.emacs.d/my-config.org"))
-	  (l/reload-emacs)))
-
-      (add-hook 'after-save-hook 'l/reload-emacs-on-save)
+  
       :bind
       ("C-c r" . l/reload-emacs))
     #+end_src
@@ -3003,11 +3042,12 @@
       :ensure t)
     #+end_src
 
-* DISCOVERED FEATURES
+    # * DISCOVERED FEATURES
 
-  I decided to start keeping a log of useful features that I discovered
-  while writing this configuration, or elisp in general.
+    I decided to start keeping a log of useful features that I discovered
+    while writing this configuration, or elisp in general.
 
+* LEARNING CURVE
 ** process-lines                                                      :shell:
 
    The function =process-lines= returns the result of a shell command as a
@@ -3023,13 +3063,13 @@
    First used in the =rebet= package
 
 ** symbol plists                                :plists:properties:variables:
-   
+
    The ability to define properties for symbols without setting them as
    variable seems like an approach to objective programming, which might be
    useful in some applications.
 
    First used in the =rebet= package.
-   
+
 * REJECTED REJECTED PACKAGES
 
   These are packages and bits of functionality that where rejected, however
@@ -3042,10 +3082,10 @@
    Helm is a powerful completion framework, but I rejected it for ivy.
    The main reason is that I wanted to add custom functionality which was
    not easy to do with helm.
-   
+
    Ivy is also powerful and it feels more intuitive, both to use and to
    customize.
-    
+
 *** Basics
     #+begin_src emacs-lisp
     (use-package helm-config
@@ -3092,8 +3132,8 @@
     #+end_src
 ** REJECTED PDF TOOLS
    CLOSED: [2020-04-16 Thu 01:31]
-   
-   
+
+
    Pdf-tools cannot handle an update. It is really frustrating, because,
    when it works, it works great, but I had too many problems each time I
    performed an update of the package. It broke EVERY SINGLE TIME and it
@@ -3103,7 +3143,7 @@
    to rebuild the whole package. Finally I got tired of trying, so I
    settled for the default emacs doc-view, or with external viewing. It's a
    pity really!
-    
+
    #+begin_src emacs-lisp
    (use-package pdf-tools
      :disabled
@@ -3127,7 +3167,7 @@
 
    I just ended up never using relative line numbers. I experienced some
    buggy behaviour anyway, so I just dropped it.
-   
+
    #+begin_src emacs-lisp
    (use-package linum-relative
      :disabled
@@ -3163,12 +3203,12 @@
    point reaches the beginning or end of the buffer, stop there."
        (interactive "^p")
        (setq arg (or arg 1))
-    
+
        Move lines first
        (when (/= arg 1)
 	 (let ((line-move-visual nil))
 	   (forward-line (1- arg))))
-    
+
        (let ((orig-point (point)))
 	 (back-to-indentation)
 	 (when (= orig-point (point))
@@ -3181,7 +3221,7 @@
    CLOSED: [2020-04-30 Thu 03:28]
 
    Since I started to use evil-mode, I no longer used this function.
-   
+
    #+begin_src emacs-lisp
    (use-package emacs
      :disabled
@@ -3206,7 +3246,7 @@
    window. It makes sense, but I try to get used to the default behaviour,
    which is to retain focus on the current window, and it is not so bad.
    So, I am disabling these until further notice.
-   
+
    #+begin_src emacs-lisp
    (use-package emacs
      :disabled
@@ -3217,14 +3257,14 @@
        (split-window-below)
        (balance-windows)
        (other-window 1))
-  
+
      (defun split-window-and-follow-right ()
        "Split and follow container vertically."
        (interactive)
        (split-window-right)
        (balance-windows)
        (other-window 1))
-  
+
      (global-set-key (kbd "C-x 2") 'split-window-and-follow-below)
      (global-set-key (kbd "C-x 3") 'split-window-and-follow-right)
    )
@@ -3238,7 +3278,7 @@
    Inbox when you receive an email. I later discovered the joy of managing
    all of my accounts together and replaced this function with viewing the
    unread messages alltogether.
-   
+
    #+begin_src emacs-lisp
    (use-package mu4e
      :disabled
@@ -3257,7 +3297,7 @@
 
    I don't remember how exactly I intended to use these, but it finally
    didn't make much sense to me. Maybe I will revisit this idea.
-  
+
    #+begin_src emacs-lisp
    (use-package wdired
      :disabled
@@ -3268,7 +3308,7 @@
        (move-end-of-line nil)
        (search-backward ".")
        (evil-insert 1))
-  
+
      (defun l/evil-wdired-change-filename ()
        "Renaming helper for `wdired'. Change the filename but keep the extension."
        (interactive)
@@ -3276,7 +3316,7 @@
        (search-backward ".")
        (kill-region 1 (point))
        (evil-insert 1))
-  
+
      (defun l/evil-wdired-change-extension ()
        "Renaming helper for `wdired'. Change file's extension."
        (interactive)

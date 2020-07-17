@@ -724,7 +724,7 @@
      :delight ""
      :init
      (setq dired-dwim-target t)
-     (setq dired-listing-switches "-Alh") ;; human-readable sizes, also omit . and ..
+     (setq dired-listing-switches "-Alh --group-directories-first") ;; human-readable sizes, also omit . and .., dirs first
      :config
      ;; This hook seems to be added automatically to my 'custom.el' file
      ;; and breaks dired. I have to find out where it comes from. It was
@@ -743,7 +743,7 @@
 	 (setq mode-name
 	       (let (case-fold-search)
 		 (cond ((string-match-p
-			 (concat (regexp-quote "-Alh") "\\(\\s-\\|$\\)")
+			 (concat (regexp-quote "-Alh --group-directories-first") "\\(\\s-\\|$\\)")
 			 dired-actual-switches)
 			"")
 		       ((string-match-p
@@ -760,9 +760,9 @@
 			"⇓X")
 		       (t
 			"⇓?"))))
-	 (if (string-match-p
-	      (regexp-quote " --group-directories-first")
-	      dired-actual-switches)
+	 (if (not (string-match-p
+		   (regexp-quote " --group-directories-first")
+		   dired-actual-switches))
 	     (setq mode-name (concat mode-name "⋮"))
 	   (setq mode-name (replace-regexp-in-string "⋮" "" mode-name)))
 	 (force-mode-line-update))))
@@ -929,9 +929,9 @@
      subtitles written in python. Although the implementation is mine, I got
      some basic ideas from [[http://ergoemacs.org/emacs/elisp_call_shell_command.html][this post about 'start-process']] on ergoemacs and
      [[https://stackoverflow.com/questions/17075920/passing-list-to-rest-args?rq=1][this one about 'apply']] on stackoverflow.
-   - l/change-desktop-background: uses feh, a minimal image viewer, to set
-     the desktop background with the file at point. Provides a menu with
-     different fits.
+   - l/change-desktop-background: uses my wallset script to set the
+     wallpaper. Some options should be added to position the image as well
+     as selecting from all images in a directory with sxiv.
 
    #+begin_src emacs-lisp
    (use-package dired
@@ -1008,16 +1008,34 @@
 	   (special-mode))))
 
      ;; change desktop background
+     ;; (defun l/change-desktop-background ()
+       ;; "Change the desktop background using feh."
+       ;; (interactive)
+       ;; (let ((fit-type (completing-read "Select fit: " '("scale" "center" "fill" "max") nil t))
+	     ;; (entry (shell-quote-argument (expand-file-name (dired-file-name-at-point))))
+	     ;; (targetfile (shell-quote-argument (expand-file-name "~/.config/.wallpaper.jpg"))))
+	 ;; (setq cpcmd (concat "cp " entry " " targetfile))
+	 ;; (setq fehcmd (concat "feh --bg-" fit-type " " targetfile))
+	 ;; (setq cmd (concat cpcmd " && " fehcmd))
+     ;; (shell-command cmd)))
+
+     ;; change desktop background -- I should add options to position the image and select from multiple images
      (defun l/change-desktop-background ()
-       "Change the desktop background using feh."
+       "Change desktop background using my custom script, wallset."
        (interactive)
-       (let ((fit-type (completing-read "Select fit: " '("scale" "center" "fill" "max") nil t))
-	     (entry (shell-quote-argument (expand-file-name (dired-file-name-at-point))))
-	     (targetfile (shell-quote-argument (expand-file-name "~/.config/.wallpaper.jpg"))))
-	 (setq cpcmd (concat "cp " entry " " targetfile))
-	 (setq fehcmd (concat "feh --bg-" fit-type " " targetfile))
-	 (setq cmd (concat cpcmd " && " fehcmd))
-	 (shell-command cmd))))
+       (shell-command (concat "wallset "
+			      (shell-quote-argument
+			       (expand-file-name (dired-filename-at-point))))))
+
+     (defun l/view-images ()
+       "View images externally with sxiv, using my script, sxivdir"
+       (interactive)
+       (let ((files (dired-get-marked-files)))
+	 (apply 'start-process
+		(append (list "sxivdir" nil "sxivdir" "-1")
+			files)))))
+
+
    #+end_src
 
 *** Keybindings
@@ -1100,7 +1118,7 @@
 		"+" 'dired-create-directory
 		(kbd "S-<return>") 'dired-find-file-other-window
 		(kbd "RET") 'dired-find-file
-		(kbd "M-<return>") 'browse-url-of-dired-file
+		(kbd "C-<return>") 'browse-url-of-dired-file
 		;; sorting
 		"o" 'l/dired-sorting-map ;; prefix -- was dired-sort-toggle-or-edit
 		"(" 'dired-hide-details-mode
@@ -2279,6 +2297,68 @@
      :init
      (setq auto-mode-alist (cons '("\\.mp3" . id3-mode) auto-mode-alist)))
    #+end_src
+
+** SUBTITLE EDITOR
+
+   #+begin_src emacs-lisp
+   (use-package subed
+     :load-path "~/.source/subed/subed"
+     :defer 1
+     :config
+
+     (defun l/subed-mpv-frame-step ()
+       "Do a frame step in mpv instance (subed mode)."
+       (interactive)
+       (subed-mpv--client-send `(frame-step)))
+
+     (defun l/subed-mpv-frame-back-step ()
+       "Do a frame back step in mpv instance (subed mode)."
+       (interactive)
+       (subed-mpv--client-send `(frame-back-step)))
+
+     (defun l/subed-mpv-seek ()
+       "Move playback position 1 sec forward relative to current position."
+       (interactive)
+       (subed-mpv-seek 1000))
+
+     (defun l/subed-mpv-seek-back ()
+       "Move playback position 1 sec backwards relative to current position."
+       (interactive)
+       (subed-mpv-seek -1000))
+
+     (defun l/subed-insert-subtitle-at-pos ()
+       "Insert a new subtitle at player position."
+       (interactive)
+       (subed-srt--append-subtitle 0 subed-mpv-playback-position)
+       (subed-regenerate-ids))
+
+     :general
+     (:states 'normal :keymaps 'subed-mode-map
+	      "." 'subed-mpv-toggle-pause
+	      "C-." 'l/subed-mpv-frame-step
+	      "C-," 'l/subed-mpv-frame-back-step
+	      "C-k" 'subed-backward-subtitle-text
+	      "C-j" 'subed-forward-subtitle-text
+	      "SPC I" 'subed-insert-subtitle
+	      "SPC i" 'l/subed-insert-subtitle-at-pos
+	      "SPC a" 'subed-insert-subtitle-adjacent
+	      "SPC k" 'subed-kill-subtitle
+	      "SPC g a" 'subed-jump-to-subtitle-text
+	      "SPC g e" 'subed-jump-to-subtitle-end
+	      "SPC g g" 'subed-jump-to-subtitle-id
+	      "SPC g t a" 'subed-jump-to-subtitle-time-start
+	      "SPC g t e" 'subed-jump-to-subtitle-time-stop
+	      "[[" 'subed-decrease-start-time
+	      "]]" 'subed-increase-start-time
+	      "{{" 'subed-decrease-stop-time
+	      "}}" 'subed-increase-stop-time
+	      "C-S-h" 'subed-move-subtitle-backward
+	      "C-S-l" 'subed-move-subtitle-forward
+	      "C-<" 'l/subed-mpv-seek-back
+	      "C->" 'l/subed-mpv-seek
+     )
+   )
+   #+end_src
 ** LaTeX
 
    If you do not know what LaTeX is, just skip this section. It's OK.
@@ -2865,7 +2945,8 @@
     (use-package emacs
       :config
       (add-to-list 'default-frame-alist
-		   '(font . "mononoki Nerd Font-10")
+		   '(font . "Hack-10")
+		   ;; '(font . "mononoki Nerd Font-10")
 		   ;; '(font . "Iosevka Nerd Font Mono-10")
 		   ))
     #+end_src
@@ -3012,6 +3093,17 @@
     #+begin_src emacs-lisp
     (use-package try
       :ensure t)
+    #+end_src
+
+*** M-x for crippled keyboard
+
+    Well, my keyboard is a cripple...
+
+    #+begin_src emacs-lisp
+    (use-package emacs
+      :bind
+      (:map leader
+	    ("x" . counsel-M-x)))
     #+end_src
 
 ** GAMES

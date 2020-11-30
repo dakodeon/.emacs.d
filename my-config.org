@@ -1474,7 +1474,7 @@
       :after dired
       :custom
       (openwith-associations
-	    '(("\\.pdf\\'" "zarhura" (file))
+	    '(("\\.pdf\\'" "zathura" (file))
 	      ("\\.\\(mp3\\|wav\\|flac\\|wmv\\)\\'" "st -e mpv" (file))
 	      ("\\.\\(mp4\\|mkv\\|avi\\|mov\\)\\'" "mpv" (file))
 	      ("\\.\\(jpe?g\\|tiff?\\|png\\)\\'" "sxiv" (file))))

@@ -138,8 +138,8 @@
     (use-package evil
       :ensure t
       :init
-      (setq evil-move-cursor-back nil)
-      (setq evil-move-beyond-eol t)
+      (setq evil-move-cursor-back t)
+      (setq evil-move-beyond-eol nil)
       (setq evil-respect-visual-line-mode t)
       (setq evil-want-C-u-scroll nil)
       (setq evil-want-fine-undo t)
@@ -150,22 +150,21 @@
       (setq evil-want-keybinding nil)
       :config
       (evil-mode 1)
-      (evil-set-initial-state 'Info-mode 'emacs)
-      (evil-set-initial-state 'org-capture-mode 'emacs)
-      (evil-set-initial-state 'mu4e-compose-mode 'emacs)
-      (evil-set-initial-state 'org-msg-mode 'emacs)
-      ;; (evil-set-initial-state 'package-menu-mode 'emacs)
-      (evil-set-initial-state 'special-mode 'emacs)
+      (evil-set-initial-state 'Info-mode 'insert)
+      (evil-set-initial-state 'org-capture-mode 'insert)
+      (evil-set-initial-state 'mu4e-compose-mode 'insert)
+      (evil-set-initial-state 'org-msg-mode 'insert)
+      (evil-set-initial-state 'special-mode 'insert)
       ;; Use emacs state instead of insert state
-      (evil-define-state emacs
-	"Emacs used as insert state in evil."
-	:tag " <EE> "
-	:message "-- EMACS INSERT --"
-	:input-method t)
-      (defadvice evil-insert-state
-	  (around emacs-state-instead-of-insert-state activate)
-	"Emacs instead of Insert."
-	(evil-emacs-state))
+      ;; (evil-define-state emacs
+      ;;   "Emacs used as insert state in evil."
+      ;;   :tag " <EE> "
+      ;;   :message "-- EMACS INSERT --"
+      ;;   :input-method t)
+      ;; (defadvice evil-insert-state
+      ;;     (around emacs-state-instead-of-insert-state activate)
+      ;;   "Emacs instead of Insert."
+      ;;   (evil-emacs-state))
       :bind
       (:map evil-normal-state-map
 	    ("g^" . 'evil-first-non-blank)
@@ -175,6 +174,35 @@
       (:map evil-emacs-state-map
 	    ([escape] . 'evil-normal-state)))
     #+end_src
+
+*** Some vim-like packages
+
+    Various packages that port vim features to evil.
+
+**** Evil surround
+
+     While using vim, I discovered the beauty of surround. Now this is
+     ported here.
+
+     #+begin_src emacs-lisp
+     (use-package evil-surround
+       :ensure t
+       :config
+       (global-evil-surround-mode 1))
+     #+end_src
+
+**** Evil commentary
+
+     While the defaults of emacs work fairly well with evil, this here will
+     provide commenting using motions and operators. Nice!
+
+     #+begin_src emacs-lisp
+     (use-package evil-commentary
+       :ensure t
+       :delight
+       :config
+       (evil-commentary-mode))
+     #+end_src
 
 *** TODO TODO list [1/3]
 
@@ -273,6 +301,7 @@
 	 (emacs-dir . "~/.emacs.d/")
 	 (config-dir . "~/.config/")
 	 (scripts-dir . "~/.local/bin/")
+	 (webserver-dir . "/var/www/lukesrv/")
 	 ;;files
 	 (emacs-conf . "~/.emacs.d/my-config.org")
 	 (emacs-init . "~/.emacs.d/init.el")
@@ -297,6 +326,7 @@
      (defun find-emacs-dir () (interactive) (find-file (cdr (assq 'emacs-dir l/locations))))
      (defun find-config-dir () (interactive) (find-file (cdr (assq 'config-dir l/locations))))
      (defun find-scripts-dir () (interactive) (find-file (cdr (assq 'scripts-dir l/locations))))
+     (defun find-webserver-dir () (interactive) (find-file (cdr (assq 'webserver-dir l/locations))))
      (defun find-emacs-conf () (interactive) (find-file (cdr (assq 'emacs-conf l/locations))))
      (defun find-emacs-init () (interactive) (find-file (cdr (assq 'emacs-init l/locations))))
      (defun find-i3-conf () (interactive) (find-file (cdr (assq 'i3-conf l/locations))))
@@ -323,6 +353,7 @@
 	   ("E" . find-emacs-dir)
 	   ("C" . find-config-dir)
 	   ("S" . find-scripts-dir)
+	   ("W" . find-webserver-dir)
 	   ("e" . find-emacs-conf)
 	   ("i" . find-i3-conf)
 	   ("z" . find-zshrc)
@@ -384,20 +415,42 @@
    company soon.
 
     #+begin_src emacs-lisp
-    (use-package auto-complete
-      :ensure t
-      :delight
-      :init
-      (ac-config-default)
-      (global-auto-complete-mode t)
-      (setq ac-ignore-case nil)
-      :config
-      (setq ac-sources (append ac-sources ac-source-filename ac-source-files-in-current-dir)))
+    ;; (use-package auto-complete
+    ;;   :ensure t
+    ;;   :delight
+    ;;   :init
+    ;;   (ac-config-default)
+    ;;   (global-auto-complete-mode t)
+    ;;   (setq ac-ignore-case nil)
+    ;;   :config
+    ;;   (setq ac-sources (append ac-sources ac-source-filename ac-source-files-in-current-dir)))
     #+end_src
 
-*** TODO TODO list [0/1]
+*** COMPANY MODE
 
-**** TODO Switch to company
+   Possibly a better option than auto-complete...
+
+   #+begin_src emacs-lisp
+   (use-package company
+     :ensure t
+     :delight
+     :init
+     (add-hook 'after-init-hook 'global-company-mode)
+     :bind
+     ("C-<tab>" . company-files))
+   #+end_src
+
+   Company-quickhelp will add a popup window to view a help message.
+   #+begin_src emacs-lisp
+   (use-package company-quickhelp
+     :init
+     (setq company-quickhelp-delay 0.2)
+     (company-quickhelp-mode))
+   #+end_src
+*** DONE TODO list [1/1]
+
+**** DONE Switch to company
+     CLOSED: [2020-11-26 Thu 12:35]
 
      After browsing the web, I found out that the autocomplete package is in
      fact unmaintained. So, it makes more and more sense to try company.
@@ -725,6 +778,7 @@
      :init
      (setq dired-dwim-target t)
      (setq dired-listing-switches "-Alh --group-directories-first") ;; human-readable sizes, also omit . and .., dirs first
+     (setq large-file-warning-threshold nil) ;; disable warnings when opening large files -- messes with openwith
      :config
      ;; This hook seems to be added automatically to my 'custom.el' file
      ;; and breaks dired. I have to find out where it comes from. It was
@@ -917,7 +971,7 @@
    - dired-get-size: calls du and outputs the size on the minibuffer. I got
      this from [[https://www.emacswiki.org/emacs/dired-extension.el][this]] post on emacswiki, from the same package called
      dired-extension mentioned previously. I also left the chinese text
-     inside!
+     inside! A new addition: show also the number of selected files.
    - l/unmount-drive: if called on a mountpoint, it unmounts the drive
      mounted there. Really simple function, as I rarely use it, and only for
      this, quickly unmount a drive if I am already there.
@@ -934,106 +988,107 @@
      as selecting from all images in a directory with sxiv.
 
    #+begin_src emacs-lisp
-   (use-package dired
-     :config
-     ;; get filesize
-     (defun dired-get-size ()
-       "Get total size of marked files with `du' command.
-	If not marked any files, default is current file or directory."
-       (interactive)
-       (let ((files (dired-get-marked-files)))
-	 (with-temp-buffer
-	   (apply 'call-process "/usr/bin/du" nil t nil "-sch" files)
-	   (message "%s"
-		    (progn
-		      (re-search-backward "\\(^[0-9.,]+[A-Za-z]+\\).*\\(total\\|总用量\\)$")
-		      (match-string 1))))))
+      (use-package dired
+	:config
+	;; get filesize
+	(defun dired-get-size ()
+	  "Get total size of marked files with `du' command.
+	   If not marked any files, default is current file or directory."
+	  (interactive)
+	  (let ((files (dired-get-marked-files)))
+	    (with-temp-buffer
+	      (apply 'call-process "/usr/bin/du" nil t nil "-sch" files)
+	      (message "%s, %s file(s)"
+		       (progn
+			 (re-search-backward "\\(^[0-9.,]+[A-Za-z]+\\).*\\(total\\|总用量\\)$")
+			 (match-string 1))
+		       (length files)))))
 
-     ;; unmount drive from mountpoint
-     (defun l/unmount-drive ()
-       "Unmount selected directories, if they correspond to mountpoints."
-       (interactive)
-       (let ((dirs (dired-get-marked-files)))
-	 (dired-do-shell-command "mountpoint -q ? && sudo umount ? && sudo rmdir ?" nil dirs)
-	 (revert-buffer)))
+	;; unmount drive from mountpoint
+	(defun l/unmount-drive ()
+	  "Unmount selected directories, if they correspond to mountpoints."
+	  (interactive)
+	  (let ((dirs (dired-get-marked-files)))
+	    (dired-do-shell-command "mountpoint -q ? && sudo umount ? && sudo rmdir ?" nil dirs)
+	    (revert-buffer)))
 
-     ;; pack and unpack
-     (defun l/atool-pack ()
-       "Use the `atool' program to pack some files."
-       (interactive)
-       (when (eq major-mode 'dired-mode)
-	 (let ((files (dired-get-marked-files t))
-	       (archive (expand-file-name
-			 (read-file-name "Pack files as:" nil nil nil)))
-	       (process-connection-type nil))
-	   (if (get-buffer "*atool-pack*")
-	       (kill-buffer "*atool-pack*"))
-	   (apply 'start-process
-		  (append (list "atool-pack" "*atool-pack*" "atool" "--explain" archive "-a") files))
-	   (switch-to-buffer-other-window "*atool-pack*")
-	   (special-mode))))
+	;; pack and unpack
+	(defun l/atool-pack ()
+	  "Use the `atool' program to pack some files."
+	  (interactive)
+	  (when (eq major-mode 'dired-mode)
+	    (let ((files (dired-get-marked-files t))
+		  (archive (expand-file-name
+			    (read-file-name "Pack files as:" nil nil nil)))
+		  (process-connection-type nil))
+	      (if (get-buffer "*atool-pack*")
+		  (kill-buffer "*atool-pack*"))
+	      (apply 'start-process
+		     (append (list "atool-pack" "*atool-pack*" "atool" "--explain" archive "-a") files))
+	      (switch-to-buffer-other-window "*atool-pack*")
+	      (special-mode))))
 
-     (defun l/atool-unpack ()
-       "Use the `atool' program to unpack some archives."
-       (interactive)
-       (when (eq major-mode 'dired-mode)
-	 (let ((files (dired-get-marked-files t))
-	       (dest (expand-file-name
-		      (read-directory-name "Unpack files to:"
-					   (dired-dwim-target-directory) nil nil)))
-	       (process-connection-type nil))
-	   (if (get-buffer "*atool-unpack*")
-	       (kill-buffer "*atool-unpack*"))
-	   (if (not (file-directory-p dest))
-	       (make-directory dest))
-	   (apply 'start-process
-		  (append (list "atool-unpack" "*atool-unpack*" "atool" "--explain" "-X" dest) files))
-	   (switch-to-buffer-other-window "*atool-unpack*")
-	   (special-mode))))
+	(defun l/atool-unpack ()
+	  "Use the `atool' program to unpack some archives."
+	  (interactive)
+	  (when (eq major-mode 'dired-mode)
+	    (let ((files (dired-get-marked-files t))
+		  (dest (expand-file-name
+			 (read-directory-name "Unpack files to:"
+					      (dired-dwim-target-directory) nil nil)))
+		  (process-connection-type nil))
+	      (if (get-buffer "*atool-unpack*")
+		  (kill-buffer "*atool-unpack*"))
+	      (if (not (file-directory-p dest))
+		  (make-directory dest))
+	      (apply 'start-process
+		     (append (list "atool-unpack" "*atool-unpack*" "atool" "--explain" "-X" dest) files))
+	      (switch-to-buffer-other-window "*atool-unpack*")
+	      (special-mode))))
 
-     ;; get subtitles
-     (defun l/get-subtitles ()
-       "Get subtitles for marked files while in a dired buffer. Depends on subliminal, so it has to be on your system."
-       (interactive)
-       (when (eq major-mode 'dired-mode)
-	 (let* ((lang-list '("en" "gr"))
-		(lang (completing-read "Select language: " lang-list nil t))
-		(files (dired-get-marked-files))
-		(process-connection-type nil))
-	   (if (get-buffer "*get-subtitles*")
-	       (kill-buffer "*get-subtitles*"))
-	   (apply 'start-process
-		  (append (list "get-subtitles" "*get-subtitles*" "subliminal" "download" "-l" lang) files))
-	   (switch-to-buffer-other-window "*get-subtitles*")
-	   (special-mode))))
+	;; get subtitles
+	(defun l/get-subtitles ()
+	  "Get subtitles for marked files while in a dired buffer. Depends on subliminal, so it has to be on your system."
+	  (interactive)
+	  (when (eq major-mode 'dired-mode)
+	    (let* ((lang-list '("en" "gr"))
+		   (lang (completing-read "Select language: " lang-list nil t))
+		   (files (dired-get-marked-files))
+		   (process-connection-type nil))
+	      (if (get-buffer "*get-subtitles*")
+		  (kill-buffer "*get-subtitles*"))
+	      (apply 'start-process
+		     (append (list "get-subtitles" "*get-subtitles*" "subliminal" "download" "-l" lang) files))
+	      (switch-to-buffer-other-window "*get-subtitles*")
+	      (special-mode))))
 
-     ;; change desktop background
-     ;; (defun l/change-desktop-background ()
-       ;; "Change the desktop background using feh."
-       ;; (interactive)
-       ;; (let ((fit-type (completing-read "Select fit: " '("scale" "center" "fill" "max") nil t))
-	     ;; (entry (shell-quote-argument (expand-file-name (dired-file-name-at-point))))
-	     ;; (targetfile (shell-quote-argument (expand-file-name "~/.config/.wallpaper.jpg"))))
-	 ;; (setq cpcmd (concat "cp " entry " " targetfile))
-	 ;; (setq fehcmd (concat "feh --bg-" fit-type " " targetfile))
-	 ;; (setq cmd (concat cpcmd " && " fehcmd))
-     ;; (shell-command cmd)))
+	;; change desktop background
+	;; (defun l/change-desktop-background ()
+	  ;; "Change the desktop background using feh."
+	  ;; (interactive)
+	  ;; (let ((fit-type (completing-read "Select fit: " '("scale" "center" "fill" "max") nil t))
+		;; (entry (shell-quote-argument (expand-file-name (dired-file-name-at-point))))
+		;; (targetfile (shell-quote-argument (expand-file-name "~/.config/.wallpaper.jpg"))))
+	    ;; (setq cpcmd (concat "cp " entry " " targetfile))
+	    ;; (setq fehcmd (concat "feh --bg-" fit-type " " targetfile))
+	    ;; (setq cmd (concat cpcmd " && " fehcmd))
+	;; (shell-command cmd)))
 
-     ;; change desktop background -- I should add options to position the image and select from multiple images
-     (defun l/change-desktop-background ()
-       "Change desktop background using my custom script, wallset."
-       (interactive)
-       (shell-command (concat "wallset "
-			      (shell-quote-argument
-			       (expand-file-name (dired-filename-at-point))))))
+	;; change desktop background -- I should add options to position the image and select from multiple images
+	(defun l/change-desktop-background ()
+	  "Change desktop background using my custom script, wallset."
+	  (interactive)
+	  (shell-command (concat "wallset "
+				 (shell-quote-argument
+				  (expand-file-name (dired-filename-at-point))))))
 
-     (defun l/view-images ()
-       "View images externally with sxiv, using my script, sxivdir"
-       (interactive)
-       (let ((files (dired-get-marked-files)))
-	 (apply 'start-process
-		(append (list "sxivdir" nil "sxivdir" "-1")
-			files)))))
+	(defun l/view-images ()
+	  "View images externally with sxiv, using my script, sxivdir"
+	  (interactive)
+	  (let ((files (dired-get-marked-files)))
+	    (apply 'start-process
+		   (append (list "sxivdir" nil "sxivdir" "-1")
+			   files)))))
 
 
    #+end_src
@@ -1279,7 +1334,7 @@
 	(peep-dired-display-file-other-window))
 
       (add-hook 'peep-dired-hook 'evil-normalize-keymaps)
-
+  
       :general
       (:keymaps 'peep-dired-mode-map :states 'normal
 		"C-j" 'peep-dired-scroll-page-down
@@ -1414,6 +1469,23 @@
 		 "rr" 'dired-rsync
 		 "rf" 'l/dired-rsync-to-FAT32))
      #+end_src
+
+*** Openwith
+
+    Openwith is used to open files with different applications.
+
+    #+begin_src emacs-lisp
+    (use-package openwith
+      :ensure t
+      :init
+      (setq openwith-associations
+	    '(("\\.pdf\\'" "zarhura" (file))
+	      ("\\.\\(mp3\\|wav\\|flac\\|wmv\\)\\'" "st -e mpv" (file))
+	      ("\\.\\(mp4\\|mkv\\|avi\\|mov\\)\\'" "mpv" (file))
+	      ("\\.\\(jpe?g\\|tiff?\\|png\\)\\'" "sxiv" (file))))
+      :config
+      (setq openwith-mode t))
+    #+end_src
 
 *** Some bling!
 
@@ -1655,29 +1727,29 @@
      (use-package mu4e
        :load-path "/usr/local/share/emacs/site-lisp/mu4e"
        :after message
-       :init
-       (setq mu4e-get-mail-command
-	     "mbsync -a -c ~/.config/mbsyncrc" ;; mbsync with custom config location
-	     mu4e-maildir (expand-file-name "~/.personal/Mail")
-	     mu4e-org-contacts-file "~/.personal/contacts.org"
-	     mu4e-update-interval nil ;; cronjob takes care of this
-	     mu4e-confirm-quit nil
-	     mu4e-index-update-in-background t
-	     mu4e-hide-index-messages t
-	     mu4e-sent-messages-behavior 'sent
-	     mu4e-change-filenames-when-moving t
-	     mu4e-attachment-dir "~/Downloads"
-	     mu4e-html2text-command "w3m -T text/html"
-	     mu4e-headers-auto-update t
-	     mu4e-headers-include-related nil
-	     mu4e-headers-visible-columns 60
-	     mu4e-split-view 'vertical
-	     mu4e-view-show-addresses t
-	     mu4e-compose-dont-reply-to-self nil
-	     mu4e-compose-signature-auto-include nil
-	     mu4e-context-policy 'pick-first)
+       :custom
+       (mu4e-get-mail-command "updatemail") ;; custom script in ~/.local/bin
+       (mu4e-maildir (expand-file-name "~/.personal/Mail"))
+       (mu4e-org-contacts-file "~/.personal/contacts.org")
+       (mu4e-update-interval nil );; cronjob takes care of this
+       (mu4e-confirm-quit nil)
+       (mu4e-index-update-in-background t)
+       (mu4e-hide-index-messages t)
+       (mu4e-sent-messages-behavior 'sent)
+       (mu4e-change-filenames-when-moving t)
+       (mu4e-attachment-dir "~/Downloads")
+       (mu4e-html2text-command "w3m -T text/html")
+       (mu4e-headers-auto-update t)
+       (mu4e-headers-include-related nil)
+       (mu4e-headers-visible-columns 60)
+       (mu4e-split-view 'vertical)
+       (mu4e-view-show-addresses t)
+       (mu4e-compose-dont-reply-to-self nil)
+       (mu4e-compose-signature-auto-include nil)
+       (mu4e-context-policy 'pick-first)
        ;; this one does not work out of the box. Emacs needs to be compiled with
        ;; imagemagick support. Will look into this
+       :init
        (setq mu4e-show-images t)
        (when (fboundp 'imagemagick-register-types)
 	 (imagemagick-register-types))
@@ -1957,23 +2029,23 @@
      (org-mode "")
      (org-src-mode " SRC")
      :ensure org-plus-contrib
+     :custom
+     (org-M-RET-may-split-line '((default . nil)))
+     (org-directory "~/.perosnal")
+     (org-default-notes-file (concat org-directory "/organizer.org"))
+     (org-hide-leading-stars t)
+     (org-special-ctrl-a/e t)
+     (org-link-search-must-match-exact-headline nil)
+     (org-src-fontify-natively t)
+     (org-src-tab-acts-natively t)
+     (org-confirm-babel-evaluate nil)
+     (org-edit-src-content-indentation 0)
+     (org-src-window-setup 'current-window)
+     (org-fontify-whole-block-delimiter-line nil)
      :init
-     (setq org-M-RET-may-split-line '((default . nil)))
      ;; apparently some packages from org-plus-contrib must be manually
      ;; required
      (require 'org-tempo)
-     (setq org-directory "~/.personal"
-	   org-default-notes-file (concat org-directory "/organizer.org")
-	   org-hide-leading-stars t
-	   org-special-ctrl-a/e t
-	   ;; links
-	   org-link-search-must-match-exact-headline nil
-	   ;; org src / code blocks
-	   org-src-fontify-natively t
-	   org-src-tab-acts-natively t
-	   org-confirm-babel-evaluate nil
-	   org-edit-src-content-indentation 0
-	   org-src-window-setup 'current-window)
      :config
      (defun l/org-edit-src-code-other-window ()
        "Open code-block for editing in other window"
@@ -2005,12 +2077,12 @@
 
     #+begin_src emacs-lisp
     (use-package org
-      :init
-      (setq org-log-done 'time
-	    org-log-into-drawer 'LOGBOOK
-	    org-clock-into-drawer t
-	    org-enforce-todo-dependencies t
-	    org-enforce-todo-checkbox-dependencies t)
+      :custom
+      (org-log-done 'time)
+      (org-log-into-drawer 'LOGBOOK)
+      (org-clock-into-drawer t)
+      (org-enforce-todo-dependencies t)
+      (org-enforce-todo-checkbox-dependencies t)
       :config
       ;; This is straight from the info page. I should probably tweak it
       ;; at some point.
@@ -2063,9 +2135,9 @@
     #+begin_src emacs-lisp
     (use-package org-capture
       :after org
-      :init
+      :custom
       ;; my capture templates
-      (setq org-capture-templates
+      (org-capture-templates
 	    '(("t" "Todo" entry (file+headline "" "Tasks")
 	       "* TODO %?\n  %i\n  %a")
 
@@ -2124,11 +2196,11 @@
     #+begin_src emacs-lisp
     (use-package org-agenda
       :after org
-      :init
-      (setq org-agenda-include-diary t)
-      (setq org-agenda-start-on-weekday nil)
-      (setq org-agenda-start-day "-3d")
-      (setq org-agenda-span 10)
+      :custom
+      (org-agenda-include-diary t)
+      (org-agenda-start-on-weekday nil)
+      (org-agenda-start-day "-3d")
+      (org-agenda-span 10)
       :bind
       ("C-c a" . org-agenda)
       (:map cal-agenda
@@ -2218,10 +2290,11 @@
    #+begin_src emacs-lisp
    (use-package calendar
      :ensure diary-lib
+     :custom
+     (diary-file "~/.personal/diary")
+     (calendar-view-diary-initially-flag t)
+     (calendar-mark-diary-entries-flag t)
      :init
-     (setq diary-file "~/.personal/diary"
-	   calendar-view-diary-initially-flag t
-	   calendar-mark-diary-entries-flag t)
      (calendar-set-date-style 'european)
      (add-to-list 'auto-mode-alist
 		  `(,(expand-file-name diary-file) . diary-mode))
@@ -2304,6 +2377,7 @@
    (use-package subed
      :load-path "~/.source/subed/subed"
      :defer 1
+     :disabled
      :config
 
      (defun l/subed-mpv-frame-step ()
@@ -2359,6 +2433,38 @@
      )
    )
    #+end_src
+
+** PROGRAMMING
+
+   Everything related to writing code.
+
+*** Web mode
+
+    Mode to write HTML/CSS/JS/PHP etc
+
+    #+begin_src emacs-lisp
+    (use-package web-mode
+      :ensure t
+      :custom
+      (web-mode-enable-auto-quoting t)
+      (web-mode-enable-auto-pairing t)
+      (web-mode-enable-auto-closing t)
+      (web-mode-enable-auto-opening t)
+      (web-mode-enable-auto-expanding t)
+      (web-mode-enable-current-element-highlight t)
+      (web-mode-markup-indent-offset 2)
+      (web-mode-css-indent-offset 2)
+      :config
+      (add-to-list 'auto-mode-alist '("\\.css\\'" . web-mode))
+      (add-to-list 'auto-mode-alist '("\\.html\\'" . web-mode))
+      (add-to-list 'auto-mode-alist '("\\.phtml\\'" . web-mode))
+      (add-to-list 'auto-mode-alist '("\\.tpl\\.php\\'" . web-mode))
+      (add-to-list 'auto-mode-alist '("\\.[agj]sp\\'" . web-mode))
+      (add-to-list 'auto-mode-alist '("\\.as[cp]x\\'" . web-mode))
+      (add-to-list 'auto-mode-alist '("\\.erb\\'" . web-mode))
+      (add-to-list 'auto-mode-alist '("\\.mustache\\'" . web-mode))
+      (add-to-list 'auto-mode-alist '("\\.djhtml\\'" . web-mode)))
+    #+end_src
 ** LaTeX
 
    If you do not know what LaTeX is, just skip this section. It's OK.
@@ -2629,7 +2735,10 @@
 	   ("b" . switch-to-buffer-other-window)
 	   ("B" . ibuffer-other-window)
 	   ("," . (lambda () (interactive)
-		    (switch-to-buffer-other-window "*scratch*")))))
+		    (switch-to-buffer-other-window "*scratch*"))))
+     :general
+     (:states 'normal
+	      "ZB" 'kill-current-buffer))
    #+end_src
 
 ** TEXT EDITING
@@ -2954,21 +3063,49 @@
 
     Now we look sexy!
 
-    I am not sure about the theme, so I will load some and choose afterwards.
+    I settled on the doom-emacs themes collection, specifically on the
+    dark+ theme, with some tweaks here and there, see next section.
+
+    Other themes that I tried worth mentioning: modus-vivendi, gotham, darktooth
 
     #+begin_src emacs-lisp
-    (use-package modus-vivendi-theme
-      :ensure t)
+    (use-package doom-themes
+      :ensure t
+      :config
+      (load-theme 'doom-dark+ t))
+    #+end_src
 
-    (use-package gotham-theme
-      :ensure t)
+*** Modeline
 
-    (use-package darktooth-theme
-      :ensure t)
+    Doom's modeline looks good!
 
-    (load-theme 'modus-vivendi t)
+    #+begin_src emacs-lisp
+    (use-package doom-modeline
+      :ensure t
+      ;; :hook (after-init . doom-modeline-mode)
+      :custom
+      (doom-modeline-icon t)
+      :init
+      (doom-modeline-mode 1))
+    #+end_src
+    
+*** Some theming tweaks
 
+    I keep all of these here and not in their packages' sections to have a
+    better overview of what I have changed, because these colors are
+    dependant on the overall theme.
 
+    #+begin_src emacs-lisp
+    (use-package emacs
+      :config
+      (custom-set-faces
+	 '(org-block ((t (:extend nil))))
+	 '(org-block-begin-line ((t (:extend nil))))
+	 '(mode-line ((t (:background "#36648B"))))
+	 '(mode-line-inactive ((t (:foreground "#36648B" :background "#121212"))))
+	 '(doom-modeline-bar ((t (:background "#27408B"))))
+	 '(ivy-posframe ((t (:background "#121212"))))
+	 '(sp-show-pair-match-face ((t (:background "#579C4C" :foreground "#171F24"))))))
     #+end_src
 
 *** Transparency
@@ -3022,7 +3159,7 @@
     #+end_src
 
     I am not sure if I need this, I think I tried to fix the aforementioned
-    buggy behaviour of all-the-icons, but I don;t think it did much.
+    buggy behaviour of all-the-icons, but I don't think it did much.
 
     #+begin_src emacs-lisp
     ;; (use-package font-lock+
@@ -3136,10 +3273,11 @@
 
     # * DISCOVERED FEATURES
 
-    I decided to start keeping a log of useful features that I discovered
-    while writing this configuration, or elisp in general.
 
 * LEARNING CURVE
+
+  I decided to start keeping a log of useful features that I discovered
+  while writing this configuration, or elisp in general.
 ** process-lines                                                      :shell:
 
    The function =process-lines= returns the result of a shell command as a

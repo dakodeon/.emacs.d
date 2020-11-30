@@ -33,73 +33,65 @@
    2. Bootstraps =use-package=. If it is not installed, it installs it.
    3. Calls =org-babel-load-file= pointing to this file.
 
-** Some notes about emacs, vim and everything in between (evil-mode)
+** Emacs / Linux / Evil: a retrospective
 
-   Here is my story getting into Linux, Emacs, Vim, TUIs, TTYs, SSH and the
-   likes... And how all this built up to go full dark side (enter
-   evil-mode).
-
+   This is some kind of journal, concerning the steps that got me into all
+   these stuff.
+   
    I was introduced to Emacs by [[https://iani.github.io/][Iannis Zannos]], Professor of Computer Music
    in the Audio Visual Arts departemnet of the Ionian University, around
-   2011-12. At the time I did not even understand what this strange beast
-   of a program actually is, but, reluctantly, I started using it,
-   learning the basic motions and keeping some basic notes with it. It
-   took me a long time to even be mildly adequate with it, even now,
-   almost ten years later. It is the first time that I manage to be this
-   organized in my configuration, and I'm not even "there", at least not
-   all the way.
+   2011-12. At the time, even the concept of it as a program was alien to
+   me. I started using it for some projects for the university, but for the
+   time being and for a long time more, I was using it more or less like a
+   normal text editor (with some very strange keybindings.)
+   
+   Around the same time I made the jump to Linux, dual booting Linux Mint
+   and Windows 7. I was finally to the point that I was feeling "at home"
+   in Linux and, if not for the "necessary evils" of Adobe Photoshop and
+   Lightroom, I would not even bother to run Windows.
 
-   It was around the same time (2011-12) that I finally made the jump to
-   Linux, dual-booting Windows 7 and Linux Mint. Finally, I got to a point
-   when I was feeling "at home" in Linux and, if not for the "necessary
-   evils" of Adobe Photoshop and Lightroom, I would not even bother to run
-   Windows. The last major breakthrough in my pilgrimage to Linux Land was
-   the discovery of the tiling window managers, specifically [[https://i3wm.org/][i3wm]], by
-   watching the content of [[https://lukesmith.xyz/][Luke Smith]] on YouTube. It was revelatory! Not
-   long after, I switched completely to i3 and never looked back.
-   Alongside with i3, I was introduced to all those beautiful terminal
-   based applications that rely mostly on vim keybindings.
+   One or two years later, I was introduced to the concept of "tiling
+   window managers", specifically [[https://i3wm.org/][i3wm]], by watching the content of [[https://lukesmith.xyz/][Luke
+   Smith]] on YouTube. This happened at a time that I was very frustrated
+   with the mess that a "normal" desktop environment can get into, with all
+   those windows one on top of another, with no easy way to manage them,
+   all those icons in those messy desktops (although I think that's on
+   me...) and the general lack of any real customisation. That, and it also
+   looked cool. Let's be honest. Fun aside, it was something that I missed
+   and didn't even know that existed.
 
-   Vim bindings... Modal editing... What an interesting feature! Although
+   What naturally comes next is the concept of "CLI programs" and "vim
+   bindings".
+   
+   Vim bindings... Modal editing... What an interesting concept! Although
    at this point in time I had already made some projects using Emacs and
-   the Linux terminal (SSH and Raspberry Pi, yay!), I felt that there is
-   something elegant about modal editing, something that I was missing
+   the Linux terminal (mostly SSHing to a Raspberry Pi), I felt that there
+   is something elegant about modal editing, something that I was missing
    from my experience with the, rather counter-intuitive, Emacs
    keybindings. Having said that, I just couldn't take the step and drop
-   Emacs for Vim, and, considering the vim keys, I rarely used them. Even
-   in i3, I moslty used the arrow keys, like some primitive caveman.
+   Emacs for Vim, and, considering the vim motion keys, I rarely used them.
+   Even in i3, I moslty used the arrow keys, like some primitive caveman.
 
-   But then something happened that would change all that... My laptop
-   keyboard broke! It was still functional, it is still my main machine
-   btw, but something very specific have failed: the left arrow key!
-   That's right, now I was obliged to use vim keys and, boy, was it
-   challenging! In the end, however, they won me over, even to the point
-   that I started accidentally hitting vim keys in Emacs and filling the
-   line with h or l... The best teacher is a handicap as they say. Well, I
-   do not actually know if they say it, if not I call dibs on it!
-
-   So: enter the next step, the final turn to the dark side, the beginning
-   of the end, the best of two worlds and the answer to which is better,
-   Emacs or Vim: Evil-mode! It has happened before, first with Emacs, then
-   with Linux, then with i3: you try it, you don't quite get it, you try
-   it again and, time over time, you accept it and make it part of your
-   life.
-
-   Well, that's it, more or less. In the last year or so, I started
-   seriously incorporating Emacs into my (digital) life: I wrote my thesis
-   in LaTeX in Emacs, I started using mu4e as my day-to-day email client,
-   I started using org-capture... It is an ongoing process and I really
-   enjoy it! Really helpful in this matter was the content put up by [[https://cestlaz.github.io/][Mike
+   Well, if you don't have any money and an old laptop that sits in a
+   kitchen for way too long, a lot of things can happen, especially things
+   involving a glass of water and the keyboard... It was still functional
+   as a machine even after that, but my keyboard broke in a very
+   inrteresting way: the arrow keys were not functioning correctly any
+   more! So I was more or less forced to use those vim keys! That was a
+   challenge at the beginning, but after getting used to it, I started
+   accidentaly hitting vim keys inside of Emacs, filling the line with h
+   and l... And that is the point that I started to consider Evil mode.
+   
+   After that, there is an open road. Emacs is HUGE, and there is always
+   something to learn. Very helpful in this matter was the content put up by [[https://cestlaz.github.io/][Mike
    Zamansky]], which pushed me to start writing my config in org-mode with
    use-package declarations, as well as to dwelve into mu4e configuration,
    and, more recently, the content put up by [[https://protesilaos.com/][Protesilaos Stavrou]], which
    expanded on the aforementioned org-mode/use-package "alliance" and
    helped me with a lot of obscure issues and functionality lurking into
-   the dark corners of Emacs...
+   the dark corners of Emacs.
 
 * THE ACTUAL CONFIGURATION
-
-  Enough babbling!
 
 ** EVIL
 
@@ -137,17 +129,17 @@
     #+begin_src emacs-lisp
     (use-package evil
       :ensure t
-      :init
-      (setq evil-move-cursor-back t)
-      (setq evil-move-beyond-eol nil)
-      (setq evil-respect-visual-line-mode t)
-      (setq evil-want-C-u-scroll nil)
-      (setq evil-want-fine-undo t)
-      (setq evil-normal-state-cursor 'box)
-      (setq evil-emacs-state-cursor 'bar)
-      (setq evil-replace-state-cursor 'hbar)
-      (setq evil-want-integration t)
-      (setq evil-want-keybinding nil)
+      :custom
+      (evil-move-cursor-back t)
+      (evil-move-beyond-eol nil)
+      (evil-respect-visual-line-mode t)
+      (evil-want-C-u-scroll nil)
+      (evil-want-fine-undo t)
+      (evil-normal-state-cursor 'box)
+      (evil-emacs-state-cursor 'bar)
+      (evil-replace-state-cursor 'hbar)
+      (evil-want-integration t)
+      (evil-want-keybinding nil)
       :config
       (evil-mode 1)
       (evil-set-initial-state 'Info-mode 'insert)
@@ -360,6 +352,14 @@
 	   ("X" . find-xresources)))
    #+end_src
 
+*** TODO TODO list [0/1]
+
+**** TODO Universal locations
+
+     This should be ported into a separate file, which will be
+     auto-generated by a universal list of locations, so that there is some
+     consistency system-wide (eg shell).
+
 ** POOR MAN'S LEADER KEYS
 
    This is my own, rather crude, attempt to immitate vim's leader key
@@ -407,28 +407,12 @@
 
 ** AUTOCOMPLETE
 
-   This is just a generic autocompletion framework. I haven't tweaked it in
-   any way and it only works most of the time. For example, filename
-   completion never worked as intended.
+   I switched to Company!
 
-   Anyhow, it is still useable, but I guess I will try something like
-   company soon.
-
-    #+begin_src emacs-lisp
-    ;; (use-package auto-complete
-    ;;   :ensure t
-    ;;   :delight
-    ;;   :init
-    ;;   (ac-config-default)
-    ;;   (global-auto-complete-mode t)
-    ;;   (setq ac-ignore-case nil)
-    ;;   :config
-    ;;   (setq ac-sources (append ac-sources ac-source-filename ac-source-files-in-current-dir)))
-    #+end_src
-
-*** COMPANY MODE
+*** Company Mode
 
    Possibly a better option than auto-complete...
+   Needs some tweaking however.
 
    #+begin_src emacs-lisp
    (use-package company
@@ -440,6 +424,8 @@
      ("C-<tab>" . company-files))
    #+end_src
 
+*** Company Quickhelp
+
    Company-quickhelp will add a popup window to view a help message.
    #+begin_src emacs-lisp
    (use-package company-quickhelp
@@ -447,14 +433,19 @@
      (setq company-quickhelp-delay 0.2)
      (company-quickhelp-mode))
    #+end_src
-*** DONE TODO list [1/1]
 
-**** DONE Switch to company
-     CLOSED: [2020-11-26 Thu 12:35]
+*** TODO TODO list [0/1]
 
-     After browsing the web, I found out that the autocomplete package is in
-     fact unmaintained. So, it makes more and more sense to try company.
- 
+**** TODO Configure sources
+
+     While company behaves better than auto-complete, some things need to
+     change:
+     - In ELISP, I don't get all the candidates for completion, I think
+       depending on the context. While this is a cool feature, it is not
+       desirable as, for exapmle, the =use-package= declarations use a
+       differnt syntax.
+     - Completion with words of the buffer is obtrusive.
+
 ** NAVIGATION WITH IVY
 *** Ivy-mode
 
@@ -538,7 +529,6 @@
        and for the sake of it! I ended up using some code from this package
        though. I also took an extra step (just for the bling!) and took the
        elvi's descriptions and passed them to ivy-rich (see next section).
-
 
     #+begin_src emacs-lisp
     (use-package counsel
@@ -689,19 +679,19 @@
       position.
 
  #+begin_src emacs-lisp
-     (use-package ivy-posframe
-       :ensure t
-       :delight
-       :custom
-       (ivy-posframe-display-functions-alist
-	'((complete-symbol . ivy-posframe-display-at-point)
-	  (counsel-describe-function . nil)
-	  (counsel-describe-variable . nil)
-	  (swiper . nil)
-	  (swiper-isearch . nil)
-	  (t . ivy-posframe-display-at-frame-center)))
-       :config
-       (ivy-posframe-mode 1))
+ (use-package ivy-posframe
+   :ensure t
+   :delight
+   :custom
+   (ivy-posframe-display-functions-alist
+    '((complete-symbol . ivy-posframe-display-at-point)
+      (counsel-describe-function . nil)
+      (counsel-describe-variable . nil)
+      (swiper . nil)
+      (swiper-isearch . nil)
+      (t . ivy-posframe-display-at-frame-center)))
+   :config
+   (ivy-posframe-mode 1))
      #+end_src
 
 *** TODO TODO list [0/6]
@@ -988,109 +978,113 @@
      as selecting from all images in a directory with sxiv.
 
    #+begin_src emacs-lisp
-      (use-package dired
-	:config
-	;; get filesize
-	(defun dired-get-size ()
-	  "Get total size of marked files with `du' command.
-	   If not marked any files, default is current file or directory."
-	  (interactive)
-	  (let ((files (dired-get-marked-files)))
-	    (with-temp-buffer
-	      (apply 'call-process "/usr/bin/du" nil t nil "-sch" files)
-	      (message "%s, %s file(s)"
-		       (progn
-			 (re-search-backward "\\(^[0-9.,]+[A-Za-z]+\\).*\\(total\\|总用量\\)$")
-			 (match-string 1))
-		       (length files)))))
+   (use-package dired
+     :config
+     ;; get filesize
+     (defun dired-get-size ()
+       "Get total size of marked files with `du' command.
+	If not marked any files, default is current file or directory."
+       (interactive)
+       (let ((files (dired-get-marked-files)))
+	 (with-temp-buffer
+	   (apply 'call-process "/usr/bin/du" nil t nil "-sch" files)
+	   (message "%s, %s file(s)"
+		    (progn
+		      (re-search-backward "\\(^[0-9.,]+[A-Za-z]+\\).*\\(total\\|总用量\\)$")
+		      (match-string 1))
+		    (length files)))))
 
-	;; unmount drive from mountpoint
-	(defun l/unmount-drive ()
-	  "Unmount selected directories, if they correspond to mountpoints."
-	  (interactive)
-	  (let ((dirs (dired-get-marked-files)))
-	    (dired-do-shell-command "mountpoint -q ? && sudo umount ? && sudo rmdir ?" nil dirs)
-	    (revert-buffer)))
+     ;; unmount drive from mountpoint
+     (defun l/unmount-drive ()
+       "Unmount selected directories, if they correspond to mountpoints."
+       (interactive)
+       (let ((dirs (dired-get-marked-files)))
+	 (dired-do-shell-command "mountpoint -q ? && sudo umount ? && sudo rmdir ?" nil dirs)
+	 (revert-buffer)))
 
-	;; pack and unpack
-	(defun l/atool-pack ()
-	  "Use the `atool' program to pack some files."
-	  (interactive)
-	  (when (eq major-mode 'dired-mode)
-	    (let ((files (dired-get-marked-files t))
-		  (archive (expand-file-name
-			    (read-file-name "Pack files as:" nil nil nil)))
-		  (process-connection-type nil))
-	      (if (get-buffer "*atool-pack*")
-		  (kill-buffer "*atool-pack*"))
-	      (apply 'start-process
-		     (append (list "atool-pack" "*atool-pack*" "atool" "--explain" archive "-a") files))
-	      (switch-to-buffer-other-window "*atool-pack*")
-	      (special-mode))))
+     ;; pack and unpack
+     (defun l/atool-pack ()
+       "Use the `atool' program to pack some files."
+       (interactive)
+       (when (eq major-mode 'dired-mode)
+	 (let ((files (dired-get-marked-files t))
+	       (archive (expand-file-name
+			 (read-file-name "Pack files as:" nil nil nil)))
+	       (process-connection-type nil))
+	   (if (get-buffer "*atool-pack*")
+	       (kill-buffer "*atool-pack*"))
+	   (apply 'start-process
+		  (append (list "atool-pack" "*atool-pack*" "atool" "--explain" archive "-a") files))
+	   (switch-to-buffer-other-window "*atool-pack*")
+	   (special-mode))))
 
-	(defun l/atool-unpack ()
-	  "Use the `atool' program to unpack some archives."
-	  (interactive)
-	  (when (eq major-mode 'dired-mode)
-	    (let ((files (dired-get-marked-files t))
-		  (dest (expand-file-name
-			 (read-directory-name "Unpack files to:"
-					      (dired-dwim-target-directory) nil nil)))
-		  (process-connection-type nil))
-	      (if (get-buffer "*atool-unpack*")
-		  (kill-buffer "*atool-unpack*"))
-	      (if (not (file-directory-p dest))
-		  (make-directory dest))
-	      (apply 'start-process
-		     (append (list "atool-unpack" "*atool-unpack*" "atool" "--explain" "-X" dest) files))
-	      (switch-to-buffer-other-window "*atool-unpack*")
-	      (special-mode))))
+     (defun l/atool-unpack ()
+       "Use the `atool' program to unpack some archives."
+       (interactive)
+       (when (eq major-mode 'dired-mode)
+	 (let ((files (dired-get-marked-files t))
+	       (dest (expand-file-name
+		      (read-directory-name "Unpack files to:"
+					   (dired-dwim-target-directory) nil nil)))
+	       (process-connection-type nil))
+	   (if (get-buffer "*atool-unpack*")
+	       (kill-buffer "*atool-unpack*"))
+	   (if (not (file-directory-p dest))
+	       (make-directory dest))
+	   (apply 'start-process
+		  (append (list "atool-unpack" "*atool-unpack*" "atool" "--explain" "-X" dest) files))
+	   (switch-to-buffer-other-window "*atool-unpack*")
+	   (special-mode))))
 
-	;; get subtitles
-	(defun l/get-subtitles ()
-	  "Get subtitles for marked files while in a dired buffer. Depends on subliminal, so it has to be on your system."
-	  (interactive)
-	  (when (eq major-mode 'dired-mode)
-	    (let* ((lang-list '("en" "gr"))
-		   (lang (completing-read "Select language: " lang-list nil t))
-		   (files (dired-get-marked-files))
-		   (process-connection-type nil))
-	      (if (get-buffer "*get-subtitles*")
-		  (kill-buffer "*get-subtitles*"))
-	      (apply 'start-process
-		     (append (list "get-subtitles" "*get-subtitles*" "subliminal" "download" "-l" lang) files))
-	      (switch-to-buffer-other-window "*get-subtitles*")
-	      (special-mode))))
+     ;; get subtitles
+     (defun l/get-subtitles ()
+       "Get subtitles for marked files while in a dired buffer. Depends on subliminal, so it has to be on your system."
+       (interactive)
+       (when (eq major-mode 'dired-mode)
+	 (let* ((lang-list '("en" "gr"))
+		(lang (completing-read "Select language: " lang-list nil t))
+		(files (dired-get-marked-files))
+		(process-connection-type nil))
+	   (if (get-buffer "*get-subtitles*")
+	       (kill-buffer "*get-subtitles*"))
+	   (apply 'start-process
+		  (append (list "get-subtitles" "*get-subtitles*" "subliminal" "download" "-l" lang) files))
+	   (switch-to-buffer-other-window "*get-subtitles*")
+	   (special-mode))))
 
-	;; change desktop background
-	;; (defun l/change-desktop-background ()
-	  ;; "Change the desktop background using feh."
-	  ;; (interactive)
-	  ;; (let ((fit-type (completing-read "Select fit: " '("scale" "center" "fill" "max") nil t))
-		;; (entry (shell-quote-argument (expand-file-name (dired-file-name-at-point))))
-		;; (targetfile (shell-quote-argument (expand-file-name "~/.config/.wallpaper.jpg"))))
-	    ;; (setq cpcmd (concat "cp " entry " " targetfile))
-	    ;; (setq fehcmd (concat "feh --bg-" fit-type " " targetfile))
-	    ;; (setq cmd (concat cpcmd " && " fehcmd))
-	;; (shell-command cmd)))
+     ;; change desktop background
+     ;; (defun l/change-desktop-background ()
+       ;; "Change the desktop background using feh."
+       ;; (interactive)
+       ;; (let ((fit-type (completing-read "Select fit: " '("scale" "center" "fill" "max") nil t))
+	     ;; (entry (shell-quote-argument (expand-file-name (dired-file-name-at-point))))
+	     ;; (targetfile (shell-quote-argument (expand-file-name "~/.config/.wallpaper.jpg"))))
+	 ;; (setq cpcmd (concat "cp " entry " " targetfile))
+	 ;; (setq fehcmd (concat "feh --bg-" fit-type " " targetfile))
+	 ;; (setq cmd (concat cpcmd " && " fehcmd))
+     ;; (shell-command cmd)))
 
-	;; change desktop background -- I should add options to position the image and select from multiple images
-	(defun l/change-desktop-background ()
-	  "Change desktop background using my custom script, wallset."
-	  (interactive)
-	  (shell-command (concat "wallset "
-				 (shell-quote-argument
-				  (expand-file-name (dired-filename-at-point))))))
+     ;; change desktop background -- I should add options to position the image and select from multiple images
+     (defun l/change-desktop-background ()
+       "Change desktop background using my custom script, wallset."
+       (interactive)
+       (shell-command (concat "wallset "
+			      (shell-quote-argument
+			       (expand-file-name (dired-filename-at-point))))))
 
-	(defun l/view-images ()
-	  "View images externally with sxiv, using my script, sxivdir"
-	  (interactive)
-	  (let ((files (dired-get-marked-files)))
-	    (apply 'start-process
-		   (append (list "sxivdir" nil "sxivdir" "-1")
-			   files)))))
+     (defun l/view-images ()
+       "View images externally with sxiv, using my script, sxivdir"
+       (interactive)
+       (let ((files (dired-get-marked-files)))
+	 (apply 'start-process
+		(append (list "sxivdir" nil "sxivdir" "-1")
+			files)))))
 
-
+   (defun l/open-externally ()
+     "Use xdg-open to open files from dired"
+     (interactive)
+     (let ((file (dired-file-name-at-point)))
+       (shell-command (concat "xdg-open " (shell-quote-argument (expand-file-name file))))))
    #+end_src
 
 *** Keybindings
@@ -1173,7 +1167,7 @@
 		"+" 'dired-create-directory
 		(kbd "S-<return>") 'dired-find-file-other-window
 		(kbd "RET") 'dired-find-file
-		(kbd "C-<return>") 'browse-url-of-dired-file
+		(kbd "C-<return>") 'l/open-externally
 		;; sorting
 		"o" 'l/dired-sorting-map ;; prefix -- was dired-sort-toggle-or-edit
 		"(" 'dired-hide-details-mode
@@ -1477,14 +1471,15 @@
     #+begin_src emacs-lisp
     (use-package openwith
       :ensure t
-      :init
-      (setq openwith-associations
+      :after dired
+      :custom
+      (openwith-associations
 	    '(("\\.pdf\\'" "zarhura" (file))
 	      ("\\.\\(mp3\\|wav\\|flac\\|wmv\\)\\'" "st -e mpv" (file))
 	      ("\\.\\(mp4\\|mkv\\|avi\\|mov\\)\\'" "mpv" (file))
 	      ("\\.\\(jpe?g\\|tiff?\\|png\\)\\'" "sxiv" (file))))
       :config
-      (setq openwith-mode t))
+      (openwith-mode))
     #+end_src
 
 *** Some bling!
@@ -3101,11 +3096,12 @@
       (custom-set-faces
 	 '(org-block ((t (:extend nil))))
 	 '(org-block-begin-line ((t (:extend nil))))
+	 '(outline-3 ((t (:foreground "#D6EBF7"))))
 	 '(mode-line ((t (:background "#36648B"))))
 	 '(mode-line-inactive ((t (:foreground "#36648B" :background "#121212"))))
 	 '(doom-modeline-bar ((t (:background "#27408B"))))
 	 '(ivy-posframe ((t (:background "#121212"))))
-	 '(sp-show-pair-match-face ((t (:background "#579C4C" :foreground "#171F24"))))))
+	 '(sp-show-pair-match-face ((t (:background "#B5CEA8" :foreground "#171F24"))))))
     #+end_src
 
 *** Transparency
@@ -3270,9 +3266,6 @@
     (use-package 2048-game
       :ensure t)
     #+end_src
-
-    # * DISCOVERED FEATURES
-
 
 * LEARNING CURVE
 
@@ -3558,4 +3551,33 @@
        (evil-insert 1))
    )
    #+end_src
+** REJECTED AUTOCOMPLETE
+   CLOSED: [2020-11-30 Mon 14:01]
 
+   This is just a generic autocompletion framework. I haven't tweaked it in
+   any way and it only works most of the time. For example, filename
+   completion never worked as intended.
+
+   Anyhow, it is still useable, but I guess I will try something like
+   company soon.
+
+    #+begin_src emacs-lisp
+	(use-package auto-complete
+	  :disabled
+	  :ensure t
+	  :delight
+	  :init
+	  (ac-config-default)
+	  (global-auto-complete-mode t)
+	  (setq ac-ignore-case nil)
+	  :config
+	  (setq ac-sources (append ac-sources ac-source-filename ac-source-files-in-current-dir)))
+    #+end_src
+
+*** DONE TODO list [1/1]
+
+**** DONE Switch to company
+     CLOSED: [2020-11-26 Thu 12:35]
+
+     After browsing the web, I found out that the autocomplete package is in
+     fact unmaintained. So, it makes more and more sense to try company.
